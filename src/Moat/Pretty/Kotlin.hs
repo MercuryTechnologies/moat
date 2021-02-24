@@ -26,9 +26,9 @@ prettyKotlinData = \case
     ++ "inline class "
     ++ prettyMoatTypeHeader newtypeName newtypeTyVars
     ++ "(val "
-    ++ newtypeFieldName
+    ++ fst newtypeField
     ++ ": "
-    ++ prettyMoatType newtypeTyp
+    ++ prettyMoatType (snd newtypeField)
     ++ ")"
   MoatAlias{..} -> ""
   where

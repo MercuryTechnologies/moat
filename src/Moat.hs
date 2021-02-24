@@ -783,7 +783,7 @@ consToMoatType o@Options{..} parentName instTys variant ts bs = \case
                  | typeAlias -> do
                      mkTypeAlias parentName instTys con
                  | otherwise -> do
-                     mkProd o parentName instTys ts con
+                     mkNewtype o parentName instTys con
             _ -> do
               mkProd o parentName instTys ts con
         _ -> do
@@ -951,6 +951,20 @@ mkVoid :: ()
 mkVoid typName instTys ts = matchProxy
   $ enumExp typName instTys [] [] Nothing ts (False, Nothing, [])
 
+mkNewtype :: ()
+  => Options
+  -> Name
+  -> [Type]
+  -> ConstructorInfo
+  -> ShwiftyM Match
+mkNewtype o@Options{..} typName instTys = \case
+  -- TODO: make this only accept proper con variants
+  ConstructorInfo
+    { constructorFields = [field]
+    } -> do
+      matchProxy $ newtypeExp typName instTys dataInterfaces (prettyField o (mkName "value") field)
+  _ -> undefined
+
 -- | Make a single-constructor product (struct)
 mkProd :: ()
   => Options
@@ -976,6 +990,8 @@ mkProd o@Options{..} typName instTys ts = \case
     { constructorVariant = NormalConstructor
     , constructorName = name
     } -> do
+      -- TODO: replace with 'value', ignore non-records
+      -- instead of erroring. Make this configurable
       throwError $ SingleConNonRecord name
   -- single constructor, non-record (Infix)
   ConstructorInfo
@@ -1512,6 +1528,20 @@ enumExp parentName tyVars protos cases raw tags bs
       , (mkName "enumTags", ListE tags)
       ]
 
+newtypeExp :: ()
+  => Name
+  -> [Type]
+  -> [Interface]
+  -> Exp
+  -> Exp
+newtypeExp name tyVars ifaces field
+  = RecConE 'MoatNewtype
+      [ (mkName "newtypeName", unqualName name)
+      , (mkName "newtypeTyVars", prettyTyVars tyVars)
+      , (mkName "newtypeField", field)
+      , (mkName "newtypeInterfaces", ifacesExp ifaces)
+      ]
+
 -- | Construct a Struct.
 structExp :: ()
   => Name
@@ -1584,8 +1614,13 @@ applyBase (b, r, ps) (ParensE -> s) = if b
     AppE (AppE (AppE (VarE 'giveBase) (rawValueE r)) (protosExp ps)) s
   else s
 
+-- TODO DONT USE SHOW
 protosExp :: [Protocol] -> Exp
 protosExp = ListE . map (ConE . mkName . show)
+
+-- TODO DONT USE SHOW
+ifacesExp :: [Interface] -> Exp
+ifacesExp = ListE . map (ConE . mkName . show)
 
 tupE :: [Exp] -> Exp
 #if MIN_VERSION_template_haskell(2,16,0)

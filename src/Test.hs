@@ -31,6 +31,9 @@ data Struct a = MkStruct
   }
 getShwifty ''Struct
 
+newtype Newtype = MkNewtype Int
+getShwifty ''Newtype
+
 {-
 data CodecTest a = CodecTest
   { codecTestOne :: a
@@ -199,9 +202,14 @@ data Contains a = Contains
   , m3 :: Foo (a -> Int) a Int
   }
 getShwifty ''Contains
+-}
 
 test :: IO ()
 test = do
+  testPrint @(Struct X)
+  testPrint @Newtype
+
+{-
   testPrint @(Contains X)
   testPrint @(Foo X X X)
   testPrint @(OneTyVar X)
@@ -225,10 +233,10 @@ test = do
   testPrint @(CodecTest X)
   testPrint @(CodecSum X X)
   --testPrint @(AliasTestArb X)
-
-testPrint :: forall a. ToSwiftData a => IO ()
-testPrint = putStrLn $ prettySwiftData $ toSwiftData (Proxy @a)
-
+-}
+testPrint :: forall a. ToMoatData a => IO ()
+testPrint = putStrLn $ prettyKotlinData $ toMoatData (Proxy @a)
+{-
 --data VoidTest
 --getShwifty ''VoidTest
 

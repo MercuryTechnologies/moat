@@ -183,8 +183,7 @@ data MoatData interface
   | MoatNewtype
       { newtypeName :: String
       , newtypeTyVars :: [String]
-      , newtypeFieldName :: String
-      , newtypeTyp :: MoatType
+      , newtypeField :: (String, MoatType)
       , newtypeInterfaces :: [interface]
       }
     -- ^ A newtype. Kotlin backend only, top-level newtypes
@@ -203,6 +202,7 @@ data MoatData interface
 data Backend
   = Kotlin
   | Swift
+  deriving stock (Eq, Show)
 
 type KotlinData = MoatData Interface
 type SwiftData = MoatData Protocol
@@ -210,6 +210,7 @@ type SwiftData = MoatData Protocol
 data Interface
   = Serializable
   | TODO
+  deriving stock (Eq, Show)
 
 -- | Swift protocols.
 --   Only a few are supported right now.

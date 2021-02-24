@@ -60,6 +60,9 @@ prettySwiftDataWith indent = \case
     ++ prettyMoatTypeHeader aliasName aliasTyVars
     ++ " = "
     ++ prettyMoatType aliasTyp
+
+  MoatNewtype{..} -> ""
+
   where
     indents = replicate indent ' '
 
