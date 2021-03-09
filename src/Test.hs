@@ -1,16 +1,17 @@
 {-# language
     AllowAmbiguousTypes
-  , TemplateHaskell
-  , ScopedTypeVariables
   , DataKinds
+  , DuplicateRecordFields
+  , FlexibleInstances
+  , GADTs
   , KindSignatures
   , PolyKinds
-  , GADTs
+  , QuantifiedConstraints
+  , ScopedTypeVariables
+  , TemplateHaskell
   , TypeApplications
   , TypeFamilies
   , TypeOperators
-  , QuantifiedConstraints
-  , FlexibleInstances
 #-}
 
 --{-# options_ghc -ddump-splices #-}
@@ -24,46 +25,31 @@ import Data.Proxy
 import Data.Kind (Type)
 import Data.Void (Void)
 import qualified Data.UUID.Types
+import Prelude hiding (Enum)
 
 data Struct a = MkStruct
   { x :: Maybe a
   , y :: Int
   }
-getShwifty ''Struct
+mobileGen ''Struct
+
+data Enum
+  = EnumCase0
+  | EnumCase1
+mobileGen ''Enum
+
+data EnumWithLabels
+  = EnumWithLabels0 { x :: Int, y :: Int }
+  | EnumWithLabels1 { x :: Int, y :: Int }
+mobileGen ''EnumWithLabels
 
 newtype Newtype = MkNewtype Int
-getShwifty ''Newtype
+mobileGen ''Newtype
+
+newtype Alias = MkAlias Int
+mobileGenWith (defaultOptions {typeAlias = True}) ''Alias
 
 {-
-data CodecTest a = CodecTest
-  { codecTestOne :: a
-  , codecTestTwo :: Int
-  }
-$( getShwiftyCodec
-     (Codec @
-       (   Drop 'Field "codecTest"
-         & Implement 'Codable
-         & DontGenerate ToSwift
-         & OmitField "codecTestOne"
-         & MakeBase 'Nothing '[]
-       )
-     )
-
-     ''CodecTest
- )
-
-data CodecSum a b
-  = CodecSumL a
-  | CodecSumR b
-$( getShwiftyCodec
-     (Codec @
-        (   MakeBase ('Just 'Str) '[ Equatable, Hashable, Codable ]
-          & Drop 'DataCon "CodecSum"
-        )
-     )
-     ''CodecSum
- )
-
 data Fun a b = MkFun
   { fun :: Int -> Char -> Bool -> String -> Either a b
   }
@@ -207,7 +193,10 @@ getShwifty ''Contains
 test :: IO ()
 test = do
   testPrint @(Struct X)
+  testPrint @Enum
+  testPrint @EnumWithLabels
   testPrint @Newtype
+  testPrint @Alias
 
 {-
   testPrint @(Contains X)
@@ -234,22 +223,8 @@ test = do
   testPrint @(CodecSum X X)
   --testPrint @(AliasTestArb X)
 -}
+
 testPrint :: forall a. ToMoatData a => IO ()
-testPrint = putStrLn $ prettyKotlinData $ toMoatData (Proxy @a)
-{-
---data VoidTest
---getShwifty ''VoidTest
-
---data SingleConNonRecordTest
---  = SingleConNonRecordTest Int
---getShwifty ''SingleConNonRecordTest
-
---data InfixConTest = Int :+: Int
---getShwifty ''InfixConTest
-
---data KindVarRealisationTest (a :: Maybe k) = KindVarRealisationTest
---getShwifty ''KindVarRealisationTest
-
---data ExTypsTest = forall x y z. Ex x
---getShwifty ''ExTypsTest
--}
+testPrint = do
+  putStrLn $ prettyKotlinData $ toMoatData (Proxy @a)
+  putStrLn $ prettySwiftData $ toMoatData (Proxy @a)

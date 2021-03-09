@@ -51,7 +51,7 @@ import Moat.Types
 --   'mkMoat'.
 class ToMoatData a where
   -- | Convert a type to 'MoatData'
-  toMoatData :: Proxy a -> MoatData interface
+  toMoatData :: Proxy a -> MoatData
 
 -- | The class for things which can be converted to
 --   a 'MoatType'.

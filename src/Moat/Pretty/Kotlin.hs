@@ -9,8 +9,9 @@ module Moat.Pretty.Kotlin
 
 import Data.List (intercalate)
 import Moat.Types
+import qualified Data.Char as Char
 
-prettyKotlinData :: KotlinData -> String
+prettyKotlinData :: MoatData -> String
 prettyKotlinData = \case
   MoatStruct{..} -> ""
     ++ prettyInterfaces structInterfaces
@@ -21,6 +22,13 @@ prettyKotlinData = \case
     ++ prettyStructFields indents structFields
     ++ ")"
   MoatEnum{..} -> ""
+    ++ prettyInterfaces enumInterfaces
+    ++ "sealed class "
+    ++ prettyMoatTypeHeader enumName enumTyVars
+    ++ "("
+    ++ newlineNonEmpty enumCases
+    ++ prettyEnumCases enumName indents enumCases
+    ++ ")"
   MoatNewtype{..} -> ""
     ++ prettyInterfaces newtypeInterfaces
     ++ "inline class "
@@ -31,6 +39,10 @@ prettyKotlinData = \case
     ++ prettyMoatType (snd newtypeField)
     ++ ")"
   MoatAlias{..} -> ""
+    ++ "typealias "
+    ++ prettyMoatTypeHeader aliasName aliasTyVars
+    ++ " = "
+    ++ prettyMoatType aliasTyp
   where
     indent = 4
     indents = replicate indent ' '
@@ -43,6 +55,42 @@ prettyStructFields indents = go
   where
     go [] = ""
     go ((fieldName, ty):fs) = indents ++ "val " ++ fieldName ++ ": " ++ prettyMoatType ty ++ ",\n" ++ go fs
+
+prettyEnumCases :: String -> String -> [(String, [(Maybe String, MoatType)])] -> String
+prettyEnumCases typName indents = go
+  where
+    toUpperFirst = \case
+      [] -> []
+      (c : cs) -> Char.toUpper c : cs
+
+    go = \case
+      [] -> ""
+      ((caseNm, []):xs) -> []
+        ++ indents
+        ++ "data class "
+        ++ toUpperFirst caseNm
+        ++ "() : "
+        ++ typName
+        ++ "\n"
+        ++ go xs
+      ((caseNm, cs):xs) -> []
+        ++ indents
+        ++ "data class "
+        ++ toUpperFirst caseNm
+        ++ "(\n"
+        ++ intercalate ",\n"
+             ( map ((++) indents)
+               ( (map ((++) indents . uncurry labelCase) cs)
+               )
+             )
+        ++ "\n"
+        ++ indents
+        ++ ")\n"
+        ++ go xs
+
+labelCase :: Maybe String -> MoatType -> String
+labelCase Nothing ty = prettyMoatType ty
+labelCase (Just label) ty = "val " ++ label ++ ": " ++ prettyMoatType ty
 
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name

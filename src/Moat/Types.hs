@@ -9,8 +9,6 @@ module Moat.Types
   ( MoatType(..)
   , MoatData(..)
   , Backend(..)
-  , KotlinData
-  , SwiftData
   , Protocol(..)
   , Interface(..)
   , Options(..)
@@ -122,19 +120,20 @@ data MoatType
 --   two or more constructors will be converted to an
 --   enum. Types with 0 constructors will be converted
 --   to an empty enum.
-data MoatData interface
+data MoatData
   = MoatStruct
       { structName :: String
         -- ^ The name of the struct
       , structTyVars :: [String]
         -- ^ The struct's type variables
-      , structInterfaces :: [interface]
-        -- ^ The interface or protocols which the struct
-        --   implements
+      , structInterfaces :: [Interface]
+        -- ^ The interfaces which the struct implements
+      , structProtocols :: [Protocol]
+        -- ^ The protocols which the struct implements
       , structFields :: [(String, MoatType)]
         -- ^ The fields of the struct. the pair
         --   is interpreted as (name, type).
-      , structPrivateTypes :: [MoatData interface]
+      , structPrivateTypes :: [MoatData]
         -- ^ Private types of the struct. Typically
         --   populated by setting 'makeBase'.
         --
@@ -150,9 +149,10 @@ data MoatData interface
         -- ^ The name of the enum
       , enumTyVars :: [String]
         -- ^ The enum's type variables
-      , enumInterfaces :: [interface]
-        -- ^ The interfaces (Kotlin) or protocols (Swift)
-        --   which the enum implements
+      , enumInterfaces :: [Interface]
+        -- ^ The interfaces (Kotlin) which the enum implements
+      , enumProtocols :: [Protocol]
+        -- ^ The interfaces (Kotlin) which the enum implements
       , enumCases :: [(String, [(Maybe String, MoatType)])]
         -- ^ The cases of the enum. the type
         --   can be interpreted as
@@ -169,7 +169,7 @@ data MoatData interface
         --   nonsensical here.
         --
         --   Only used by the Swift backend.
-      , enumPrivateTypes :: [MoatData interface]
+      , enumPrivateTypes :: [MoatData]
         -- ^ Private types of the enum. Typically
         --   populated by setting 'makeBase'.
         --
@@ -184,10 +184,12 @@ data MoatData interface
       { newtypeName :: String
       , newtypeTyVars :: [String]
       , newtypeField :: (String, MoatType)
-      , newtypeInterfaces :: [interface]
+      , newtypeInterfaces :: [Interface]
+      , newtypeProtocols :: [Protocol]
       }
-    -- ^ A newtype. Kotlin backend only, top-level newtypes
-    --   do not exist in Swift. See 'Tag' for Swift scoped newtypes ("tags").
+    -- ^ A newtype.
+    --   Kotlin backend: becomes an inline class.
+    --   Swift backend: Becomes an empty enum with a tag.
   | MoatAlias
       { aliasName :: String
         -- ^ the name of the type alias
@@ -204,13 +206,10 @@ data Backend
   | Swift
   deriving stock (Eq, Show)
 
-type KotlinData = MoatData Interface
-type SwiftData = MoatData Protocol
-
 data Interface
   = Serializable
   | TODO
-  deriving stock (Eq, Show)
+  deriving stock (Eq, Read, Show)
 
 -- | Swift protocols.
 --   Only a few are supported right now.

@@ -11,28 +11,21 @@ import Data.List (intercalate)
 import Moat.Types
 
 -- | Pretty-print a 'SwiftData'.
-prettySwiftData :: SwiftData -> String
+prettySwiftData :: MoatData -> String
 prettySwiftData = prettySwiftDataWith 4
-
-prettyKotlinDataWith :: ()
-  => Int
-  -> KotlinData
-  -> String
-prettyKotlinDataWith indent = \case
-  _ -> ""
 
 -- | Pretty-print a 'SwiftData'.
 --   This function cares about indent.
 prettySwiftDataWith :: ()
   => Int -- ^ indent
-  -> SwiftData
+  -> MoatData
   -> String
 prettySwiftDataWith indent = \case
 
   MoatEnum {..} -> []
     ++ "enum "
     ++ prettyMoatTypeHeader enumName enumTyVars
-    ++ prettyRawValueAndProtocols enumRawValue enumInterfaces
+    ++ prettyRawValueAndProtocols enumRawValue enumProtocols
     ++ " {"
     ++ newlineNonEmpty enumCases
     ++ prettyEnumCases indents enumCases
@@ -45,7 +38,7 @@ prettySwiftDataWith indent = \case
   MoatStruct {..} -> []
     ++ "struct "
     ++ prettyMoatTypeHeader structName structTyVars
-    ++ prettyProtocols structInterfaces
+    ++ prettyProtocols structProtocols
     ++ " {"
     ++ newlineNonEmpty structFields
     ++ prettyStructFields indents structFields
@@ -62,6 +55,20 @@ prettySwiftDataWith indent = \case
     ++ prettyMoatType aliasTyp
 
   MoatNewtype{..} -> ""
+    ++ prettyProtocols newtypeProtocols
+    ++ "enum "
+    ++ prettyMoatTypeHeader newtypeName newtypeTyVars
+    ++ " {\n"
+    ++ indents
+    ++ "typealias "
+    ++ newtypeName
+    ++ "Tag"
+    ++ " = Tagged<"
+    ++ newtypeName
+    ++ ", "
+    ++ prettyMoatType (snd newtypeField)
+    ++ ">\n"
+    ++ "}"
 
   where
     indents = replicate indent ' '
@@ -205,7 +212,7 @@ prettyStructFields indents = go
     go [] = ""
     go ((fieldName,ty):fs) = indents ++ "let " ++ fieldName ++ ": " ++ prettyMoatType ty ++ "\n" ++ go fs
 
-prettyPrivateTypes :: String -> [SwiftData] -> String
+prettyPrivateTypes :: String -> [MoatData] -> String
 prettyPrivateTypes indents = go
   where
     go [] = ""
