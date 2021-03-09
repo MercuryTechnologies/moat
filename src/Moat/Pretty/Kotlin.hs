@@ -109,15 +109,15 @@ prettyMoatType :: MoatType -> String
 prettyMoatType = \case
   Str -> "String"
   Unit -> "()"
-  Bool -> "Bool"
-  Character -> "Character"
+  Bool -> "Boolean"
+  Character -> "Char"
   Tuple2 e1 e2 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ")"
   Tuple3 e1 e2 e3 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e3 ++ ")"
   Optional e -> prettyMoatType e ++ "?"
-  Result e1 e2 -> "Result<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
+  Result e1 e2 -> "Either<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
   Set e -> "Set<" ++ prettyMoatType e ++ ">"
-  Dictionary e1 e2 -> "Dictionary<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
-  Array e -> "[" ++ prettyMoatType e ++ "]"
+  Dictionary e1 e2 -> "Map<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
+  Array e -> "Array<" ++ prettyMoatType e ++ ">"
   -- App is special, we recurse until we no longer
   -- any applications.
   App e1 e2 -> prettyApp e1 e2
