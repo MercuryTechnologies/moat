@@ -13,6 +13,7 @@ import qualified Data.Char as Char
 
 prettyKotlinData :: MoatData -> String
 prettyKotlinData = \case
+
   MoatStruct{..} -> ""
     ++ prettyInterfaces structInterfaces
     ++ "data class "
@@ -21,6 +22,7 @@ prettyKotlinData = \case
     ++ newlineNonEmpty structFields
     ++ prettyStructFields indents structFields
     ++ ")"
+
   MoatEnum{..} -> ""
     ++ prettyInterfaces enumInterfaces
     ++ "sealed class "
@@ -29,6 +31,7 @@ prettyKotlinData = \case
     ++ newlineNonEmpty enumCases
     ++ prettyEnumCases enumName indents enumCases
     ++ ")"
+
   MoatNewtype{..} -> ""
     ++ prettyInterfaces newtypeInterfaces
     ++ "inline class "
@@ -38,11 +41,13 @@ prettyKotlinData = \case
     ++ ": "
     ++ prettyMoatType (snd newtypeField)
     ++ ")"
+
   MoatAlias{..} -> ""
     ++ "typealias "
     ++ prettyMoatTypeHeader aliasName aliasTyVars
     ++ " = "
     ++ prettyMoatType aliasTyp
+
   where
     indent = 4
     indents = replicate indent ' '

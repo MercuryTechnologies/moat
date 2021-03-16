@@ -211,6 +211,9 @@ data Interface
   | TODO
   deriving stock (Eq, Read, Show)
 
+data Superclass
+  = Parcelize
+
 -- | Swift protocols.
 --   Only a few are supported right now.
 data Protocol
