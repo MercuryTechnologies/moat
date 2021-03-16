@@ -60,6 +60,8 @@ module Moat
     -- * Options for encoding types
     -- ** Option type
   , Options
+    -- ** Helper type for omissions
+  , KeepOrDiscard(..)
     -- ** Actual Options
   , fieldLabelModifier
   , constructorModifier
@@ -787,7 +789,7 @@ consToMoatType o@Options{..} parentName instTys variant ts bs = \case
               mkProd o parentName instTys ts con
         _ -> do
           -- omit the cases we don't want
-          let cons' = flip filter cons $ \ConstructorInfo{..} -> not (nameStr constructorName `elem` omitCases)
+          let cons' = flip filter cons $ \ConstructorInfo{..} -> omitCases (nameStr constructorName) == Keep
           cases <- forM cons' (liftEither . mkCase o)
           ourMatch <- matchProxy
             $ enumExp parentName instTys dataInterfaces dataProtocols cases dataRawValue ts bs
@@ -1010,7 +1012,7 @@ zipFields :: Options -> [Name] -> [Type] -> [Exp]
 zipFields o = zipWithPred p (prettyField o)
   where
     p :: Name -> Type -> Bool
-    p n _ = not $ nameStr n `elem` omitFields o
+    p n _ = omitFields o (nameStr n) == Keep
 
 zipWithPred :: (a -> b -> Bool) -> (a -> b -> c) -> [a] -> [b] -> [c]
 zipWithPred _ _ [] _ = []

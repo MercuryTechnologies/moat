@@ -12,6 +12,7 @@ module Moat.Types
   , Protocol(..)
   , Interface(..)
   , Options(..)
+  , KeepOrDiscard(..)
   , defaultOptions
   ) where
 
@@ -343,12 +344,12 @@ data Options = Options
     --   modifiers to it.
     --
     --   The default ('True') will do so.
-  , omitFields :: [String]
+  , omitFields :: String -> KeepOrDiscard
     -- ^ Fields to omit from a struct when
     --   generating types.
     --
     --   The default (@[]@) will omit nothing.
-  , omitCases :: [String]
+  , omitCases :: String -> KeepOrDiscard
     -- ^ Cases to omit from an enum when
     --   generating types.
     --
@@ -387,8 +388,8 @@ data Options = Options
 --   , newtypeTag = False
 --   , lowerFirstField = True
 --   , lowerFirstCase = True
---   , omitFields = []
---   , omitCases = []
+--   , omitFields = const Keep
+--   , omitCases = const Keep
 --   , makeBase = (False, Nothing, [])
 --   }
 -- @
@@ -408,7 +409,10 @@ defaultOptions = Options
   , newtypeTag = False
   , lowerFirstField = True
   , lowerFirstCase = True
-  , omitFields = []
-  , omitCases = []
+  , omitFields = const Keep
+  , omitCases = const Keep
   , makeBase = (False, Nothing, [])
   }
+
+data KeepOrDiscard = Keep | Discard
+  deriving stock (Eq, Ord, Show, Read)
