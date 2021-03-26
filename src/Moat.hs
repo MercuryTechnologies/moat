@@ -519,8 +519,7 @@ getToMoatData o@Options{..} parentName instTys tyVarBndrs variant tags cons =
 -- }
 -- @
 --
--- /Note/: Tags are ignored on the Kotlin
--- backend.
+-- /Note/: Tags become newtypes on the Kotlin backend.
 mobileGenWithTags :: ()
   => Options
   -> [Name]
@@ -777,7 +776,7 @@ consToMoatType o@Options{..} parentName instTys variant ts bs = \case
               if | typeAlias -> do
                      mkNewtypeInstanceAlias instTys con
                  | otherwise -> do
-                     mkNewtypeInstance o instTys ts con
+                     mkNewtypeInstance o instTys con
             Newtype -> do
               if | newtypeTag -> do
                      mkTypeTag o parentName instTys con
@@ -882,19 +881,16 @@ mkNewtypeInstance :: ()
      -- ^ encoding options
   -> [Type]
      -- ^ type variables
-  -> [Exp]
-     -- ^ tags
   -> ConstructorInfo
      -- ^ constructor info
   -> ShwiftyM Match
-mkNewtypeInstance o@Options{..} (stripConT -> instTys) ts = \case
+mkNewtypeInstance o@Options{..} (stripConT -> instTys) = \case
   ConstructorInfo
-    { constructorVariant = RecordConstructor [fieldName]
+    { constructorVariant = RecordConstructor [_fieldName]
     , constructorFields = [field]
     , ..
     } -> do
-      let fields = [prettyField o fieldName field]
-      matchProxy $ structExp constructorName instTys dataInterfaces dataProtocols fields ts makeBase
+      matchProxy $ newtypeExp constructorName instTys dataInterfaces dataProtocols (prettyField o (mkName "value") field)
   _ -> throwError ExpectedNewtypeInstance
 
 -- make a newtype into an empty enum

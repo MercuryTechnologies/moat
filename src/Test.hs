@@ -14,7 +14,7 @@
   , TypeOperators
 #-}
 
---{-# options_ghc -ddump-splices #-}
+{-# options_ghc -ddump-splices #-}
 
 {-# options_ghc -Wtype-defaults #-}
 
@@ -48,6 +48,11 @@ mobileGen ''Newtype
 
 newtype Alias = MkAlias Int
 mobileGenWith (defaultOptions {typeAlias = True}) ''Alias
+
+newtype Tag = TagKey Int
+
+data WithTags = WithTags
+mobileGenWithTags defaultOptions ['TagKey] ''WithTags
 
 {-
 data Fun a b = MkFun
