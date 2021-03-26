@@ -146,7 +146,7 @@ prettyMoatType = \case
     ++ "<"
     ++ intercalate ", " (map prettyMoatType tys)
     ++ ">"
-  Tag {..} -> tagParent ++ "." ++ tagName
+  Tag {..} -> tagName
 
 prettyApp :: MoatType -> MoatType -> String
 prettyApp t1 t2 = "(("
