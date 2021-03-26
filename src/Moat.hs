@@ -874,7 +874,8 @@ mkNewtypeInstanceAlias (stripConT -> instTys) = \case
           (pure
             (aliasExp conName instTys field)))
         []
-  _ -> throwError $ ExpectedNewtypeInstance
+  _ -> do
+    throwError $ ExpectedNewtypeInstance
 
 mkNewtypeInstance :: ()
   => Options
@@ -886,8 +887,7 @@ mkNewtypeInstance :: ()
   -> ShwiftyM Match
 mkNewtypeInstance o@Options{..} (stripConT -> instTys) = \case
   ConstructorInfo
-    { constructorVariant = RecordConstructor [_fieldName]
-    , constructorFields = [field]
+    { constructorFields = [field]
     , ..
     } -> do
       matchProxy $ newtypeExp constructorName instTys dataInterfaces dataProtocols (prettyField o (mkName "value") field)

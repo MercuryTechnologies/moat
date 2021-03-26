@@ -54,6 +54,10 @@ newtype Tag = TagKey Int
 data WithTags = WithTags
 mobileGenWithTags defaultOptions ['TagKey] ''WithTags
 
+data family Foo a
+newtype instance Foo Int = IntFoo Int
+mobileGen 'IntFoo
+
 {-
 data Fun a b = MkFun
   { fun :: Int -> Char -> Bool -> String -> Either a b
