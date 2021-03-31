@@ -34,7 +34,7 @@ prettyKotlinData = \case
     indents
 
   MoatNewtype{..} -> ""
-    ++ prettyInterfaces newtypeInterfaces
+    ++ prettyAnnotations newtypeAnnotations
     ++ "inline class "
     ++ prettyMoatTypeHeader newtypeName newtypeTyVars
     ++ "(val "
@@ -42,6 +42,7 @@ prettyKotlinData = \case
     ++ ": "
     ++ prettyMoatType (snd newtypeField)
     ++ ")"
+    ++ prettyInterfaces newtypeInterfaces
 
   MoatAlias{..} -> ""
     ++ "typealias "

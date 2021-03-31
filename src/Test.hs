@@ -42,7 +42,7 @@ data EnumWithLabels
 mobileGen ''EnumWithLabels
 
 newtype Newtype = MkNewtype Int
-mobileGen ''Newtype
+mobileGenWith (defaultOptions {dataAnnotations = [Parcelize, Serialize], dataInterfaces = [Parcelable]}) ''Newtype
 
 newtype Alias = MkAlias Int
 mobileGenWith (defaultOptions {typeAlias = True}) ''Alias
