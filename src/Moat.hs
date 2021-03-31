@@ -88,6 +88,9 @@ module Moat
     -- ** Functions
   , prettyKotlinData
   , prettySwiftData
+    -- ** Utility
+  , aliasToNewtype
+  , newtypeToAlias
     -- ** Re-exports
   , X
   ) where
@@ -1660,3 +1663,22 @@ tupE = TupE . map Just
 #else
 tupE = TupE
 #endif
+
+aliasToNewtype :: MoatData -> MoatData
+aliasToNewtype MoatAlias{..} = MoatNewtype
+  { newtypeName = aliasName
+  , newtypeTyVars = aliasTyVars
+  , newtypeField = ("value", aliasTyp)
+  , newtypeInterfaces = []
+  , newtypeProtocols = []
+  , newtypeAnnotations = []
+  }
+aliasToNewtype m = m
+
+newtypeToAlias :: MoatData -> MoatData
+newtypeToAlias MoatNewtype{..} = MoatAlias
+  { aliasName = newtypeName
+  , aliasTyVars = newtypeTyVars
+  , aliasTyp = snd newtypeField
+  }
+newtypeToAlias m = m
