@@ -13,6 +13,7 @@ module Moat.Types
   , Interface(..)
   , Options(..)
   , KeepOrDiscard(..)
+  , Annotation(..)
   , defaultOptions
   ) where
 
@@ -131,6 +132,8 @@ data MoatData
         -- ^ The interfaces which the struct implements
       , structProtocols :: [Protocol]
         -- ^ The protocols which the struct implements
+      , structAnnotations :: [Annotation]
+        -- ^ The annotations on the struct
       , structFields :: [(String, MoatType)]
         -- ^ The fields of the struct. the pair
         --   is interpreted as (name, type).
@@ -154,6 +157,8 @@ data MoatData
         -- ^ The interfaces (Kotlin) which the enum implements
       , enumProtocols :: [Protocol]
         -- ^ The interfaces (Kotlin) which the enum implements
+      , enumAnnotations :: [Annotation]
+        -- ^ The annotations on the enum
       , enumCases :: [(String, [(Maybe String, MoatType)])]
         -- ^ The cases of the enum. the type
         --   can be interpreted as
@@ -186,7 +191,8 @@ data MoatData
       , newtypeTyVars :: [String]
       , newtypeField :: (String, MoatType)
       , newtypeInterfaces :: [Interface]
-      , newtypeProtocols :: [Protocol]
+      , newtypeProtocols :: [Protocol] -- TODO: remove this?
+      , newtypeAnnotations :: [Annotation]
       }
     -- ^ A newtype.
     --   Kotlin backend: becomes an inline class.
@@ -205,11 +211,16 @@ data MoatData
 data Backend
   = Kotlin
   | Swift
-  deriving stock (Eq, Show)
+  deriving stock (Eq, Read, Show)
 
 data Interface
-  = Serializable
-  | Parcelable
+  = Parcelable
+  | OtherInterface String
+  deriving stock (Eq, Read, Show)
+
+data Annotation
+  = Parcelize
+  | Serialize
   deriving stock (Eq, Read, Show)
 
 -- | Swift protocols.
@@ -278,6 +289,12 @@ data Options = Options
     --   The default (@[]@) will add none.
     --
     --   This is only meaningful on the Swift
+    --   backend.
+  , dataAnnotations :: [Annotation]
+    -- ^ Annotations to add to a type.
+    --   The default (@[]@) will add none.
+    --
+    --   This is only meaningful on the Kotlin
     --   backend.
   , dataRawValue :: Maybe MoatType
     -- ^ The rawValue of an enum. See
@@ -380,6 +397,7 @@ data Options = Options
 --   , generateToMoatData = True
 --   , dataInterfaces = []
 --   , dataProtocols = []
+--   , dataAnnotations = []
 --   , dataRawValue = Nothing
 --   , typeAlias = False
 --   , newtypeTag = False
@@ -401,6 +419,7 @@ defaultOptions = Options
   , generateToMoatData = True
   , dataInterfaces = []
   , dataProtocols = []
+  , dataAnnotations = []
   , dataRawValue = Nothing
   , typeAlias = False
   , newtypeTag = False

@@ -3,6 +3,8 @@
   , RecordWildCards
   #-}
 
+{-# options_ghc -Wall #-}
+
 module Moat.Pretty.Kotlin
   ( prettyKotlinData
   ) where
@@ -23,14 +25,13 @@ prettyKotlinData = \case
     ++ prettyStructFields indents structFields
     ++ ")"
 
-  MoatEnum{..} -> ""
-    ++ prettyInterfaces enumInterfaces
-    ++ "sealed class "
-    ++ prettyMoatTypeHeader enumName enumTyVars
-    ++ "("
-    ++ newlineNonEmpty enumCases
-    ++ prettyEnumCases enumName indents enumCases
-    ++ ")"
+  MoatEnum{..} -> prettyEnum
+    enumAnnotations
+    enumInterfaces
+    enumName
+    enumTyVars
+    enumCases
+    indents
 
   MoatNewtype{..} -> ""
     ++ prettyInterfaces newtypeInterfaces
@@ -52,27 +53,31 @@ prettyKotlinData = \case
     indent = 4
     indents = replicate indent ' '
 
-    newlineNonEmpty [] = ""
-    newlineNonEmpty _ = "\n"
-
 prettyStructFields :: String -> [(String, MoatType)] -> String
 prettyStructFields indents = go
   where
     go [] = ""
     go ((fieldName, ty):fs) = indents ++ "val " ++ fieldName ++ ": " ++ prettyMoatType ty ++ ",\n" ++ go fs
 
+prettyCEnumCases :: String -> [String] -> String
+prettyCEnumCases indents = go
+  where
+    go = \case
+      [] -> ""
+      (caseName : cases) -> []
+        ++ indents
+        ++ toUpperFirst caseName
+        ++ ",\n"
+        ++ go cases
+
 prettyEnumCases :: String -> String -> [(String, [(Maybe String, MoatType)])] -> String
 prettyEnumCases typName indents = go
   where
-    toUpperFirst = \case
-      [] -> []
-      (c : cs) -> Char.toUpper c : cs
-
     go = \case
       [] -> ""
       ((caseNm, []):xs) -> []
         ++ indents
-        ++ "data class "
+        ++ "object "
         ++ toUpperFirst caseNm
         ++ "() : "
         ++ typName
@@ -101,13 +106,25 @@ prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
 prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 
-prettyInterface :: Interface -> String
-prettyInterface = \case
-  Serializable -> "Serializable"
-  _ -> error "TODO"
+prettyAnnotations :: [Annotation] -> String
+prettyAnnotations = concatMap (\ann -> "@" ++ prettyAnnotation ann ++ "\n")
+  where
+    prettyAnnotation = \case
+      Parcelize -> "Parcelize"
+      Serialize -> "Serializable"
 
 prettyInterfaces :: [Interface] -> String
-prettyInterfaces = concatMap (\i -> "@" ++ prettyInterface i ++ "\n")
+prettyInterfaces [] = ""
+prettyInterfaces ifaces = id
+  . (" : " ++)
+  . intercalate ", "
+  . map prettyInterface
+  $ ifaces
+  where
+    prettyInterface :: Interface -> String
+    prettyInterface = \case
+      Parcelable -> "Parcelable"
+      OtherInterface i -> i
 
 -- | Pretty-print a 'Ty'.
 prettyMoatType :: MoatType -> String
@@ -159,4 +176,50 @@ prettyApp t1 t2 = "(("
     go e1 (App e2 e3) = case go e2 e3 of
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
+
+prettyEnum :: ()
+  => [Annotation]
+  -> [Interface] -- ^ interfaces
+  -> String -- ^ name
+  -> [String] -- ^ ty vars
+  -> [(String, [(Maybe String, MoatType)])] -- ^ cases
+  -> String -- ^ indents
+  -> String
+prettyEnum anns ifaces name tyVars [] _
+  = prettyAnnotations anns
+    ++ "sealed class "
+    ++ prettyMoatTypeHeader name tyVars
+    ++ prettyInterfaces ifaces
+prettyEnum anns ifaces name tyVars cases indents
+  | isCEnum cases
+      = prettyAnnotations anns
+        ++ "enum class "
+        ++ prettyMoatTypeHeader name tyVars
+        ++ " {"
+        ++ newlineNonEmpty cases
+        ++ prettyCEnumCases indents (map fst cases)
+        ++ "}"
+        ++ prettyInterfaces ifaces
+  | otherwise
+      = prettyAnnotations anns
+        ++ "sealed class "
+        ++ prettyMoatTypeHeader name tyVars
+        ++ " {"
+        ++ newlineNonEmpty cases
+        ++ prettyEnumCases name indents cases
+        ++ "}"
+        ++ prettyInterfaces ifaces
+  where
+    isCEnum :: Eq b => [(a, [b])] -> Bool
+    isCEnum = all ((== []) . snd)
+
+newlineNonEmpty :: [a] -> String
+newlineNonEmpty [] = ""
+newlineNonEmpty _ = "\n"
+
+toUpperFirst :: String -> String
+toUpperFirst = \case
+  [] -> []
+  (c : cs) -> Char.toUpper c : cs
+
 

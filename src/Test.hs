@@ -14,9 +14,7 @@
   , TypeOperators
 #-}
 
-{-# options_ghc -ddump-splices #-}
-
-{-# options_ghc -Wtype-defaults #-}
+-- {-# options_ghc -ddump-splices #-}
 
 module Test where
 
@@ -36,7 +34,7 @@ mobileGen ''Struct
 data Enum
   = EnumCase0
   | EnumCase1
-mobileGen ''Enum
+mobileGenWith (defaultOptions {dataAnnotations = [Parcelize], dataInterfaces = [Parcelable]}) ''Enum
 
 data EnumWithLabels
   = EnumWithLabels0 { x :: Int, y :: Int }
@@ -236,4 +234,4 @@ test = do
 testPrint :: forall a. ToMoatData a => IO ()
 testPrint = do
   putStrLn $ prettyKotlinData $ toMoatData (Proxy @a)
-  putStrLn $ prettySwiftData $ toMoatData (Proxy @a)
+--  putStrLn $ prettySwiftData $ toMoatData (Proxy @a)
