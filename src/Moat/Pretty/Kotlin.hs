@@ -192,14 +192,14 @@ prettyEnum anns ifaces name tyVars [] _
     ++ prettyInterfaces ifaces
 prettyEnum anns ifaces name tyVars cases indents
   | isCEnum cases
-      = prettyAnnotations anns
+      = prettyAnnotations (dontAddSerializeToEnums anns)
         ++ "enum class "
         ++ prettyMoatTypeHeader name tyVars
+        ++ prettyInterfaces ifaces
         ++ " {"
         ++ newlineNonEmpty cases
         ++ prettyCEnumCases indents (map fst cases)
         ++ "}"
-        ++ prettyInterfaces ifaces
   | otherwise
       = prettyAnnotations anns
         ++ "sealed class "
@@ -213,6 +213,10 @@ prettyEnum anns ifaces name tyVars cases indents
     isCEnum :: Eq b => [(a, [b])] -> Bool
     isCEnum = all ((== []) . snd)
 
+    -- because they get it automatically
+    dontAddSerializeToEnums :: [Annotation] -> [Annotation]
+    dontAddSerializeToEnums = filter (/= Serialize)
+
 newlineNonEmpty :: [a] -> String
 newlineNonEmpty [] = ""
 newlineNonEmpty _ = "\n"
@@ -221,5 +225,3 @@ toUpperFirst :: String -> String
 toUpperFirst = \case
   [] -> []
   (c : cs) -> Char.toUpper c : cs
-
-
