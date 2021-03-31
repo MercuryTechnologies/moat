@@ -29,7 +29,7 @@ data Struct a = MkStruct
   { x :: Maybe a
   , y :: Int
   }
-mobileGen ''Struct
+mobileGenWith (defaultOptions {dataAnnotations = [Parcelize], dataInterfaces = [Parcelable]}) ''Struct
 
 data Enum
   = EnumCase0

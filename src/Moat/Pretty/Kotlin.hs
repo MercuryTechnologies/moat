@@ -17,13 +17,14 @@ prettyKotlinData :: MoatData -> String
 prettyKotlinData = \case
 
   MoatStruct{..} -> ""
-    ++ prettyInterfaces structInterfaces
+    ++ prettyAnnotations structAnnotations
     ++ "data class "
     ++ prettyMoatTypeHeader structName structTyVars
     ++ "("
     ++ newlineNonEmpty structFields
     ++ prettyStructFields indents structFields
     ++ ")"
+    ++ prettyInterfaces structInterfaces
 
   MoatEnum{..} -> prettyEnum
     enumAnnotations
