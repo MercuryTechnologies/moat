@@ -122,7 +122,7 @@ prettyMoatType = \case
   Result e1 e2 -> "Either<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
   Set e -> "Set<" ++ prettyMoatType e ++ ">"
   Dictionary e1 e2 -> "Map<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
-  Array e -> "Array<" ++ prettyMoatType e ++ ">"
+  Array e -> "List<" ++ prettyMoatType e ++ ">"
   -- App is special, we recurse until we no longer
   -- any applications.
   App e1 e2 -> prettyApp e1 e2
