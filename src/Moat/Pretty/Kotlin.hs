@@ -192,7 +192,7 @@ prettyEnum anns ifaces name tyVars [] _
     ++ prettyInterfaces ifaces
 prettyEnum anns ifaces name tyVars cases indents
   | isCEnum cases
-      = prettyAnnotations anns
+      = prettyAnnotations (dontAnnotateEnumsWithParcelize anns)
         ++ "enum class "
         ++ prettyMoatTypeHeader name tyVars
         ++ " {"
@@ -212,6 +212,9 @@ prettyEnum anns ifaces name tyVars cases indents
   where
     isCEnum :: Eq b => [(a, [b])] -> Bool
     isCEnum = all ((== []) . snd)
+
+    dontAnnotateEnumsWithParcelize :: [Annotation] -> [Annotation]
+    dontAnnotateEnumsWithParcelize = filter (/= Parcelize)
 
 newlineNonEmpty :: [a] -> String
 newlineNonEmpty [] = ""
