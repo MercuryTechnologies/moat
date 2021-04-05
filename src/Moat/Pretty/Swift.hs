@@ -55,8 +55,8 @@ prettySwiftDataWith indent = \case
     ++ prettyMoatType aliasTyp
 
   MoatNewtype{..} -> ""
-    ++ prettyProtocols newtypeProtocols
     ++ "enum "
+    ++ prettyProtocols newtypeProtocols
     ++ prettyMoatTypeHeader newtypeName newtypeTyVars
     ++ " {\n"
     ++ indents
