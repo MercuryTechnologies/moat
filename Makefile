@@ -1,7 +1,7 @@
 build: hpack
 	cabal build
 
-build: hpack
+test: hpack
 	cabal test
 
 hpack:
@@ -11,6 +11,12 @@ repl: hpack
 	cabal repl
 
 repl-test: hpack
-	cabal repl test
+	cabal repl test:spec
 
-.PROXY: build hpack repl repl-test
+ghcid: hpack
+	ghcid -c cabal repl
+
+ghcid-test: hpack
+	ghcid -c cabal repl test:spec
+
+.PROXY: build test hpack repl repl-test ghcid ghcid-test

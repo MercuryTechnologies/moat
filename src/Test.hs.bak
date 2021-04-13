@@ -20,8 +20,6 @@ module Test where
 
 import Moat
 import Data.Proxy
-import Data.Kind (Type)
-import Data.Void (Void)
 import qualified Data.UUID.Types
 import Prelude hiding (Enum)
 
@@ -42,7 +40,7 @@ data EnumWithLabels
 mobileGen ''EnumWithLabels
 
 newtype Newtype = MkNewtype Int
-mobileGenWith (defaultOptions {dataAnnotations = [Parcelize, Serialize], dataInterfaces = [Parcelable]}) ''Newtype
+mobileGenWith (defaultOptions {dataAnnotations = [Parcelize, Serializable], dataInterfaces = [Parcelable]}) ''Newtype
 
 newtype Alias = MkAlias Int
 mobileGenWith (defaultOptions {typeAlias = True}) ''Alias

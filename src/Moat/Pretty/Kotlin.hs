@@ -24,6 +24,7 @@ prettyKotlinData = \case
     ++ newlineNonEmpty structFields
     ++ prettyStructFields indents structFields
     ++ ")"
+    ++ " : "
     ++ prettyInterfaces structInterfaces
 
   MoatEnum{..} -> prettyEnum
@@ -43,6 +44,7 @@ prettyKotlinData = \case
     ++ ": "
     ++ prettyMoatType (snd newtypeField)
     ++ ")"
+    ++ " : "
     ++ prettyInterfaces newtypeInterfaces
 
   MoatAlias{..} -> ""
@@ -111,22 +113,22 @@ prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 prettyAnnotations :: [Annotation] -> String
 prettyAnnotations = concatMap (\ann -> "@" ++ prettyAnnotation ann ++ "\n")
   where
+    prettyAnnotation :: Annotation -> String
     prettyAnnotation = \case
       Parcelize -> "Parcelize"
-      Serialize -> "Serializable"
+      Serializable -> "Serializable"
+      RawAnnotation s -> s
+
 
 prettyInterfaces :: [Interface] -> String
-prettyInterfaces [] = ""
-prettyInterfaces ifaces = id
-  . (" : " ++)
-  . intercalate ", "
-  . map prettyInterface
-  $ ifaces
+prettyInterfaces = intercalate ", " . fmap prettyInterface
   where
     prettyInterface :: Interface -> String
     prettyInterface = \case
       Parcelable -> "Parcelable"
-      OtherInterface i -> i
+      RawInterface s -> s
+      LinkEnumInterface s -> s ++ "()"
+      
 
 -- | Pretty-print a 'Ty'.
 prettyMoatType :: MoatType -> String
@@ -187,37 +189,47 @@ prettyEnum :: ()
   -> [(String, [(Maybe String, MoatType)])] -- ^ cases
   -> String -- ^ indents
   -> String
-prettyEnum anns ifaces name tyVars [] _
-  = prettyAnnotations anns
-    ++ "sealed class "
-    ++ prettyMoatTypeHeader name tyVars
-    ++ prettyInterfaces ifaces
 prettyEnum anns ifaces name tyVars cases indents
   | isCEnum cases
       = prettyAnnotations (dontAddSerializeToEnums anns)
         ++ "enum class "
         ++ prettyMoatTypeHeader name tyVars
+        ++ " : "
         ++ prettyInterfaces ifaces
         ++ " {"
         ++ newlineNonEmpty cases
         ++ prettyCEnumCases indents (map fst cases)
         ++ "}"
-  | otherwise
+  | allConcrete cases
       = prettyAnnotations anns
         ++ "sealed class "
         ++ prettyMoatTypeHeader name tyVars
+        ++ " : "
+        ++ prettyInterfaces ifaces
+  | otherwise
+      = prettyAnnotations (dontAddSerializeToEnums anns)
+        ++ "enum class "
+        ++ prettyMoatTypeHeader name tyVars
+        ++ " : "
+        ++ prettyInterfaces ifaces
         ++ " {"
         ++ newlineNonEmpty cases
         ++ prettyEnumCases name indents cases
         ++ "}"
-        ++ prettyInterfaces ifaces
   where
     isCEnum :: Eq b => [(a, [b])] -> Bool
     isCEnum = all ((== []) . snd)
 
+    allConcrete :: [(a, [(b, MoatType)])] -> Bool
+    allConcrete inp = all isConcrete moatTypes
+      where
+        moatTypes = fmap snd . concat $ fmap snd inp
+        isConcrete (Concrete {}) = True
+        isConcrete _ = False
+
     -- because they get it automatically
     dontAddSerializeToEnums :: [Annotation] -> [Annotation]
-    dontAddSerializeToEnums = filter (/= Serialize)
+    dontAddSerializeToEnums = filter (/= Serializable)
 
 newlineNonEmpty :: [a] -> String
 newlineNonEmpty [] = ""

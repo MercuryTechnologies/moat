@@ -215,13 +215,29 @@ data Backend
 
 data Interface
   = Parcelable
-  | OtherInterface String
+  | RawInterface String
+  -- ^ Derive from some Kotlin interface
+  -- @
+  --     data class A(
+  --       ...
+  --     ) : {String}
+  -- @
+  | LinkEnumInterface String
+  -- ^ Derive from a sealed class
+  -- @
+  --     data class A(
+  --       ...
+  --     ) : {String}()
+  -- @
   deriving stock (Eq, Read, Show)
+  deriving stock (Lift)
 
 data Annotation
   = Parcelize
-  | Serialize
+  | Serializable
+  | RawAnnotation String
   deriving stock (Eq, Read, Show)
+  deriving stock (Lift)
 
 -- | Swift protocols.
 --   Only a few are supported right now.

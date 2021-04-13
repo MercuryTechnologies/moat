@@ -84,19 +84,19 @@ prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 prettyRawValueAndProtocols :: Maybe MoatType -> [Protocol] -> String
 prettyRawValueAndProtocols Nothing ps = prettyProtocols ps
 prettyRawValueAndProtocols (Just ty) [] = ": " ++ prettyMoatType ty
-prettyRawValueAndProtocols (Just ty) ps = ": " ++ prettyMoatType ty ++ ", " ++ intercalate ", " (map prettyProtocol ps)
-
-prettyProtocol :: Protocol -> String
-prettyProtocol = \case
-  Equatable -> "Equatable"
-  Hashable -> "Hashable"
-  Codable -> "Codable"
-  OtherProtocol p -> p
+prettyRawValueAndProtocols (Just ty) ps = ": " ++ prettyMoatType ty ++ ", " ++ prettyProtocols ps
 
 prettyProtocols :: [Protocol] -> String
 prettyProtocols = \case
   [] -> ""
-  ps -> ": " ++ intercalate ", " (map show ps)
+  ps -> ": " ++ intercalate ", " (prettyProtocol <$> ps)
+    where
+      prettyProtocol :: Protocol -> String
+      prettyProtocol = \case
+        Hashable -> "Hashable"
+        Codable -> "Codable"
+        Equatable -> "Equatable"
+        OtherProtocol s -> s
 
 prettyTags :: String -> [MoatType] -> String
 prettyTags indents = go where
@@ -225,5 +225,5 @@ prettyPrivateTypes indents = go
 -- map a function over everything but the
 -- first element.
 onLast :: (a -> a) -> [a] -> [a]
-onLast f [] = []
+onLast _ [] = []
 onLast f (x:xs) = x : map f xs

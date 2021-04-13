@@ -111,6 +111,7 @@ import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as M
 import qualified Data.Text as TS
+import qualified Language.Haskell.TH.Syntax as Syntax
 
 import Moat.Class
 import Moat.Pretty.Kotlin (prettyKotlinData)
@@ -798,7 +799,7 @@ consToMoatType o@Options{..} parentName instTys variant ts bs = \case
           let cons' = flip filter cons $ \ConstructorInfo{..} -> omitCases (nameStr constructorName) == Keep
           cases <- forM cons' (liftEither . mkCase o)
           ourMatch <- matchProxy
-            $ enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs
+            =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs)
           pure [pure ourMatch]
 
 liftCons :: (Functor f, Applicative g) => f a -> f ([g a])
@@ -897,7 +898,7 @@ mkNewtypeInstance o@Options{..} (stripConT -> instTys) = \case
     { constructorFields = [field]
     , ..
     } -> do
-      matchProxy $ newtypeExp constructorName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field)
+      matchProxy =<< lift (newtypeExp constructorName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
   _ -> throwError ExpectedNewtypeInstance
 
 -- make a newtype into an empty enum
@@ -919,7 +920,7 @@ mkTypeTag Options{..} typName instTys = \case
       let parentName = mkName
             (nameStr typName ++ "Tag")
       let tag = tagExp typName parentName field False
-      matchProxy $ enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, [])
+      matchProxy =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []))
 
   _ -> throwError $ NotANewtype typName
 
@@ -953,7 +954,7 @@ mkVoid :: ()
      -- ^ tags
   -> ShwiftyM Match
 mkVoid typName instTys ts = matchProxy
-  $ enumExp typName instTys [] [] [] [] Nothing ts (False, Nothing, [])
+  =<< lift (enumExp typName instTys [] [] [] [] Nothing ts (False, Nothing, []))
 
 mkNewtype :: ()
   => Options
@@ -966,7 +967,7 @@ mkNewtype o@Options{..} typName instTys = \case
   ConstructorInfo
     { constructorFields = [field]
     } -> do
-      matchProxy $ newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field)
+      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
   _ -> undefined
 
 -- | Make a single-constructor product (struct)
@@ -988,7 +989,7 @@ mkProd o@Options{..} typName instTys ts = \case
     { constructorVariant = NormalConstructor
     , constructorFields = []
     } -> do
-      matchProxy $ structExp typName instTys dataInterfaces dataProtocols dataAnnotations [] ts makeBase
+      matchProxy =<< lift (structExp typName instTys dataInterfaces dataProtocols dataAnnotations [] ts makeBase)
   -- single constructor, non-record (Normal)
   ConstructorInfo
     { constructorVariant = NormalConstructor
@@ -1009,7 +1010,7 @@ mkProd o@Options{..} typName instTys ts = \case
     , ..
     } -> do
       let fields = zipFields o fieldNames constructorFields
-      matchProxy $ structExp typName instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase
+      matchProxy =<< lift (structExp typName instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
 
 zipFields :: Options -> [Name] -> [Type] -> [Exp]
 zipFields o = zipWithPred p (prettyField o)
@@ -1524,14 +1525,17 @@ enumExp :: ()
      -- ^ Tags
   -> (Bool, Maybe MoatType, [Protocol])
      -- ^ Make base?
-  -> Exp
+  -> Q Exp
 enumExp parentName tyVars ifaces protos anns cases raw tags bs
-  = applyBase bs $ RecConE 'MoatEnum
+  = applyBase bs <$> do
+    enumInterfaces <- ifacesExp ifaces
+    enumAnnotations <- annsExp anns
+    pure $ RecConE 'MoatEnum
       [ (mkName "enumName", unqualName parentName)
       , (mkName "enumTyVars", prettyTyVars tyVars)
-      , (mkName "enumInterfaces", ifacesExp ifaces)
+      , (mkName "enumInterfaces", enumInterfaces)
       , (mkName "enumProtocols", protosExp protos)
-      , (mkName "enumAnnotations", annsExp anns)
+      , (mkName "enumAnnotations", enumAnnotations)
       , (mkName "enumCases", ListE cases)
       , (mkName "enumRawValue", rawValueE raw)
       , (mkName "enumPrivateTypes", ListE [])
@@ -1545,15 +1549,18 @@ newtypeExp :: ()
   -> [Protocol]
   -> [Annotation]
   -> Exp
-  -> Exp
+  -> Q Exp
 newtypeExp name tyVars ifaces protos anns field
-  = RecConE 'MoatNewtype
+  = do
+    newtypeInterfaces <- ifacesExp ifaces
+    newtypeAnnotations <- annsExp anns
+    pure $ RecConE 'MoatNewtype
       [ (mkName "newtypeName", unqualName name)
       , (mkName "newtypeTyVars", prettyTyVars tyVars)
       , (mkName "newtypeField", field)
-      , (mkName "newtypeInterfaces", ifacesExp ifaces)
+      , (mkName "newtypeInterfaces", newtypeInterfaces)
       , (mkName "newtypeProtocols", protosExp protos)
-      , (mkName "newtypeAnnotations", annsExp anns)
+      , (mkName "newtypeAnnotations", newtypeAnnotations)
       ]
 
 -- | Construct a Struct.
@@ -1574,14 +1581,17 @@ structExp :: ()
      -- ^ tags
   -> (Bool, Maybe MoatType, [Protocol])
      -- ^ Make base?
-  -> Exp
+  -> Q Exp
 structExp name tyVars ifaces protos anns fields tags bs
-  = applyBase bs $ RecConE 'MoatStruct
+  = applyBase bs <$> do
+    structInterfaces <- ifacesExp ifaces
+    structAnnotations <- annsExp anns
+    pure $ RecConE 'MoatStruct
       [ (mkName "structName", unqualName name)
       , (mkName "structTyVars", prettyTyVars tyVars)
-      , (mkName "structInterfaces", ifacesExp ifaces)
+      , (mkName "structInterfaces", structInterfaces)
       , (mkName "structProtocols", protosExp protos)
-      , (mkName "structAnnotations", annsExp anns)
+      , (mkName "structAnnotations", structAnnotations)
       , (mkName "structFields", ListE fields)
       , (mkName "structPrivateTypes", ListE [])
       , (mkName "structTags", ListE tags)
@@ -1643,19 +1653,11 @@ protosExp = ListE . map (ConE . mkName . go)
       Codable -> "Codable"
       OtherProtocol p -> p
 
-ifacesExp :: [Interface] -> Exp
-ifacesExp = ListE . map (ConE . mkName . go)
-  where
-    go = \case
-      Parcelable -> "Parcelable"
-      OtherInterface i -> i
+ifacesExp :: [Interface] -> Q Exp
+ifacesExp = fmap ListE <$> traverse Syntax.lift
 
-annsExp :: [Annotation] -> Exp
-annsExp = ListE . map (ConE . mkName . go)
-  where
-    go = \case
-      Parcelize -> "Parcelize"
-      Serialize -> "Serialize"
+annsExp :: [Annotation] -> Q Exp
+annsExp = fmap ListE <$> traverse Syntax.lift
 
 tupE :: [Exp] -> Exp
 #if MIN_VERSION_template_haskell(2,16,0)
