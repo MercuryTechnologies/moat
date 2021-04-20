@@ -1,0 +1,4 @@
+struct Newtype0: Hashable, Codable {
+    typealias Newtype0Tag = Tagged<Newtype0, String>
+    let value: Newtype0Tag
+}

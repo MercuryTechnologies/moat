@@ -1,0 +1,5 @@
+enum Enum0: Hashable, Codable {
+    case a
+    case b
+    case c
+}

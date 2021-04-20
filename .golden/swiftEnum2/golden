@@ -1,0 +1,4 @@
+enum Enum2: Hashable, Codable {
+    case dataCons2(_ enum2Field0: Int, _ enum2Field1: Int)
+    case dataCons3(_ enum2Field2: String, _ enum2Field3: String)
+}
