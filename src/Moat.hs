@@ -692,8 +692,6 @@ typToMoatType :: ()
      -- ^ type variables
   -> ShwiftyM Exp
 typToMoatType newtypeTag parentName instTys = do
-  -- TODO: use '_' instead of matching
-  value <- lift $ newName "value"
   let tyVars = map toMoatTypeECxt instTys
   let name =
         let parentStr = nameStr parentName
@@ -707,7 +705,7 @@ typToMoatType newtypeTag parentName instTys = do
       , (mkName "concreteTyVars", ListE tyVars)
       ]
   let matches = [pure ourMatch]
-  lift $ lamE [varP value] (caseE (varE value) matches)
+  lift $ lamCaseE matches
 
 rawValueE :: Maybe MoatType -> Exp
 rawValueE = \case

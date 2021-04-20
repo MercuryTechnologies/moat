@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.3.
 --
 -- see: https://github.com/sol/hpack
 
@@ -37,18 +37,18 @@ library
   ghc-options: -Wall
   build-depends:
       base >=4.11 && <4.15
-    , bytestring ==0.10.*
-    , case-insensitive ==1.2.*
+    , bytestring >=0.10 && <0.11
+    , case-insensitive >=1.2 && <1.3
     , containers >=0.5.9 && <0.7
-    , mtl ==2.2.*
+    , mtl >=2.2 && <2.3
     , primitive >=0.6.4 && <0.8
     , template-haskell >=2.11 && <2.17
-    , text ==1.2.*
+    , text >=1.2 && <1.3
     , th-abstraction >=0.3 && <0.5
     , time >=1.8 && <1.11
-    , unordered-containers ==0.2.*
-    , uuid-types ==1.0.*
-    , vector ==0.12.*
+    , unordered-containers >=0.2 && <0.3
+    , uuid-types >=1.0 && <1.1
+    , vector >=0.12 && <0.13
   default-language: Haskell2010
 
 test-suite spec
@@ -67,18 +67,18 @@ test-suite spec
   ghc-options: -Wall
   build-depends:
       base >=4.11 && <4.15
-    , bytestring ==0.10.*
-    , case-insensitive ==1.2.*
+    , bytestring >=0.10 && <0.11
+    , case-insensitive >=1.2 && <1.3
     , containers >=0.5.9 && <0.7
     , hspec
     , hspec-golden
-    , mtl ==2.2.*
+    , mtl >=2.2 && <2.3
     , primitive >=0.6.4 && <0.8
     , template-haskell >=2.11 && <2.17
-    , text ==1.2.*
+    , text >=1.2 && <1.3
     , th-abstraction >=0.3 && <0.5
     , time >=1.8 && <1.11
-    , unordered-containers ==0.2.*
-    , uuid-types ==1.0.*
-    , vector ==0.12.*
+    , unordered-containers >=0.2 && <0.3
+    , uuid-types >=1.0 && <1.1
+    , vector >=0.12 && <0.13
   default-language: Haskell2010
