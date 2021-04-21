@@ -1,6 +1,6 @@
 @Parcelize
 enum class Enum0 : Parcelable {
-    A,
-    B,
-    C,
+    a,
+    b,
+    c,
 }

@@ -70,7 +70,7 @@ prettyCEnumCases indents = go
       [] -> ""
       (caseName : cases) -> []
         ++ indents
-        ++ toUpperFirst caseName
+        ++ caseName
         ++ ",\n"
         ++ go cases
 
