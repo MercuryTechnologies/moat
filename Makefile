@@ -19,4 +19,7 @@ ghcid: hpack
 ghcid-test: hpack
 	ghcid -c cabal repl test:spec
 
-.PROXY: build test hpack repl repl-test ghcid ghcid-test
+format:
+	find src/ test/ -name "*.hs" -exec ormolu -i {} \;
+
+.PROXY: build test hpack repl repl-test ghcid ghcid-test format

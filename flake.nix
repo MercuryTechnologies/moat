@@ -76,6 +76,7 @@
               ghc
               ghcid
               hpack
+              ormolu
             ];
           }
       );
