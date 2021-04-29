@@ -20,7 +20,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize],
         dataInterfaces = [Parcelable],
-        dataProtocols = [Hashable, Codable]
+        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Enum0
@@ -31,7 +31,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize],
         dataInterfaces = [Parcelable],
-        dataProtocols = [Hashable, Codable]
+        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Newtype0
@@ -45,7 +45,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize],
         dataInterfaces = [Parcelable],
-        dataProtocols = [Hashable, Codable]
+        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Data0
@@ -59,7 +59,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
         dataInterfaces = [LinkEnumInterface "Enum1"],
-        dataProtocols = [Hashable, Codable]
+        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Record0
@@ -73,7 +73,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
         dataInterfaces = [LinkEnumInterface "Enum1"],
-        dataProtocols = [Hashable, Codable]
+        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Record1
@@ -86,7 +86,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [RawAnnotation "Serializable(with = Enum1Serializer::class)"],
         dataInterfaces = [Parcelable],
-        dataProtocols = [Hashable, Codable]
+        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Enum1
@@ -99,10 +99,42 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
         dataInterfaces = [Parcelable],
-        dataProtocols = [Hashable, Codable]
+        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Enum2
+
+data Enum3
+  = D
+  | E
+
+mobileGenWith
+  ( defaultOptions
+      { dataProtocols = [],
+        dataRawValue = Just Str
+      }
+  )
+  ''Enum3
+
+data Enum4
+  = F
+  | G
+
+mobileGenWith
+  ( defaultOptions
+      { dataAnnotations = [Parcelize, Serializable],
+        dataInterfaces = [Parcelable],
+        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable],
+        dataRawValue = Just Str
+      }
+  )
+  ''Enum4
+
+data Enum5
+  = H
+  | I
+
+mobileGen ''Enum5
 
 showKotlin :: forall a. ToMoatData a => String
 showKotlin = prettyKotlinData $ toMoatData (Proxy @a)
@@ -127,6 +159,12 @@ main = hspec $ do
       defaultGolden "kotlinRecord1" (showKotlin @Record1)
     it "kotlinEnum2" $
       defaultGolden "kotlinEnum2" (showKotlin @Enum2)
+    it "kotlinEnum3" $
+      defaultGolden "kotlinEnum3" (showKotlin @Enum3)
+    it "kotlinEnum4" $
+      defaultGolden "kotlinEnum4" (showKotlin @Enum4)
+    it "kotlinEnum5" $
+      defaultGolden "kotlinEnum5" (showKotlin @Enum5)
   describe "swift golden" $ do
     it "swiftEnum0" $
       defaultGolden "swiftEnum0" (showSwift @Enum0)
@@ -142,3 +180,9 @@ main = hspec $ do
       defaultGolden "swiftRecord1" (showSwift @Record1)
     it "swiftEnum2" $
       defaultGolden "swiftEnum2" (showSwift @Enum2)
+    it "swiftEnum3" $
+      defaultGolden "swiftEnum3" (showSwift @Enum3)
+    it "swiftEnum4" $
+      defaultGolden "swiftEnum4" (showSwift @Enum4)
+    it "swiftEnum5" $
+      defaultGolden "swiftEnum5" (showSwift @Enum5)

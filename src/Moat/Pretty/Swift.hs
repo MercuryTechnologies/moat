@@ -39,7 +39,7 @@ prettySwiftDataWith indent = \case
     []
       ++ "struct "
       ++ prettyMoatTypeHeader structName structTyVars
-      ++ prettyProtocols structProtocols
+      ++ prettyRawValueAndProtocols Nothing structProtocols
       ++ " {"
       ++ newlineNonEmpty structFields
       ++ prettyStructFields indents structFields
@@ -58,7 +58,7 @@ prettySwiftDataWith indent = \case
     ""
       ++ "struct "
       ++ prettyMoatTypeHeader newtypeName newtypeTyVars
-      ++ prettyProtocols newtypeProtocols
+      ++ prettyRawValueAndProtocols Nothing newtypeProtocols
       ++ " {\n"
       ++ indents
       ++ "typealias "
@@ -82,14 +82,15 @@ prettyMoatTypeHeader name [] = name
 prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 
 prettyRawValueAndProtocols :: Maybe MoatType -> [Protocol] -> String
-prettyRawValueAndProtocols Nothing ps = prettyProtocols ps
+prettyRawValueAndProtocols Nothing [] = ""
+prettyRawValueAndProtocols Nothing ps = ": " ++ prettyProtocols ps
 prettyRawValueAndProtocols (Just ty) [] = ": " ++ prettyMoatType ty
 prettyRawValueAndProtocols (Just ty) ps = ": " ++ prettyMoatType ty ++ ", " ++ prettyProtocols ps
 
 prettyProtocols :: [Protocol] -> String
 prettyProtocols = \case
   [] -> ""
-  ps -> ": " ++ intercalate ", " (prettyProtocol <$> ps)
+  ps -> intercalate ", " (prettyProtocol <$> ps)
     where
       prettyProtocol :: Protocol -> String
       prettyProtocol = \case

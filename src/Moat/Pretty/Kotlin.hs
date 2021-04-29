@@ -22,7 +22,6 @@ prettyKotlinData = \case
       ++ newlineNonEmpty structFields
       ++ prettyStructFields indents structFields
       ++ ")"
-      ++ " : "
       ++ prettyInterfaces structInterfaces
   MoatEnum {..} ->
     prettyEnum
@@ -42,7 +41,6 @@ prettyKotlinData = \case
       ++ ": "
       ++ prettyMoatType (snd newtypeField)
       ++ ")"
-      ++ " : "
       ++ prettyInterfaces newtypeInterfaces
   MoatAlias {..} ->
     ""
@@ -122,7 +120,8 @@ prettyAnnotations = concatMap (\ann -> "@" ++ prettyAnnotation ann ++ "\n")
       RawAnnotation s -> s
 
 prettyInterfaces :: [Interface] -> String
-prettyInterfaces = intercalate ", " . fmap prettyInterface
+prettyInterfaces [] = ""
+prettyInterfaces ps = " : " ++ intercalate ", " (prettyInterface <$> ps)
   where
     prettyInterface :: Interface -> String
     prettyInterface = \case
@@ -202,7 +201,6 @@ prettyEnum anns ifaces name tyVars cases indents
     prettyAnnotations (dontAddSerializeToEnums anns)
       ++ "enum class "
       ++ prettyMoatTypeHeader name tyVars
-      ++ " : "
       ++ prettyInterfaces ifaces
       ++ " {"
       ++ newlineNonEmpty cases
@@ -212,13 +210,11 @@ prettyEnum anns ifaces name tyVars cases indents
     prettyAnnotations anns
       ++ "sealed class "
       ++ prettyMoatTypeHeader name tyVars
-      ++ " : "
       ++ prettyInterfaces ifaces
   | otherwise =
     prettyAnnotations (dontAddSerializeToEnums anns)
       ++ "enum class "
       ++ prettyMoatTypeHeader name tyVars
-      ++ " : "
       ++ prettyInterfaces ifaces
       ++ " {"
       ++ newlineNonEmpty cases

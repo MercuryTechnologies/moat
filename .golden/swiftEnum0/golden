@@ -1,4 +1,4 @@
-enum Enum0: Hashable, Codable {
+enum Enum0: CaseIterable, Hashable, Codable {
     case a
     case b
     case c

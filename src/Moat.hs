@@ -1613,16 +1613,17 @@ enumExp ::
   (Bool, Maybe MoatType, [Protocol]) ->
   Q Exp
 enumExp parentName tyVars ifaces protos anns cases raw tags bs =
-  applyBase bs <$> do
-    enumInterfaces <- ifacesExp ifaces
-    enumAnnotations <- annsExp anns
-    pure $
+  do
+    enumInterfaces <- Syntax.lift ifaces
+    enumAnnotations <- Syntax.lift anns
+    enumProtocols <- Syntax.lift protos
+    applyBase bs $
       RecConE
         'MoatEnum
         [ (mkName "enumName", unqualName parentName),
           (mkName "enumTyVars", prettyTyVars tyVars),
           (mkName "enumInterfaces", enumInterfaces),
-          (mkName "enumProtocols", protosExp protos),
+          (mkName "enumProtocols", enumProtocols),
           (mkName "enumAnnotations", enumAnnotations),
           (mkName "enumCases", ListE cases),
           (mkName "enumRawValue", rawValueE raw),
@@ -1641,8 +1642,9 @@ newtypeExp ::
   Q Exp
 newtypeExp name tyVars ifaces protos anns field =
   do
-    newtypeInterfaces <- ifacesExp ifaces
-    newtypeAnnotations <- annsExp anns
+    newtypeInterfaces <- Syntax.lift ifaces
+    newtypeAnnotations <- Syntax.lift anns
+    newtypeProtocols <- Syntax.lift protos
     pure $
       RecConE
         'MoatNewtype
@@ -1650,7 +1652,7 @@ newtypeExp name tyVars ifaces protos anns field =
           (mkName "newtypeTyVars", prettyTyVars tyVars),
           (mkName "newtypeField", field),
           (mkName "newtypeInterfaces", newtypeInterfaces),
-          (mkName "newtypeProtocols", protosExp protos),
+          (mkName "newtypeProtocols", newtypeProtocols),
           (mkName "newtypeAnnotations", newtypeAnnotations)
         ]
 
@@ -1674,22 +1676,22 @@ structExp ::
   -- | Make base?
   (Bool, Maybe MoatType, [Protocol]) ->
   Q Exp
-structExp name tyVars ifaces protos anns fields tags bs =
-  applyBase bs <$> do
-    structInterfaces <- ifacesExp ifaces
-    structAnnotations <- annsExp anns
-    pure $
-      RecConE
-        'MoatStruct
-        [ (mkName "structName", unqualName name),
-          (mkName "structTyVars", prettyTyVars tyVars),
-          (mkName "structInterfaces", structInterfaces),
-          (mkName "structProtocols", protosExp protos),
-          (mkName "structAnnotations", structAnnotations),
-          (mkName "structFields", ListE fields),
-          (mkName "structPrivateTypes", ListE []),
-          (mkName "structTags", ListE tags)
-        ]
+structExp name tyVars ifaces protos anns fields tags bs = do
+  structInterfaces <- Syntax.lift ifaces
+  structAnnotations <- Syntax.lift anns
+  structProtocols <- Syntax.lift protos
+  applyBase bs $
+    RecConE
+      'MoatStruct
+      [ (mkName "structName", unqualName name),
+        (mkName "structTyVars", prettyTyVars tyVars),
+        (mkName "structInterfaces", structInterfaces),
+        (mkName "structProtocols", structProtocols),
+        (mkName "structAnnotations", structAnnotations),
+        (mkName "structFields", ListE fields),
+        (mkName "structPrivateTypes", ListE []),
+        (mkName "structTags", ListE tags)
+      ]
 
 matchProxy :: Exp -> ShwiftyM Match
 matchProxy e =
@@ -1734,26 +1736,13 @@ giveBase r ps = \case
 --
 --
 -- should we strip tyvars as well?
-applyBase :: (Bool, Maybe MoatType, [Protocol]) -> Exp -> Exp
-applyBase (b, r, ps) (ParensE -> s) =
-  if b
-    then AppE (AppE (AppE (VarE 'giveBase) (rawValueE r)) (protosExp ps)) s
-    else s
-
-protosExp :: [Protocol] -> Exp
-protosExp = ListE . map (ConE . mkName . go)
-  where
-    go = \case
-      Equatable -> "Equatable"
-      Hashable -> "Hashable"
-      Codable -> "Codable"
-      OtherProtocol p -> p
-
-ifacesExp :: [Interface] -> Q Exp
-ifacesExp = fmap ListE <$> traverse Syntax.lift
-
-annsExp :: [Annotation] -> Q Exp
-annsExp = fmap ListE <$> traverse Syntax.lift
+applyBase :: (Bool, Maybe MoatType, [Protocol]) -> Exp -> Q Exp
+applyBase (b, r, ps) (ParensE -> s) = do
+  protoAnnotations <- Syntax.lift ps
+  pure $
+    if b
+      then VarE 'giveBase `AppE` rawValueE r `AppE` protoAnnotations `AppE` s
+      else s
 
 tupE :: [Exp] -> Exp
 #if MIN_VERSION_template_haskell(2,16,0)
