@@ -22,4 +22,7 @@ ghcid-test: hpack
 format:
 	find src/ test/ -name "*.hs" -exec ormolu -i {} \;
 
-.PROXY: build test hpack repl repl-test ghcid ghcid-test format
+hlint:
+	hlint .
+
+.PHONY: build test hpack repl repl-test ghcid ghcid-test format hlint

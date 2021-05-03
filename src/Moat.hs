@@ -1,26 +1,18 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# OPTIONS_GHC -Wall #-}
 
 -- | The Shwifty library allows generation of
 --   Swift types (structs and enums) from Haskell
@@ -144,8 +136,9 @@ type X = Void
 ensureEnabled :: Extension -> ShwiftyM ()
 ensureEnabled ext = do
   enabled <- lift $ isExtEnabled ext
-  unless enabled $ do
-    throwError $ ExtensionNotEnabled ext
+  if enabled
+    then pure ()
+    else throwError $ ExtensionNotEnabled ext
 
 -- | Generate 'ToMoatData' and 'ToMoatType' instances
 --   for your type. 'ToMoatType' instances are typically
@@ -313,7 +306,7 @@ mobileGen = mobileGenWith defaultOptions
 -- }
 -- @
 mobileGenWith :: Options -> Name -> Q [Dec]
-mobileGenWith o n = mobileGenWithTags o [] n
+mobileGenWith o = mobileGenWithTags o []
 
 data NewtypeInfo = NewtypeInfo
   { -- | Type constructor
@@ -370,50 +363,48 @@ getTags ::
   ShwiftyM ([Exp], [Dec])
 getTags parentName ts = do
   let b = length ts > 1
-  disambiguate <- lift $ [||b||]
-  tags <-
-    foldlM
-      ( \(es, ds) n -> do
-          NewtypeInfo {..} <- reifyNewtype n
-          let ConstructorInfo {..} = newtypeCon
+  disambiguate <- lift [||b||]
+  foldlM
+    ( \(es, ds) n -> do
+        NewtypeInfo {..} <- reifyNewtype n
+        let ConstructorInfo {..} = newtypeCon
 
-          -- generate the tag
-          let tyconName = case newtypeVariant of
-                NewtypeInstance -> constructorName
-                _ -> newtypeName
-          typ <- case constructorFields of
-            [ty] -> pure ty
-            _ -> throwError $ NotANewtype newtypeName
-          let tag =
-                RecConE
-                  'Tag
-                  [ (mkName "tagName", unqualName tyconName),
-                    (mkName "tagParent", unqualName parentName),
-                    (mkName "tagTyp", toMoatTypeEPoly typ),
-                    (mkName "tagDisambiguate", unType disambiguate)
-                  ]
-
-          -- generate the instance
-          !instHeadTy <-
-            buildTypeInstance newtypeName ClassType newtypeInstTypes newtypeVars newtypeVariant
-          -- we do not want to strip here
-          clauseTy <- tagToMoatType tyconName typ parentName
-          swiftTyInst <-
-            lift $
-              instanceD
-                (pure [])
-                (pure instHeadTy)
-                [ funD
-                    'toMoatType
-                    [ clause [] (normalB (pure clauseTy)) []
-                    ]
+        -- generate the tag
+        let tyconName = case newtypeVariant of
+              NewtypeInstance -> constructorName
+              _ -> newtypeName
+        typ <- case constructorFields of
+          [ty] -> pure ty
+          _ -> throwError $ NotANewtype newtypeName
+        let tag =
+              RecConE
+                'Tag
+                [ (mkName "tagName", unqualName tyconName),
+                  (mkName "tagParent", unqualName parentName),
+                  (mkName "tagTyp", toMoatTypeEPoly typ),
+                  (mkName "tagDisambiguate", unType disambiguate)
                 ]
 
-          pure $ (es ++ [tag], ds ++ [swiftTyInst])
-      )
-      ([], [])
-      ts
-  pure tags
+        -- generate the instance
+        !instHeadTy <-
+          buildTypeInstance newtypeName ClassType newtypeInstTypes newtypeVars newtypeVariant
+        -- we do not want to strip here
+        clauseTy <- tagToMoatType tyconName typ parentName
+        swiftTyInst <-
+          lift $
+            instanceD
+              (pure [])
+              (pure instHeadTy)
+              [ funD
+                  'toMoatType
+                  [ clause [] (normalB (pure clauseTy)) []
+                  ]
+              ]
+
+        pure (es ++ [tag], ds ++ [swiftTyInst])
+    )
+    ([], [])
+    ts
 
 getToMoatType ::
   () =>
@@ -611,12 +602,18 @@ data ShwiftyError
   | NotANewtype
       { _typName :: Name
       }
+  | EncounteredNonTypeVariable
+      { _funName :: String,
+        _type :: Type
+      }
+  | ImproperNewtypeConstructorInfo
+      { _conInfo :: ConstructorInfo
+      }
 
 prettyShwiftyError :: ShwiftyError -> String
 prettyShwiftyError = \case
   SingleConNonRecord (nameStr -> n) ->
-    mempty
-      ++ n
+    n
       ++ ": Cannot get shwifty with single-constructor "
       ++ "non-record types. This is due to a "
       ++ "restriction of Swift that prohibits structs "
@@ -624,16 +621,16 @@ prettyShwiftyError = \case
       ++ n
       ++ " into a record!"
   EncounteredInfixConstructor (nameStr -> n) ->
-    mempty
-      ++ n
+    n
       ++ ": Cannot get shwifty with infix constructors. "
       ++ "Swift doesn't support them. Try changing "
       ++ n
       ++ " into a prefix constructor!"
   KindVariableCannotBeRealised (nameStr -> n) typ ->
-    let (typStr, kindStr) = prettyKindVar typ
-     in mempty
-          ++ n
+    case prettyKindVar typ of
+      Left err -> err
+      Right (typStr, kindStr) ->
+        n
           ++ ": Encountered a type variable ("
           ++ typStr
           ++ ") with a kind ("
@@ -645,8 +642,7 @@ prettyShwiftyError = \case
           ++ "Swift. The only kinds that can happen with "
           ++ "are `*` and the free-est kind, `k`."
   ExtensionNotEnabled ext ->
-    mempty
-      ++ show ext
+    show ext
       ++ " is not enabled. Shwifty needs it to work!"
   -- TODO: make this not print out implicit kinds.
   -- e.g. for `data Ex = forall x. Ex x`, there are
@@ -657,21 +653,26 @@ prettyShwiftyError = \case
   -- the end user. I'm not immediately certain how to
   -- be rid of them.
   ExistentialTypes (nameStr -> n) tys ->
-    mempty
-      ++ n
+    n
       ++ " has existential type variables ("
       ++ L.intercalate ", " (map prettyTyVarBndrStr tys)
       ++ ")! Shwifty doesn't support these."
   ExpectedNewtypeInstance ->
-    mempty
-      ++ "Expected a newtype instance. This is an "
+    "Expected a newtype instance. This is an "
       ++ "internal logic error. Please report it as a "
       ++ "bug."
   NotANewtype (nameStr -> n) ->
-    mempty
-      ++ n
+    n
       ++ " is not a newtype. This is an internal logic "
       ++ "error. Please report it as a bug."
+  EncounteredNonTypeVariable funName typ ->
+    "Encountered non-type variable in `"
+      ++ funName
+      ++ "`, expected VarT or SigT but got "
+      ++ show typ
+  ImproperNewtypeConstructorInfo conInfo ->
+    "Expected `ConstructorInfo` with single field, but got "
+      ++ show conInfo
 
 prettyTyVarBndrStr :: TyVarBndr -> String
 prettyTyVarBndrStr = \case
@@ -681,11 +682,11 @@ prettyTyVarBndrStr = \case
     go = TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show
 
 -- prettify the type and kind.
-prettyKindVar :: Type -> (String, String)
+prettyKindVar :: Type -> Either String (String, String)
 prettyKindVar = \case
-  SigT typ k -> (go typ, go k)
-  VarT n -> (nameStr n, "*")
-  typ -> error $ "Shwifty.prettyKindVar: used on a type without a kind signature. Type was: " ++ show typ
+  SigT typ k -> Right (go typ, go k)
+  VarT n -> Right (nameStr n, "*")
+  typ -> Left $ "Moat.prettyKindVar: used on a type without a kind signature. Type was: " ++ show typ
   where
     go = TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show . ppr
 
@@ -739,7 +740,8 @@ typToMoatType newtypeTag parentName instTys = do
          in stringE accessedName
   ourMatch <-
     matchProxy $
-      RecConE 'Concrete $
+      RecConE
+        'Concrete
         [ (mkName "concreteName", name),
           (mkName "concreteTyVars", ListE tyVars)
         ]
@@ -819,11 +821,9 @@ consToMoatType o@Options {..} parentName instTys variant ts bs = \case
         [con] -> liftCons $ do
           case variant of
             NewtypeInstance -> do
-              if
-                  | typeAlias -> do
-                    mkNewtypeInstanceAlias instTys con
-                  | otherwise -> do
-                    mkNewtypeInstance o instTys con
+              if typeAlias
+                then mkNewtypeInstanceAlias instTys con
+                else mkNewtypeInstance o instTys con
             Newtype -> do
               if
                   | newtypeTag -> do
@@ -843,8 +843,8 @@ consToMoatType o@Options {..} parentName instTys variant ts bs = \case
               =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs)
           pure [pure ourMatch]
 
-liftCons :: (Functor f, Applicative g) => f a -> f ([g a])
-liftCons x = ((: []) . pure) <$> x
+liftCons :: (Functor f, Applicative g) => f a -> f [g a]
+liftCons x = (: []) . pure <$> x
 
 -- Create the case (String, [(Maybe String, Ty)])
 mkCaseHelper :: Options -> Name -> [Exp] -> Exp
@@ -936,7 +936,7 @@ mkNewtypeInstanceAlias (stripConT -> instTys) = \case
           )
           []
   _ -> do
-    throwError $ ExpectedNewtypeInstance
+    throwError ExpectedNewtypeInstance
 
 mkNewtypeInstance ::
   () =>
@@ -1024,12 +1024,11 @@ mkNewtype ::
   ConstructorInfo ->
   ShwiftyM Match
 mkNewtype o@Options {..} typName instTys = \case
-  -- TODO: make this only accept proper con variants
   ConstructorInfo
     { constructorFields = [field]
     } -> do
       matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
-  _ -> undefined
+  ci -> throwError $ ImproperNewtypeConstructorInfo ci
 
 -- | Make a single-constructor product (struct)
 mkProd ::
@@ -1106,8 +1105,7 @@ zipWithPred p f (x : xs) (y : ys)
 --   }
 caseName :: Options -> Name -> Exp
 caseName Options {..} =
-  id
-    . stringE
+  stringE
     . onHeadWith lowerFirstCase
     . constructorModifier
     . TS.unpack
@@ -1147,7 +1145,7 @@ getFreeTyVar = \case
 prettyField :: Options -> Name -> Type -> Exp
 prettyField Options {..} name ty =
   tupE
-    [ (stringE (onHeadWith lowerFirstField (fieldLabelModifier (nameStr name)))),
+    [ stringE (onHeadWith lowerFirstField (fieldLabelModifier (nameStr name))),
       toMoatTypeEPoly ty
     ]
 
@@ -1189,21 +1187,16 @@ buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
   let -- get the names of our kind vars
       kindVarNames :: [Name]
       kindVarNames =
-        flip
-          mapMaybe
-          starKindStats
+        mapMaybe
           ( \case
               IsKindVar n -> Just n
               _ -> Nothing
           )
+          starKindStats
 
   let -- instantiate polykinded things to star.
       varTysExpSubst :: [Type]
       varTysExpSubst = map (substNamesWithKindStar kindVarNames) varTysExp
-
-      -- the constraints needed on type variables
-      preds :: [Maybe Pred]
-      preds = map (deriveConstraint cls) varTysExpSubst
 
       -- We now sub all of the specialised-to-* kind
       -- variable names with *, but in the original types,
@@ -1224,7 +1217,7 @@ buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
       --   instance C (Fam [Char])
       varTysOrigSubst :: [Type]
       varTysOrigSubst =
-        map (substNamesWithKindStar kindVarNames) $ varTysOrig
+        map (substNamesWithKindStar kindVarNames) varTysOrig
 
       -- if we are working on a data family
       -- or newtype family, we need to peel off
@@ -1236,17 +1229,16 @@ buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
           then varTysOrigSubst
           else map unSigT varTysOrigSubst
 
-      -- the constraints needed on type variables
-      -- makes up the constraint part of the
-      -- instance head.
-      instanceCxt :: Cxt
-      instanceCxt = catMaybes preds
-
       -- the class and type in the instance head.
       instanceType :: Type
       instanceType =
         AppT (ConT (shwiftyClassName cls)) $
           applyTyCon tyConName varTysOrigSubst'
+
+  -- the constraints needed on type variables
+  -- makes up the constraint part of the
+  -- instance head.
+  instanceCxt <- catMaybes <$> mapM (deriveConstraint cls) varTysExpSubst
 
   -- forall <tys>. ctx tys => Cls ty
   lift $
@@ -1275,19 +1267,20 @@ deriveConstraint ::
   -- | type
   Type ->
   -- | constraint on type
-  Maybe Pred
+  ShwiftyM (Maybe Pred)
 deriveConstraint c@ClassType typ
-  | not (isTyVar typ) = Nothing
-  | hasKindStar typ = Just (applyCon (shwiftyClassName c) tName)
-  | otherwise = Nothing
+  | not (isTyVar typ) = pure Nothing
+  | hasKindStar typ = Just . applyCon (shwiftyClassName c) <$> tName
+  | otherwise = pure Nothing
   where
-    tName :: Name
+    tName :: ShwiftyM Name
     tName = varTToName typ
+    varTToName :: Type -> ShwiftyM Name
     varTToName = \case
-      VarT n -> n
+      VarT n -> pure n
       SigT t _ -> varTToName t
-      _ -> error "Shwifty.varTToName: encountered non-type variable"
-deriveConstraint ClassData _ = Nothing
+      t -> throwError $ EncounteredNonTypeVariable "deriveConstraint" t
+deriveConstraint ClassData _ = pure Nothing
 
 -- apply a type constructor to a type variable.
 -- this can be useful for letting the kind
@@ -1584,9 +1577,7 @@ tagExp tyconName parentName typ dis =
       (mkName "tagParent", unqualName parentName),
       (mkName "tagTyp", toMoatTypeECxt typ),
       ( mkName "tagDisambiguate",
-        case dis of
-          False -> ConE 'False
-          True -> ConE 'True
+        if dis then ConE 'True else ConE 'False
       )
     ]
 

@@ -23,8 +23,7 @@ prettySwiftDataWith ::
   String
 prettySwiftDataWith indent = \case
   MoatEnum {..} ->
-    []
-      ++ "enum "
+    "enum "
       ++ prettyMoatTypeHeader enumName enumTyVars
       ++ prettyRawValueAndProtocols enumRawValue enumProtocols
       ++ " {"
@@ -36,8 +35,7 @@ prettySwiftDataWith indent = \case
       ++ newlineNonEmpty enumTags
       ++ "}"
   MoatStruct {..} ->
-    []
-      ++ "struct "
+    "struct "
       ++ prettyMoatTypeHeader structName structTyVars
       ++ prettyRawValueAndProtocols Nothing structProtocols
       ++ " {"
@@ -49,8 +47,7 @@ prettySwiftDataWith indent = \case
       ++ newlineNonEmpty structTags
       ++ "}"
   MoatAlias {..} ->
-    []
-      ++ "typealias "
+    "typealias "
       ++ prettyMoatTypeHeader aliasName aliasTyVars
       ++ " = "
       ++ prettyMoatType aliasTyp
@@ -99,13 +96,14 @@ prettyProtocols = \case
         Equatable -> "Equatable"
         OtherProtocol s -> s
 
+-- TODO: Need a plan to avoid @error@ in these pure functions
+{-# ANN prettyTags "HLint: ignore" #-}
 prettyTags :: String -> [MoatType] -> String
 prettyTags indents = go
   where
     go [] = ""
     go (Tag {..} : ts) =
-      []
-        ++ "\n"
+      "\n"
         ++ prettyTagDisambiguator tagDisambiguate indents tagName
         ++ indents
         ++ "typealias "
@@ -130,8 +128,7 @@ prettyTagDisambiguator ::
 prettyTagDisambiguator disambiguate indents parent =
   if disambiguate
     then
-      []
-        ++ indents
+      indents
         ++ "enum "
         ++ parent
         ++ "Tag { }\n"
@@ -200,19 +197,17 @@ prettyEnumCases indents = go
     go = \case
       [] -> ""
       ((caseNm, []) : xs) ->
-        []
-          ++ indents
+        indents
           ++ "case "
           ++ caseNm
           ++ "\n"
           ++ go xs
       ((caseNm, cs) : xs) ->
-        []
-          ++ indents
+        indents
           ++ "case "
           ++ caseNm
           ++ "("
-          ++ (intercalate ", " (map (uncurry labelCase) cs))
+          ++ intercalate ", " (map (uncurry labelCase) cs)
           ++ ")\n"
           ++ go xs
 

@@ -64,8 +64,7 @@ prettyCEnumCases indents = go
     go = \case
       [] -> ""
       (caseName : cases) ->
-        []
-          ++ indents
+        indents
           ++ caseName
           ++ ",\n"
           ++ go cases
@@ -76,8 +75,7 @@ prettyEnumCases typName indents = go
     go = \case
       [] -> ""
       ((caseNm, []) : xs) ->
-        []
-          ++ indents
+        indents
           ++ "object "
           ++ toUpperFirst caseNm
           ++ "() : "
@@ -85,17 +83,18 @@ prettyEnumCases typName indents = go
           ++ "\n"
           ++ go xs
       ((caseNm, cs) : xs) ->
-        []
-          ++ indents
+        indents
           ++ "data class "
           ++ toUpperFirst caseNm
           ++ "(\n"
           ++ intercalate
             ",\n"
             ( map
-                ((++) indents)
-                ( (map ((++) indents . uncurry labelCase) cs)
+                ( (indents ++)
+                    . (++) indents
+                    . uncurry labelCase
                 )
+                cs
             )
           ++ "\n"
           ++ indents
@@ -227,8 +226,8 @@ prettyEnum anns ifaces name tyVars cases indents
     allConcrete :: [(a, [(b, MoatType)])] -> Bool
     allConcrete inp = all isConcrete moatTypes
       where
-        moatTypes = fmap snd . concat $ fmap snd inp
-        isConcrete (Concrete {}) = True
+        moatTypes = fmap snd (concatMap snd inp)
+        isConcrete Concrete {} = True
         isConcrete _ = False
 
     -- because they get it automatically
