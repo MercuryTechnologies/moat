@@ -1025,6 +1025,11 @@ mkNewtype ::
   ShwiftyM Match
 mkNewtype o@Options {..} typName instTys = \case
   ConstructorInfo
+    { constructorFields = [field],
+      constructorVariant = RecordConstructor [name]
+    } -> do
+      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o name field))
+  ConstructorInfo
     { constructorFields = [field]
     } -> do
       matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))

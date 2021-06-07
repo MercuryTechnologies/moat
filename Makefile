@@ -25,4 +25,7 @@ format:
 hlint:
 	hlint .
 
-.PHONY: build test hpack repl repl-test ghcid ghcid-test format hlint
+clean:
+	cabal clean
+
+.PHONY: build test hpack repl repl-test ghcid ghcid-test format hlint clean

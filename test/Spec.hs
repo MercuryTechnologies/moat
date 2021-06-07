@@ -136,6 +136,10 @@ data Enum5
 
 mobileGen ''Enum5
 
+newtype Newtype1 = Newtype1 {newtype1 :: Text}
+
+mobileGen ''Newtype1
+
 showKotlin :: forall a. ToMoatData a => String
 showKotlin = prettyKotlinData $ toMoatData (Proxy @a)
 
@@ -149,6 +153,8 @@ main = hspec $ do
       defaultGolden "kotlinEnum0" (showKotlin @Enum0)
     it "kotlinNewtype0" $
       defaultGolden "kotlinNewtype0" (showKotlin @Newtype0)
+    it "kotlinNewtype1" $
+      defaultGolden "kotlinNewtype1" (showKotlin @Newtype1)
     it "kotlinData0" $
       defaultGolden "kotlinData0" (showKotlin @Data0)
     it "kotlinEnum1" $
@@ -170,6 +176,8 @@ main = hspec $ do
       defaultGolden "swiftEnum0" (showSwift @Enum0)
     it "swiftNewtype0" $
       defaultGolden "swiftNewtype0" (showSwift @Newtype0)
+    it "swiftNewtype1" $
+      defaultGolden "swiftNewtype1" (showSwift @Newtype1)
     it "swiftData0" $
       defaultGolden "swiftData0" (showSwift @Data0)
     it "swiftEnum1" $

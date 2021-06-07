@@ -1,0 +1,1 @@
+inline class Newtype1(val newtype1: String)
