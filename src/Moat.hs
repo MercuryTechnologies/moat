@@ -109,7 +109,8 @@ import qualified Language.Haskell.TH.Syntax as Syntax
 import Moat.Class
 import Moat.Pretty.Kotlin (prettyKotlinData)
 import Moat.Pretty.Swift (prettySwiftData)
-import Moat.Types
+import Moat.Types hiding (newtypeName)
+import qualified Moat.Types
 import Prelude hiding (Enum (..))
 
 -- Used internally to reflect polymorphic type
@@ -379,10 +380,10 @@ getTags parentName ts = do
         let tag =
               RecConE
                 'Tag
-                [ (mkName "tagName", unqualName tyconName),
-                  (mkName "tagParent", unqualName parentName),
-                  (mkName "tagTyp", toMoatTypeEPoly typ),
-                  (mkName "tagDisambiguate", unType disambiguate)
+                [ ('tagName, unqualName tyconName),
+                  ('tagParent, unqualName parentName),
+                  ('tagTyp, toMoatTypeEPoly typ),
+                  ('tagDisambiguate, unType disambiguate)
                 ]
 
         -- generate the instance
@@ -742,8 +743,8 @@ typToMoatType newtypeTag parentName instTys = do
     matchProxy $
       RecConE
         'Concrete
-        [ (mkName "concreteName", name),
-          (mkName "concreteTyVars", ListE tyVars)
+        [ ('concreteName, name),
+          ('concreteTyVars, ListE tyVars)
         ]
   let matches = [pure ourMatch]
   lift $ lamCaseE matches
@@ -1558,9 +1559,9 @@ aliasExp ::
 aliasExp name tyVars field =
   RecConE
     'MoatAlias
-    [ (mkName "aliasName", unqualName name),
-      (mkName "aliasTyVars", prettyTyVars tyVars),
-      (mkName "aliasTyp", toMoatTypeECxt field)
+    [ ('aliasName, unqualName name),
+      ('aliasTyVars, prettyTyVars tyVars),
+      ('aliasTyp, toMoatTypeECxt field)
     ]
 
 -- | Construct a Tag.
@@ -1578,10 +1579,10 @@ tagExp ::
 tagExp tyconName parentName typ dis =
   RecConE
     'Tag
-    [ (mkName "tagName", unqualName tyconName),
-      (mkName "tagParent", unqualName parentName),
-      (mkName "tagTyp", toMoatTypeECxt typ),
-      ( mkName "tagDisambiguate",
+    [ ('tagName, unqualName tyconName),
+      ('tagParent, unqualName parentName),
+      ('tagTyp, toMoatTypeECxt typ),
+      ( 'tagDisambiguate,
         if dis then ConE 'True else ConE 'False
       )
     ]
@@ -1610,21 +1611,21 @@ enumExp ::
   Q Exp
 enumExp parentName tyVars ifaces protos anns cases raw tags bs =
   do
-    enumInterfaces <- Syntax.lift ifaces
-    enumAnnotations <- Syntax.lift anns
-    enumProtocols <- Syntax.lift protos
+    enumInterfaces_ <- Syntax.lift ifaces
+    enumAnnotations_ <- Syntax.lift anns
+    enumProtocols_ <- Syntax.lift protos
     applyBase bs $
       RecConE
         'MoatEnum
-        [ (mkName "enumName", unqualName parentName),
-          (mkName "enumTyVars", prettyTyVars tyVars),
-          (mkName "enumInterfaces", enumInterfaces),
-          (mkName "enumProtocols", enumProtocols),
-          (mkName "enumAnnotations", enumAnnotations),
-          (mkName "enumCases", ListE cases),
-          (mkName "enumRawValue", rawValueE raw),
-          (mkName "enumPrivateTypes", ListE []),
-          (mkName "enumTags", ListE tags)
+        [ ('enumName, unqualName parentName),
+          ('enumTyVars, prettyTyVars tyVars),
+          ('enumInterfaces, enumInterfaces_),
+          ('enumProtocols, enumProtocols_),
+          ('enumAnnotations, enumAnnotations_),
+          ('enumCases, ListE cases),
+          ('enumRawValue, rawValueE raw),
+          ('enumPrivateTypes, ListE []),
+          ('enumTags, ListE tags)
         ]
 
 newtypeExp ::
@@ -1637,20 +1638,16 @@ newtypeExp ::
   Exp ->
   Q Exp
 newtypeExp name tyVars ifaces protos anns field =
-  do
-    newtypeInterfaces <- Syntax.lift ifaces
-    newtypeAnnotations <- Syntax.lift anns
-    newtypeProtocols <- Syntax.lift protos
-    pure $
-      RecConE
-        'MoatNewtype
-        [ (mkName "newtypeName", unqualName name),
-          (mkName "newtypeTyVars", prettyTyVars tyVars),
-          (mkName "newtypeField", field),
-          (mkName "newtypeInterfaces", newtypeInterfaces),
-          (mkName "newtypeProtocols", newtypeProtocols),
-          (mkName "newtypeAnnotations", newtypeAnnotations)
-        ]
+  [|
+    MoatNewtype
+        { newtypeName = $(pure $ unqualName name)
+        , newtypeTyVars = $(pure $ prettyTyVars tyVars)
+        , newtypeField = $(pure field)
+        , newtypeProtocols = $(Syntax.lift protos)
+        , newtypeAnnotations = $(Syntax.lift anns)
+        , newtypeInterfaces = $(Syntax.lift ifaces)
+        }
+    |]
 
 -- | Construct a Struct.
 structExp ::
@@ -1673,20 +1670,20 @@ structExp ::
   (Bool, Maybe MoatType, [Protocol]) ->
   Q Exp
 structExp name tyVars ifaces protos anns fields tags bs = do
-  structInterfaces <- Syntax.lift ifaces
-  structAnnotations <- Syntax.lift anns
-  structProtocols <- Syntax.lift protos
+  structInterfaces_ <- Syntax.lift ifaces
+  structAnnotations_ <- Syntax.lift anns
+  structProtocols_ <- Syntax.lift protos
   applyBase bs $
     RecConE
       'MoatStruct
-      [ (mkName "structName", unqualName name),
-        (mkName "structTyVars", prettyTyVars tyVars),
-        (mkName "structInterfaces", structInterfaces),
-        (mkName "structProtocols", structProtocols),
-        (mkName "structAnnotations", structAnnotations),
-        (mkName "structFields", ListE fields),
-        (mkName "structPrivateTypes", ListE []),
-        (mkName "structTags", ListE tags)
+      [ ('structName, unqualName name),
+        ('structTyVars, prettyTyVars tyVars),
+        ('structInterfaces, structInterfaces_),
+        ('structProtocols, structProtocols_),
+        ('structAnnotations, structAnnotations_),
+        ('structFields, ListE fields),
+        ('structPrivateTypes, ListE []),
+        ('structTags, ListE tags)
       ]
 
 matchProxy :: Exp -> ShwiftyM Match
