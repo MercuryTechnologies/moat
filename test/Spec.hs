@@ -140,6 +140,17 @@ newtype Newtype1 = Newtype1 {newtype1 :: Text}
 
 mobileGen ''Newtype1
 
+newtype Newtype2 = Newtype2 {newtype2 :: Enum5}
+
+mobileGenWith
+  ( defaultOptions
+      { dataAnnotations = [Parcelize, Serializable],
+        dataInterfaces = [Parcelable],
+        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      }
+  )
+  ''Newtype2
+
 showKotlin :: forall a. ToMoatData a => String
 showKotlin = prettyKotlinData $ toMoatData (Proxy @a)
 
@@ -155,6 +166,8 @@ main = hspec $ do
       defaultGolden "kotlinNewtype0" (showKotlin @Newtype0)
     it "kotlinNewtype1" $
       defaultGolden "kotlinNewtype1" (showKotlin @Newtype1)
+    it "kotlinNewtype2" $
+      defaultGolden "kotlinNewtype2" (showKotlin @Newtype2)
     it "kotlinData0" $
       defaultGolden "kotlinData0" (showKotlin @Data0)
     it "kotlinEnum1" $
@@ -178,6 +191,8 @@ main = hspec $ do
       defaultGolden "swiftNewtype0" (showSwift @Newtype0)
     it "swiftNewtype1" $
       defaultGolden "swiftNewtype1" (showSwift @Newtype1)
+    it "swiftNewtype2" $
+      defaultGolden "swiftNewtype2" (showSwift @Newtype2)
     it "swiftData0" $
       defaultGolden "swiftData0" (showSwift @Data0)
     it "swiftEnum1" $

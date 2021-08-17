@@ -1,0 +1,3 @@
+struct Newtype2: CaseIterable, Hashable, Codable {
+    let newtype2: Enum5
+}
