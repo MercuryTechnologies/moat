@@ -1,0 +1,4 @@
+struct Newtype3 {
+    typealias Newtype3Tag = Tagged<Newtype3, String?>
+    let value: Newtype3Tag
+}

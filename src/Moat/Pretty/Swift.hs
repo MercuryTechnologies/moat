@@ -173,6 +173,7 @@ prettyMoatType = \case
   Character -> "Character"
   Tuple2 e1 e2 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ")"
   Tuple3 e1 e2 e3 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e3 ++ ")"
+  Optional o@(Optional _) -> prettyMoatType o
   Optional e -> prettyMoatType e ++ "?"
   -- Swift flips the parameters for Result, see https://developer.apple.com/documentation/swift/result
   Result e1 e2 -> "Result<" ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e1 ++ ">"

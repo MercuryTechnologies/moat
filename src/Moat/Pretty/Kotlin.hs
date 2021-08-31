@@ -171,6 +171,7 @@ prettyMoatType = \case
   Character -> "Char"
   Tuple2 e1 e2 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ")"
   Tuple3 e1 e2 e3 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e3 ++ ")"
+  Optional o@(Optional _) -> prettyMoatType o
   Optional e -> prettyMoatType e ++ "?"
   Result e1 e2 -> "Either<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
   Set e -> "Set<" ++ prettyMoatType e ++ ">"
