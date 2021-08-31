@@ -1,0 +1,4 @@
+struct Record0: CaseIterable, Hashable, Codable {
+    let record0Field0: Int
+    let record0Field1: Int
+}

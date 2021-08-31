@@ -1,65 +1,84 @@
-cabal-version: 2.2
-name:
-  moat
-version:
-  0.1
-synopsis:
-  Generate swift and kotlin types from
-  haskell types.
--- description:
---   Shwifty provides many utilities for generating swift types from haskell types,
---   with great flexibility in representation, and emphasis on generating typesafe
---   Swift code. Most of the types representable in Haskell98 are supported.
-bug-reports:
-  https://github.com/chessai/moat/issues
-license:
-  MIT
-license-file:
-  LICENSE
-author:
-  chessai
-maintainer:
-  chessai <chessai1996@gmail.com>
-copyright:
-  Copyright (c) 2021, chessai
-category:
-  Codegen, Text, TemplateHaskell
-build-type:
-  Simple
-extra-source-files:
-  CHANGELOG.md
-  README.md
+cabal-version: 1.12
 
-library
-  hs-source-dirs:
-    src
-  exposed-modules:
-    Moat
-    Test
-  other-modules:
-    Moat.Class
-    Moat.Pretty.Kotlin
-    Moat.Pretty.Swift
-    Moat.Types
-  build-depends:
-    , base >= 4.11 && < 4.15
-    , bytestring >= 0.10 && < 0.11
-    , case-insensitive >= 1.2 && < 1.3
-    , containers >= 0.5.9 && < 0.7
-    , mtl >= 2.2 && < 2.3
-    , primitive >= 0.6.4 && < 0.8
-    , template-haskell >= 2.11 && < 2.17
-    , text >= 1.2 && < 1.3
-    , th-abstraction >= 0.3 && < 0.5
-    , time >= 1.8 && < 1.11
-    , unordered-containers >= 0.2 && < 0.3
-    , uuid-types >= 1.0 && < 1.1
-    , vector >= 0.12 && < 0.13
-  default-language:
-    Haskell2010
+-- This file has been generated from package.yaml by hpack version 0.34.3.
+--
+-- see: https://github.com/sol/hpack
+
+name:           moat
+version:        0.1
+synopsis:       Generate swift and kotlin types from haskell types
+description:    See README at <https://github.com/chessai/moat>
+category:       Codegen, Text, TemplateHaskell
+homepage:       https://github.com/chessai/moat#readme
+bug-reports:    https://github.com/chessai/moat/issues
+maintainer:     chessai <chessai1996@gmail.com>
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    CHANGELOG.md
+    README.md
 
 source-repository head
-  type:
-    git
-  location:
-    git://github.com/chessai/moat.git
+  type: git
+  location: https://github.com/chessai/moat
+
+library
+  exposed-modules:
+      Moat
+  other-modules:
+      Moat.Class
+      Moat.Pretty.Kotlin
+      Moat.Pretty.Swift
+      Moat.Types
+      Paths_moat
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      base >=4.11 && <4.15
+    , bytestring >=0.10 && <0.11
+    , case-insensitive >=1.2 && <1.3
+    , containers >=0.5.9 && <0.7
+    , mtl >=2.2 && <2.3
+    , primitive >=0.6.4 && <0.8
+    , template-haskell >=2.11 && <2.17
+    , text >=1.2 && <1.3
+    , th-abstraction >=0.3 && <0.5
+    , time >=1.8 && <1.11
+    , unordered-containers >=0.2 && <0.3
+    , uuid-types >=1.0 && <1.1
+    , vector >=0.12 && <0.13
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Moat
+      Moat.Class
+      Moat.Pretty.Kotlin
+      Moat.Pretty.Swift
+      Moat.Types
+      Paths_moat
+  hs-source-dirs:
+      test
+      src
+  ghc-options: -Wall
+  build-depends:
+      base >=4.11 && <4.15
+    , bytestring >=0.10 && <0.11
+    , case-insensitive >=1.2 && <1.3
+    , containers >=0.5.9 && <0.7
+    , hspec
+    , hspec-golden
+    , mtl >=2.2 && <2.3
+    , primitive >=0.6.4 && <0.8
+    , template-haskell >=2.11 && <2.17
+    , text >=1.2 && <1.3
+    , th-abstraction >=0.3 && <0.5
+    , time >=1.8 && <1.11
+    , unordered-containers >=0.2 && <0.3
+    , uuid-types >=1.0 && <1.1
+    , vector >=0.12 && <0.13
+  default-language: Haskell2010

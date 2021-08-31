@@ -1,0 +1,6 @@
+@Parcelize
+@Serializable
+data class Record1(
+    val record1Field0: Int,
+    val record1Field1: Int,
+) : Enum1()

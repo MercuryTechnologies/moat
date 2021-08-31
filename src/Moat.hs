@@ -1,31 +1,18 @@
-{-# language
-    AllowAmbiguousTypes
-  , BangPatterns
-  , CPP
-  , DataKinds
-  , DeriveFoldable
-  , DeriveFunctor
-  , DeriveGeneric
-  , DeriveTraversable
-  , DerivingStrategies
-  , FlexibleInstances
-  , LambdaCase
-  , MultiWayIf
-  , NamedFieldPuns
-  , OverloadedStrings
-  , RecordWildCards
-  , ScopedTypeVariables
-  , TemplateHaskell
-  , TypeApplications
-  , TypeFamilies
-  , TypeOperators
-  , UndecidableInstances
-  , ViewPatterns
-#-}
-
-{-# options_ghc
-  -Wall
-#-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- | The Shwifty library allows generation of
 --   Swift types (structs and enums) from Haskell
@@ -44,84 +31,94 @@
 --   any issues on the issue tracker.
 module Moat
   ( -- * Classes for conversion
-    ToMoatType(..)
-  , ToMoatData(..)
+    ToMoatType (..),
+    ToMoatData (..),
 
     -- * Generating instances
-  , mobileGen
-  , mobileGenWith
-  , mobileGenWithTags
+    mobileGen,
+    mobileGenWith,
+    mobileGenWithTags,
 
     -- * Types
-  , MoatType(..)
-  , MoatData(..)
-  , Protocol(..)
-  , Interface(..)
-  , Annotation(..)
+    MoatType (..),
+    MoatData (..),
+    Protocol (..),
+    Interface (..),
+    Annotation (..),
 
     -- * Options for encoding types
+
     -- ** Option type
-  , Options
+    Options,
+
     -- ** Helper type for omissions
-  , KeepOrDiscard(..)
+    KeepOrDiscard (..),
+
     -- ** Actual Options
-  , fieldLabelModifier
-  , constructorModifier
-  , optionalExpand
-  , generateToMoatType
-  , generateToMoatData
-  , dataProtocols
-  , dataInterfaces
-  , dataAnnotations
-  , dataRawValue
-  , typeAlias
-  , newtypeTag
-  , lowerFirstCase
-  , lowerFirstField
-  , omitFields
-  , omitCases
-  , makeBase
+    fieldLabelModifier,
+    constructorModifier,
+    optionalExpand,
+    generateToMoatType,
+    generateToMoatData,
+    dataProtocols,
+    dataInterfaces,
+    dataAnnotations,
+    dataRawValue,
+    typeAlias,
+    newtypeTag,
+    lowerFirstCase,
+    lowerFirstField,
+    omitFields,
+    omitCases,
+    makeBase,
+
     -- ** Default 'Options'
-  , defaultOptions
+    defaultOptions,
 
     -- * Pretty-printing
+
     -- ** Functions
-  , prettyKotlinData
-  , prettySwiftData
+    prettyKotlinData,
+    prettySwiftData,
+
     -- ** Utility
-  , aliasToNewtype
-  , newtypeToAlias
+    aliasToNewtype,
+    newtypeToAlias,
+
     -- ** Re-exports
-  , X
-  ) where
+    X,
+  )
+where
 
 import Control.Monad.Except
-import Data.Foldable (foldlM,foldr',foldl')
-import Data.Functor ((<&>))
-import Data.List.NonEmpty ((<|), NonEmpty(..))
-import Data.Maybe (mapMaybe, catMaybes)
-import Data.Proxy (Proxy(..))
-import Data.Void (Void)
-import GHC.TypeLits (Symbol, KnownSymbol, symbolVal)
-import Language.Haskell.TH hiding (stringE, tupE)
-import Language.Haskell.TH.Datatype
-import Prelude hiding (Enum(..))
 import qualified Data.Char as Char
+import Data.Foldable (foldl', foldlM, foldr')
+import Data.Functor ((<&>))
 import qualified Data.List as L
+import Data.List.NonEmpty (NonEmpty (..), (<|))
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as M
+import Data.Maybe (catMaybes, mapMaybe)
+import Data.Proxy (Proxy (..))
 import qualified Data.Text as TS
-
+import Data.Void (Void)
+import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
+import Language.Haskell.TH hiding (stringE, tupE)
+import Language.Haskell.TH.Datatype
+import qualified Language.Haskell.TH.Syntax as Syntax
 import Moat.Class
 import Moat.Pretty.Kotlin (prettyKotlinData)
 import Moat.Pretty.Swift (prettySwiftData)
-import Moat.Types
+import Moat.Types hiding (newtypeName)
+import qualified Moat.Types
+import Prelude hiding (Enum (..))
 
 -- Used internally to reflect polymorphic type
 -- variables into TH, then reify them into 'Poly'.
 --
 -- See the Rose tree section below
 data SingSymbol (x :: Symbol)
+
 instance KnownSymbol x => ToMoatType (SingSymbol x) where
   toMoatType _ = Poly (symbolVal (Proxy @x))
 
@@ -140,8 +137,9 @@ type X = Void
 ensureEnabled :: Extension -> ShwiftyM ()
 ensureEnabled ext = do
   enabled <- lift $ isExtEnabled ext
-  unless enabled $ do
-    throwError $ ExtensionNotEnabled ext
+  if enabled
+    then pure ()
+    else throwError $ ExtensionNotEnabled ext
 
 -- | Generate 'ToMoatData' and 'ToMoatType' instances
 --   for your type. 'ToMoatType' instances are typically
@@ -309,42 +307,44 @@ mobileGen = mobileGenWith defaultOptions
 -- }
 -- @
 mobileGenWith :: Options -> Name -> Q [Dec]
-mobileGenWith o n = mobileGenWithTags o [] n
+mobileGenWith o = mobileGenWithTags o []
 
 data NewtypeInfo = NewtypeInfo
-  { newtypeName :: Name
-    -- ^ Type constructor
-  , newtypeVars :: [TyVarBndr]
-    -- ^ Type parameters
-  , newtypeInstTypes :: [Type]
-    -- ^ Argument types
-  , newtypeVariant :: DatatypeVariant
-    -- ^ Whether or not the type is a
+  { -- | Type constructor
+    newtypeName :: Name,
+    -- | Type parameters
+    newtypeVars :: [TyVarBndr],
+    -- | Argument types
+    newtypeInstTypes :: [Type],
+    -- | Whether or not the type is a
     --   newtype or newtype instance
-  , newtypeCon :: ConstructorInfo
+    newtypeVariant :: DatatypeVariant,
+    newtypeCon :: ConstructorInfo
   }
 
 -- | Reify a newtype.
 reifyNewtype :: Name -> ShwiftyM NewtypeInfo
 reifyNewtype n = do
-  DatatypeInfo{..} <- lift $ reifyDatatype n
+  DatatypeInfo {..} <- lift $ reifyDatatype n
   case (datatypeCons, datatypeVariant) of
     ([c], Newtype) -> do
-      pure NewtypeInfo {
-        newtypeName = datatypeName
-      , newtypeVars = datatypeVars
-      , newtypeInstTypes = datatypeInstTypes
-      , newtypeVariant = datatypeVariant
-      , newtypeCon = c
-      }
+      pure
+        NewtypeInfo
+          { newtypeName = datatypeName,
+            newtypeVars = datatypeVars,
+            newtypeInstTypes = datatypeInstTypes,
+            newtypeVariant = datatypeVariant,
+            newtypeCon = c
+          }
     ([c], NewtypeInstance) -> do
-      pure NewtypeInfo {
-        newtypeName = datatypeName
-      , newtypeVars = datatypeVars
-      , newtypeInstTypes = datatypeInstTypes
-      , newtypeVariant = datatypeVariant
-      , newtypeCon = c
-      }
+      pure
+        NewtypeInfo
+          { newtypeName = datatypeName,
+            newtypeVars = datatypeVars,
+            newtypeInstTypes = datatypeInstTypes,
+            newtypeVariant = datatypeVariant,
+            newtypeCon = c
+          }
     _ -> do
       throwError $ NotANewtype n
 
@@ -355,119 +355,134 @@ reifyNewtype n = do
 -- they will generate the wrong code, since other
 -- types with a tag that isn't theirs won't generate
 -- well-scoped fields.
-getTags :: ()
-  => Name
-     -- ^ name of parent type
-  -> [Name]
-     -- ^ tags
-  -> ShwiftyM ([Exp], [Dec])
+getTags ::
+  () =>
+  -- | name of parent type
+  Name ->
+  -- | tags
+  [Name] ->
+  ShwiftyM ([Exp], [Dec])
 getTags parentName ts = do
   let b = length ts > 1
-  disambiguate <- lift $ [||b||]
-  tags <- foldlM
-    (\(es,ds) n -> do
+  disambiguate <- lift [||b||]
+  foldlM
+    ( \(es, ds) n -> do
+        NewtypeInfo {..} <- reifyNewtype n
+        let ConstructorInfo {..} = newtypeCon
 
-      NewtypeInfo{..} <- reifyNewtype n
-      let ConstructorInfo{..} = newtypeCon
+        -- generate the tag
+        let tyconName = case newtypeVariant of
+              NewtypeInstance -> constructorName
+              _ -> newtypeName
+        typ <- case constructorFields of
+          [ty] -> pure ty
+          _ -> throwError $ NotANewtype newtypeName
+        let tag =
+              RecConE
+                'Tag
+                [ ('tagName, unqualName tyconName),
+                  ('tagParent, unqualName parentName),
+                  ('tagTyp, toMoatTypeEPoly typ),
+                  ('tagDisambiguate, unType disambiguate)
+                ]
 
-      -- generate the tag
-      let tyconName = case newtypeVariant of
-            NewtypeInstance -> constructorName
-            _ -> newtypeName
-      typ <- case constructorFields of
-        [ty] -> pure ty
-        _ -> throwError $ NotANewtype newtypeName
-      let tag = RecConE 'Tag
-            [ (mkName "tagName", unqualName tyconName)
-            , (mkName "tagParent", unqualName parentName)
-            , (mkName "tagTyp", toMoatTypeEPoly typ)
-            , (mkName "tagDisambiguate", unType disambiguate)
-            ]
+        -- generate the instance
+        !instHeadTy <-
+          buildTypeInstance newtypeName ClassType newtypeInstTypes newtypeVars newtypeVariant
+        -- we do not want to strip here
+        clauseTy <- tagToMoatType tyconName typ parentName
+        swiftTyInst <-
+          lift $
+            instanceD
+              (pure [])
+              (pure instHeadTy)
+              [ funD
+                  'toMoatType
+                  [ clause [] (normalB (pure clauseTy)) []
+                  ]
+              ]
 
-      -- generate the instance
-      !instHeadTy
-        <- buildTypeInstance newtypeName ClassType newtypeInstTypes newtypeVars newtypeVariant
-      -- we do not want to strip here
-      clauseTy <- tagToMoatType tyconName typ parentName
-      swiftTyInst <- lift $ instanceD
-        (pure [])
-        (pure instHeadTy)
-        [ funD 'toMoatType
-          [ clause [] (normalB (pure clauseTy)) []
-          ]
-        ]
+        pure (es ++ [tag], ds ++ [swiftTyInst])
+    )
+    ([], [])
+    ts
 
-      pure $ (es ++ [tag], ds ++ [swiftTyInst])
-    ) ([], []) ts
-  pure tags
-
-getToMoatType :: ()
-  => Options
-     -- ^ options
-  -> Name
-     -- ^ type name
-  -> [Type]
-     -- ^ type variables
-  -> [TyVarBndr]
-     -- ^ type binders
-  -> DatatypeVariant
-     -- ^ type variant
-  -> [ConstructorInfo]
-     -- ^ constructors
-  -> ShwiftyM [Dec]
-getToMoatType Options{..} parentName instTys tyVarBndrs variant cons = if generateToMoatType
-  then do
-    instHead <- buildTypeInstance parentName ClassType instTys tyVarBndrs variant
-    clauseTy <- case variant of
-      NewtypeInstance -> case cons of
-        [ConstructorInfo{..}] -> do
-          newtypToMoatType constructorName instTys
+getToMoatType ::
+  () =>
+  -- | options
+  Options ->
+  -- | type name
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | type binders
+  [TyVarBndr] ->
+  -- | type variant
+  DatatypeVariant ->
+  -- | constructors
+  [ConstructorInfo] ->
+  ShwiftyM [Dec]
+getToMoatType Options {..} parentName instTys tyVarBndrs variant cons =
+  if generateToMoatType
+    then do
+      instHead <- buildTypeInstance parentName ClassType instTys tyVarBndrs variant
+      clauseTy <- case variant of
+        NewtypeInstance -> case cons of
+          [ConstructorInfo {..}] -> do
+            newtypToMoatType constructorName instTys
+          _ -> do
+            throwError ExpectedNewtypeInstance
         _ -> do
-          throwError ExpectedNewtypeInstance
-      _ -> do
-        typToMoatType newtypeTag parentName instTys
-    inst <- lift $ instanceD
-      (pure [])
-      (pure instHead)
-      [ funD 'toMoatType
-        [ clause [] (normalB (pure clauseTy)) []
-        ]
-      ]
-    pure [inst]
-  else do
-    pure []
+          typToMoatType newtypeTag parentName instTys
+      inst <-
+        lift $
+          instanceD
+            (pure [])
+            (pure instHead)
+            [ funD
+                'toMoatType
+                [ clause [] (normalB (pure clauseTy)) []
+                ]
+            ]
+      pure [inst]
+    else do
+      pure []
 
-getToMoatData :: ()
-  => Options
-     -- ^ options
-  -> Name
-     -- ^ type name
-  -> [Type]
-     -- ^ type variables
-  -> [TyVarBndr]
-     -- ^ type binders
-  -> DatatypeVariant
-     -- ^ type variant
-  -> [Exp]
-     -- ^ tags
-  -> [ConstructorInfo]
-     -- ^ constructors
-  -> ShwiftyM [Dec]
-getToMoatData o@Options{..} parentName instTys tyVarBndrs variant tags cons =
+getToMoatData ::
+  () =>
+  -- | options
+  Options ->
+  -- | type name
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | type binders
+  [TyVarBndr] ->
+  -- | type variant
+  DatatypeVariant ->
+  -- | tags
+  [Exp] ->
+  -- | constructors
+  [ConstructorInfo] ->
+  ShwiftyM [Dec]
+getToMoatData o@Options {..} parentName instTys tyVarBndrs variant tags cons =
   if generateToMoatData
-  then do
-    instHead <- buildTypeInstance parentName ClassData instTys tyVarBndrs variant
-    clauseData <- consToMoatType o parentName instTys variant tags makeBase cons
-    inst <- lift $ instanceD
-      (pure [])
-      (pure instHead)
-        [ funD 'toMoatData
-          [ clause [] (normalB (pure clauseData)) []
-          ]
-        ]
-    pure [inst]
-  else do
-    pure []
+    then do
+      instHead <- buildTypeInstance parentName ClassData instTys tyVarBndrs variant
+      clauseData <- consToMoatType o parentName instTys variant tags makeBase cons
+      inst <-
+        lift $
+          instanceD
+            (pure [])
+            (pure instHead)
+            [ funD
+                'toMoatData
+                [ clause [] (normalB (pure clauseData)) []
+                ]
+            ]
+      pure [inst]
+    else do
+      pure []
 
 -- | Like 'mobileGenWith', but lets you supply
 --   tags. Tags are type-safe typealiases that
@@ -527,22 +542,24 @@ getToMoatData o@Options{..} parentName instTys tyVarBndrs variant tags cons =
 -- @
 --
 -- /Note/: Tags become newtypes on the Kotlin backend.
-mobileGenWithTags :: ()
-  => Options
-  -> [Name]
-  -> Name
-  -> Q [Dec]
+mobileGenWithTags ::
+  () =>
+  Options ->
+  [Name] ->
+  Name ->
+  Q [Dec]
 mobileGenWithTags o ts name = do
   r <- runExceptT $ do
     ensureEnabled ScopedTypeVariables
     ensureEnabled DataKinds
     DatatypeInfo
-      { datatypeName = parentName
-      , datatypeVars = tyVarBndrs
-      , datatypeInstTypes = instTys
-      , datatypeVariant = variant
-      , datatypeCons = cons
-      } <- lift $ reifyDatatype name
+      { datatypeName = parentName,
+        datatypeVars = tyVarBndrs,
+        datatypeInstTypes = instTys,
+        datatypeVariant = variant,
+        datatypeCons = cons
+      } <-
+      lift $ reifyDatatype name
     noExistentials cons
 
     -- get tags/ToMoatType instances for tags
@@ -557,7 +574,7 @@ mobileGenWithTags o ts name = do
     Right d -> pure d
 
 noExistentials :: [ConstructorInfo] -> ShwiftyM ()
-noExistentials cs = forM_ cs $ \ConstructorInfo{..} ->
+noExistentials cs = forM_ cs $ \ConstructorInfo {..} ->
   case (constructorName, constructorVars) of
     (_, []) -> do
       pure ()
@@ -572,52 +589,62 @@ data ShwiftyError
       { _conName :: Name
       }
   | KindVariableCannotBeRealised
-      { _typName :: Name
-      , _kind :: Kind
+      { _typName :: Name,
+        _kind :: Kind
       }
   | ExtensionNotEnabled
       { _ext :: Extension
       }
   | ExistentialTypes
-      { _conName :: Name
-      , _types :: [TyVarBndr]
+      { _conName :: Name,
+        _types :: [TyVarBndr]
       }
   | ExpectedNewtypeInstance
   | NotANewtype
       { _typName :: Name
       }
+  | EncounteredNonTypeVariable
+      { _funName :: String,
+        _type :: Type
+      }
+  | ImproperNewtypeConstructorInfo
+      { _conInfo :: ConstructorInfo
+      }
 
 prettyShwiftyError :: ShwiftyError -> String
 prettyShwiftyError = \case
-  SingleConNonRecord (nameStr -> n) -> mempty
-    ++ n
-    ++ ": Cannot get shwifty with single-constructor "
-    ++ "non-record types. This is due to a "
-    ++ "restriction of Swift that prohibits structs "
-    ++ "from not having named fields. Try turning "
-    ++ n ++ " into a record!"
-  EncounteredInfixConstructor (nameStr -> n) -> mempty
-    ++ n
-    ++ ": Cannot get shwifty with infix constructors. "
-    ++ "Swift doesn't support them. Try changing "
-    ++ n ++ " into a prefix constructor!"
-  KindVariableCannotBeRealised (nameStr -> n) typ ->
-    let (typStr, kindStr) = prettyKindVar typ
-    in mempty
+  SingleConNonRecord (nameStr -> n) ->
+    n
+      ++ ": Cannot get shwifty with single-constructor "
+      ++ "non-record types. This is due to a "
+      ++ "restriction of Swift that prohibits structs "
+      ++ "from not having named fields. Try turning "
       ++ n
-      ++ ": Encountered a type variable ("
-      ++ typStr
-      ++ ") with a kind ("
-      ++ kindStr
-      ++ ") that can't "
-      ++ "get shwifty! Shwifty needs to be able "
-      ++ "to realise your kind variables to `*`, "
-      ++ "since that's all that makes sense in "
-      ++ "Swift. The only kinds that can happen with "
-      ++ "are `*` and the free-est kind, `k`."
-  ExtensionNotEnabled ext -> mempty
-    ++ show ext
-    ++ " is not enabled. Shwifty needs it to work!"
+      ++ " into a record!"
+  EncounteredInfixConstructor (nameStr -> n) ->
+    n
+      ++ ": Cannot get shwifty with infix constructors. "
+      ++ "Swift doesn't support them. Try changing "
+      ++ n
+      ++ " into a prefix constructor!"
+  KindVariableCannotBeRealised (nameStr -> n) typ ->
+    case prettyKindVar typ of
+      Left err -> err
+      Right (typStr, kindStr) ->
+        n
+          ++ ": Encountered a type variable ("
+          ++ typStr
+          ++ ") with a kind ("
+          ++ kindStr
+          ++ ") that can't "
+          ++ "get shwifty! Shwifty needs to be able "
+          ++ "to realise your kind variables to `*`, "
+          ++ "since that's all that makes sense in "
+          ++ "Swift. The only kinds that can happen with "
+          ++ "are `*` and the free-est kind, `k`."
+  ExtensionNotEnabled ext ->
+    show ext
+      ++ " is not enabled. Shwifty needs it to work!"
   -- TODO: make this not print out implicit kinds.
   -- e.g. for `data Ex = forall x. Ex x`, there are
   -- no implicit `TyVarBndr`s, but for
@@ -626,19 +653,27 @@ prettyShwiftyError = \case
   -- We print these out - this could be confusing to
   -- the end user. I'm not immediately certain how to
   -- be rid of them.
-  ExistentialTypes (nameStr -> n) tys -> mempty
-    ++ n
-    ++ " has existential type variables ("
-    ++ L.intercalate ", " (map prettyTyVarBndrStr tys)
-    ++ ")! Shwifty doesn't support these."
-  ExpectedNewtypeInstance -> mempty
-    ++ "Expected a newtype instance. This is an "
-    ++ "internal logic error. Please report it as a "
-    ++ "bug."
-  NotANewtype (nameStr -> n) -> mempty
-    ++ n
-    ++ " is not a newtype. This is an internal logic "
-    ++ "error. Please report it as a bug."
+  ExistentialTypes (nameStr -> n) tys ->
+    n
+      ++ " has existential type variables ("
+      ++ L.intercalate ", " (map prettyTyVarBndrStr tys)
+      ++ ")! Shwifty doesn't support these."
+  ExpectedNewtypeInstance ->
+    "Expected a newtype instance. This is an "
+      ++ "internal logic error. Please report it as a "
+      ++ "bug."
+  NotANewtype (nameStr -> n) ->
+    n
+      ++ " is not a newtype. This is an internal logic "
+      ++ "error. Please report it as a bug."
+  EncounteredNonTypeVariable funName typ ->
+    "Encountered non-type variable in `"
+      ++ funName
+      ++ "`, expected VarT or SigT but got "
+      ++ show typ
+  ImproperNewtypeConstructorInfo conInfo ->
+    "Expected `ConstructorInfo` with single field, but got "
+      ++ show conInfo
 
 prettyTyVarBndrStr :: TyVarBndr -> String
 prettyTyVarBndrStr = \case
@@ -648,65 +683,71 @@ prettyTyVarBndrStr = \case
     go = TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show
 
 -- prettify the type and kind.
-prettyKindVar :: Type -> (String, String)
+prettyKindVar :: Type -> Either String (String, String)
 prettyKindVar = \case
-  SigT typ k -> (go typ, go k)
-  VarT n -> (nameStr n, "*")
-  typ -> error $ "Shwifty.prettyKindVar: used on a type without a kind signature. Type was: " ++ show typ
+  SigT typ k -> Right (go typ, go k)
+  VarT n -> Right (nameStr n, "*")
+  typ -> Left $ "Moat.prettyKindVar: used on a type without a kind signature. Type was: " ++ show typ
   where
     go = TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show . ppr
 
 type ShwiftyM = ExceptT ShwiftyError Q
 
-tagToMoatType :: ()
-  => Name
-     -- ^ name of the type constructor
-  -> Type
-     -- ^ type variables
-  -> Name
-     -- ^ parent name
-  -> ShwiftyM Exp
+tagToMoatType ::
+  () =>
+  -- | name of the type constructor
+  Name ->
+  -- | type variables
+  Type ->
+  -- | parent name
+  Name ->
+  ShwiftyM Exp
 tagToMoatType tyconName typ parentName = do
   -- TODO: use '_' instead of matching
   value <- lift $ newName "value"
-  ourMatch <- matchProxy
-    $ tagExp tyconName parentName typ False
+  ourMatch <-
+    matchProxy $
+      tagExp tyconName parentName typ False
   let matches = [pure ourMatch]
   lift $ lamE [varP value] (caseE (varE value) matches)
-newtypToMoatType :: ()
-  => Name
-     -- ^ name of the constructor
-  -> [Type]
-     -- ^ type variables
-  -> ShwiftyM Exp
+
+newtypToMoatType ::
+  () =>
+  -- | name of the constructor
+  Name ->
+  -- | type variables
+  [Type] ->
+  ShwiftyM Exp
 newtypToMoatType conName (stripConT -> instTys) = do
   typToMoatType False conName instTys
 
-typToMoatType :: ()
-  => Bool
-     -- ^ is this a newtype tag?
-  -> Name
-     -- ^ name of the type
-  -> [Type]
-     -- ^ type variables
-  -> ShwiftyM Exp
+typToMoatType ::
+  () =>
+  -- | is this a newtype tag?
+  Bool ->
+  -- | name of the type
+  Name ->
+  -- | type variables
+  [Type] ->
+  ShwiftyM Exp
 typToMoatType newtypeTag parentName instTys = do
-  -- TODO: use '_' instead of matching
-  value <- lift $ newName "value"
   let tyVars = map toMoatTypeECxt instTys
   let name =
         let parentStr = nameStr parentName
-            accessedName = if newtypeTag
-              then parentStr ++ "Tag." ++ parentStr
-              else parentStr
-        in stringE accessedName
-  ourMatch <- matchProxy
-    $ RecConE 'Concrete
-    $ [ (mkName "concreteName", name)
-      , (mkName "concreteTyVars", ListE tyVars)
-      ]
+            accessedName =
+              if newtypeTag
+                then parentStr ++ "Tag." ++ parentStr
+                else parentStr
+         in stringE accessedName
+  ourMatch <-
+    matchProxy $
+      RecConE
+        'Concrete
+        [ ('concreteName, name),
+          ('concreteTyVars, ListE tyVars)
+        ]
   let matches = [pure ourMatch]
-  lift $ lamE [varP value] (caseE (varE value) matches)
+  lift $ lamCaseE matches
 
 rawValueE :: Maybe MoatType -> Exp
 rawValueE = \case
@@ -745,25 +786,26 @@ tyE = \case
   Dictionary e1 e2 -> AppE (AppE (ConE 'Dictionary) (tyE e1)) (tyE e2)
   App e1 e2 -> AppE (AppE (ConE 'App) (tyE e1)) (tyE e2)
   Array e -> AppE (ConE 'Array) (tyE e)
-  Tag{..} -> AppE (AppE (AppE (AppE (ConE 'Tag) (stringE tagName)) (stringE tagParent)) (tyE tagTyp)) (if tagDisambiguate then ConE 'True else ConE 'False)
+  Tag {..} -> AppE (AppE (AppE (AppE (ConE 'Tag) (stringE tagName)) (stringE tagParent)) (tyE tagTyp)) (if tagDisambiguate then ConE 'True else ConE 'False)
 
-consToMoatType :: ()
-  => Options
-     -- ^ options about how to encode things
-  -> Name
-     -- ^ name of type
-  -> [Type]
-     -- ^ type variables
-  -> DatatypeVariant
-     -- ^ data type variant
-  -> [Exp]
-     -- ^ tags
-  -> (Bool, Maybe MoatType, [Protocol])
-     -- ^ Make base?
-  -> [ConstructorInfo]
-     -- ^ constructors
-  -> ShwiftyM Exp
-consToMoatType o@Options{..} parentName instTys variant ts bs = \case
+consToMoatType ::
+  () =>
+  -- | options about how to encode things
+  Options ->
+  -- | name of type
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | data type variant
+  DatatypeVariant ->
+  -- | tags
+  [Exp] ->
+  -- | Make base?
+  (Bool, Maybe MoatType, [Protocol]) ->
+  -- | constructors
+  [ConstructorInfo] ->
+  ShwiftyM Exp
+consToMoatType o@Options {..} parentName instTys variant ts bs = \case
   [] -> do
     value <- lift $ newName "value"
     matches <- liftCons (mkVoid parentName instTys ts)
@@ -780,236 +822,262 @@ consToMoatType o@Options{..} parentName instTys variant ts bs = \case
         [con] -> liftCons $ do
           case variant of
             NewtypeInstance -> do
-              if | typeAlias -> do
-                     mkNewtypeInstanceAlias instTys con
-                 | otherwise -> do
-                     mkNewtypeInstance o instTys con
+              if typeAlias
+                then mkNewtypeInstanceAlias instTys con
+                else mkNewtypeInstance o instTys con
             Newtype -> do
-              if | newtypeTag -> do
-                     mkTypeTag o parentName instTys con
-                 | typeAlias -> do
-                     mkTypeAlias parentName instTys con
-                 | otherwise -> do
-                     mkNewtype o parentName instTys con
+              if
+                  | newtypeTag -> do
+                    mkTypeTag o parentName instTys con
+                  | typeAlias -> do
+                    mkTypeAlias parentName instTys con
+                  | otherwise -> do
+                    mkNewtype o parentName instTys con
             _ -> do
               mkProd o parentName instTys ts con
         _ -> do
           -- omit the cases we don't want
-          let cons' = flip filter cons $ \ConstructorInfo{..} -> omitCases (nameStr constructorName) == Keep
+          let cons' = flip filter cons $ \ConstructorInfo {..} -> omitCases (nameStr constructorName) == Keep
           cases <- forM cons' (liftEither . mkCase o)
-          ourMatch <- matchProxy
-            $ enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs
+          ourMatch <-
+            matchProxy
+              =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs)
           pure [pure ourMatch]
 
-liftCons :: (Functor f, Applicative g) => f a -> f ([g a])
-liftCons x = ((:[]) . pure) <$> x
+liftCons :: (Functor f, Applicative g) => f a -> f [g a]
+liftCons x = (: []) . pure <$> x
 
 -- Create the case (String, [(Maybe String, Ty)])
 mkCaseHelper :: Options -> Name -> [Exp] -> Exp
-mkCaseHelper o name es = tupE [ caseName o name, ListE es ]
+mkCaseHelper o name es = tupE [caseName o name, ListE es]
 
-mkCase :: ()
-  => Options
-  -> ConstructorInfo
-  -> Either ShwiftyError Exp
+mkCase ::
+  () =>
+  Options ->
+  ConstructorInfo ->
+  Either ShwiftyError Exp
 mkCase o = \case
   -- non-record
   ConstructorInfo
-    { constructorVariant = NormalConstructor
-    , constructorName = name
-    , constructorFields = fields
-    } -> Right $ mkCaseHelper o name $ fields <&>
-        (\typ -> tupE
-          [ ConE 'Nothing
-          , toMoatTypeEPoly typ
-          ]
-        )
+    { constructorVariant = NormalConstructor,
+      constructorName = name,
+      constructorFields = fields
+    } ->
+      Right $
+        mkCaseHelper o name $
+          fields
+            <&> ( \typ ->
+                    tupE
+                      [ ConE 'Nothing,
+                        toMoatTypeEPoly typ
+                      ]
+                )
   ConstructorInfo
-    { constructorVariant = InfixConstructor
-    , constructorName = name
+    { constructorVariant = InfixConstructor,
+      constructorName = name
     } -> Left $ EncounteredInfixConstructor name
   -- records
   -- we turn names into labels
   ConstructorInfo
-    { constructorVariant = RecordConstructor fieldNames
-    , constructorName = name
-    , constructorFields = fields
+    { constructorVariant = RecordConstructor fieldNames,
+      constructorName = name,
+      constructorFields = fields
     } ->
-       let cases = zipWith (caseField o) fieldNames fields
+      let cases = zipWith (caseField o) fieldNames fields
        in Right $ mkCaseHelper o name cases
 
 caseField :: Options -> Name -> Type -> Exp
-caseField o n typ = tupE
-  [ mkLabel o n
-  , toMoatTypeEPoly typ
-  ]
+caseField o n typ =
+  tupE
+    [ mkLabel o n,
+      toMoatTypeEPoly typ
+    ]
 
 onHeadWith :: Bool -> String -> String
-onHeadWith toLower = if toLower
-  then onHead Char.toLower
-  else id
+onHeadWith toLower =
+  if toLower
+    then onHead Char.toLower
+    else id
 
 -- apply a function only to the head of a string
 onHead :: (Char -> Char) -> String -> String
-onHead f = \case { [] -> []; (x:xs) -> f x : xs }
+onHead f = \case [] -> []; (x : xs) -> f x : xs
 
 mkLabel :: Options -> Name -> Exp
-mkLabel Options{..} = AppE (ConE 'Just)
-  . stringE
-  . fieldLabelModifier
-  . onHeadWith lowerFirstField
-  . TS.unpack
-  . last
-  . TS.splitOn "."
-  . TS.pack
-  . show
+mkLabel Options {..} =
+  AppE (ConE 'Just)
+    . stringE
+    . fieldLabelModifier
+    . onHeadWith lowerFirstField
+    . TS.unpack
+    . last
+    . TS.splitOn "."
+    . TS.pack
+    . show
 
-mkNewtypeInstanceAlias :: ()
-  => [Type]
-     -- ^ type variables
-  -> ConstructorInfo
-     -- ^ constructor info
-  -> ShwiftyM Match
+mkNewtypeInstanceAlias ::
+  () =>
+  -- | type variables
+  [Type] ->
+  -- | constructor info
+  ConstructorInfo ->
+  ShwiftyM Match
 mkNewtypeInstanceAlias (stripConT -> instTys) = \case
   ConstructorInfo
-    { constructorName = conName
-    , constructorFields = [field]
+    { constructorName = conName,
+      constructorFields = [field]
     } -> do
-      lift $ match
-        (conP 'Proxy [])
-        (normalB
-          (pure
-            (aliasExp conName instTys field)))
-        []
+      lift $
+        match
+          (conP 'Proxy [])
+          ( normalB
+              ( pure
+                  (aliasExp conName instTys field)
+              )
+          )
+          []
   _ -> do
-    throwError $ ExpectedNewtypeInstance
+    throwError ExpectedNewtypeInstance
 
-mkNewtypeInstance :: ()
-  => Options
-     -- ^ encoding options
-  -> [Type]
-     -- ^ type variables
-  -> ConstructorInfo
-     -- ^ constructor info
-  -> ShwiftyM Match
-mkNewtypeInstance o@Options{..} (stripConT -> instTys) = \case
+mkNewtypeInstance ::
+  () =>
+  -- | encoding options
+  Options ->
+  -- | type variables
+  [Type] ->
+  -- | constructor info
+  ConstructorInfo ->
+  ShwiftyM Match
+mkNewtypeInstance o@Options {..} (stripConT -> instTys) = \case
   ConstructorInfo
-    { constructorFields = [field]
-    , ..
+    { constructorFields = [field],
+      ..
     } -> do
-      matchProxy $ newtypeExp constructorName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field)
+      matchProxy =<< lift (newtypeExp constructorName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
   _ -> throwError ExpectedNewtypeInstance
 
 -- make a newtype into an empty enum
 -- with a tag
-mkTypeTag :: ()
-  => Options
-     -- ^ options
-  -> Name
-     -- ^ type name
-  -> [Type]
-     -- ^ type variables
-  -> ConstructorInfo
-     -- ^ constructor info
-  -> ShwiftyM Match
-mkTypeTag Options{..} typName instTys = \case
+mkTypeTag ::
+  () =>
+  -- | options
+  Options ->
+  -- | type name
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | constructor info
+  ConstructorInfo ->
+  ShwiftyM Match
+mkTypeTag Options {..} typName instTys = \case
   ConstructorInfo
     { constructorFields = [field]
     } -> do
-      let parentName = mkName
-            (nameStr typName ++ "Tag")
+      let parentName =
+            mkName
+              (nameStr typName ++ "Tag")
       let tag = tagExp typName parentName field False
-      matchProxy $ enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, [])
-
+      matchProxy =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []))
   _ -> throwError $ NotANewtype typName
 
 -- make a newtype into a type alias
-mkTypeAlias :: ()
-  => Name
-     -- ^ type name
-  -> [Type]
-     -- ^ type variables
-  -> ConstructorInfo
-     -- ^ constructor info
-  -> ShwiftyM Match
+mkTypeAlias ::
+  () =>
+  -- | type name
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | constructor info
+  ConstructorInfo ->
+  ShwiftyM Match
 mkTypeAlias typName instTys = \case
   ConstructorInfo
     { constructorFields = [field]
     } -> do
-      lift $ match
-        (conP 'Proxy [])
-        (normalB
-          (pure (aliasExp typName instTys field)))
-        []
+      lift $
+        match
+          (conP 'Proxy [])
+          ( normalB
+              (pure (aliasExp typName instTys field))
+          )
+          []
   _ -> throwError $ NotANewtype typName
 
 -- | Make a void type (empty enum)
-mkVoid :: ()
-  => Name
-     -- ^ type name
-  -> [Type]
-     -- ^ type variables
-  -> [Exp]
-     -- ^ tags
-  -> ShwiftyM Match
-mkVoid typName instTys ts = matchProxy
-  $ enumExp typName instTys [] [] [] [] Nothing ts (False, Nothing, [])
+mkVoid ::
+  () =>
+  -- | type name
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | tags
+  [Exp] ->
+  ShwiftyM Match
+mkVoid typName instTys ts =
+  matchProxy
+    =<< lift (enumExp typName instTys [] [] [] [] Nothing ts (False, Nothing, []))
 
-mkNewtype :: ()
-  => Options
-  -> Name
-  -> [Type]
-  -> ConstructorInfo
-  -> ShwiftyM Match
-mkNewtype o@Options{..} typName instTys = \case
-  -- TODO: make this only accept proper con variants
+mkNewtype ::
+  () =>
+  Options ->
+  Name ->
+  [Type] ->
+  ConstructorInfo ->
+  ShwiftyM Match
+mkNewtype o@Options {..} typName instTys = \case
+  ConstructorInfo
+    { constructorFields = [field],
+      constructorVariant = RecordConstructor [name]
+    } -> do
+      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o name field))
   ConstructorInfo
     { constructorFields = [field]
     } -> do
-      matchProxy $ newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field)
-  _ -> undefined
+      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
+  ci -> throwError $ ImproperNewtypeConstructorInfo ci
 
 -- | Make a single-constructor product (struct)
-mkProd :: ()
-  => Options
-     -- ^ encoding options
-  -> Name
-     -- ^ type name
-  -> [Type]
-     -- ^ type variables
-  -> [Exp]
-     -- ^ tags
-  -> ConstructorInfo
-     -- ^ constructor info
-  -> ShwiftyM Match
-mkProd o@Options{..} typName instTys ts = \case
+mkProd ::
+  () =>
+  -- | encoding options
+  Options ->
+  -- | type name
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | tags
+  [Exp] ->
+  -- | constructor info
+  ConstructorInfo ->
+  ShwiftyM Match
+mkProd o@Options {..} typName instTys ts = \case
   -- single constructor, no fields
   ConstructorInfo
-    { constructorVariant = NormalConstructor
-    , constructorFields = []
+    { constructorVariant = NormalConstructor,
+      constructorFields = []
     } -> do
-      matchProxy $ structExp typName instTys dataInterfaces dataProtocols dataAnnotations [] ts makeBase
+      matchProxy =<< lift (structExp typName instTys dataInterfaces dataProtocols dataAnnotations [] ts makeBase)
   -- single constructor, non-record (Normal)
   ConstructorInfo
-    { constructorVariant = NormalConstructor
-    , constructorName = name
+    { constructorVariant = NormalConstructor,
+      constructorName = name
     } -> do
       -- TODO: replace with 'value', ignore non-records
       -- instead of erroring. Make this configurable
       throwError $ SingleConNonRecord name
   -- single constructor, non-record (Infix)
   ConstructorInfo
-    { constructorVariant = InfixConstructor
-    , constructorName = name
+    { constructorVariant = InfixConstructor,
+      constructorName = name
     } -> do
       throwError $ EncounteredInfixConstructor name
   -- single constructor, record
   ConstructorInfo
-    { constructorVariant = RecordConstructor fieldNames
-    , ..
+    { constructorVariant = RecordConstructor fieldNames,
+      ..
     } -> do
       let fields = zipFields o fieldNames constructorFields
-      matchProxy $ structExp typName instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase
+      matchProxy =<< lift (structExp typName instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
 
 zipFields :: Options -> [Name] -> [Type] -> [Exp]
 zipFields o = zipWithPred p (prettyField o)
@@ -1020,7 +1088,7 @@ zipFields o = zipWithPred p (prettyField o)
 zipWithPred :: (a -> b -> Bool) -> (a -> b -> c) -> [a] -> [b] -> [c]
 zipWithPred _ _ [] _ = []
 zipWithPred _ _ _ [] = []
-zipWithPred p f (x:xs) (y:ys)
+zipWithPred p f (x : xs) (y : ys)
   | p x y = f x y : zipWithPred p f xs ys
   | otherwise = zipWithPred p f xs ys
 
@@ -1042,15 +1110,15 @@ zipWithPred p f (x:xs) (y:ys)
 --     case mkBar2
 --   }
 caseName :: Options -> Name -> Exp
-caseName Options{..} = id
-  . stringE
-  . onHeadWith lowerFirstCase
-  . constructorModifier
-  . TS.unpack
-  . last
-  . TS.splitOn "."
-  . TS.pack
-  . show
+caseName Options {..} =
+  stringE
+    . onHeadWith lowerFirstCase
+    . constructorModifier
+    . TS.unpack
+    . last
+    . TS.splitOn "."
+    . TS.pack
+    . show
 
 -- remove qualifiers from a name, turn into String
 nameStr :: Name -> String
@@ -1081,24 +1149,26 @@ getFreeTyVar = \case
 
 -- make a struct field pretty
 prettyField :: Options -> Name -> Type -> Exp
-prettyField Options{..} name ty = tupE
-  [ (stringE (onHeadWith lowerFirstField (fieldLabelModifier (nameStr name))))
-  , toMoatTypeEPoly ty
-  ]
+prettyField Options {..} name ty =
+  tupE
+    [ stringE (onHeadWith lowerFirstField (fieldLabelModifier (nameStr name))),
+      toMoatTypeEPoly ty
+    ]
 
 -- build the instance head for a type
-buildTypeInstance :: ()
-  => Name
-     -- ^ name of the type
-  -> Class
-     -- ^ which class instance head we are building
-  -> [Type]
-     -- ^ type variables
-  -> [TyVarBndr]
-     -- ^ the binders for our tyvars
-  -> DatatypeVariant
-     -- ^ variant (datatype, newtype, data family, newtype family)
-  -> ShwiftyM Type
+buildTypeInstance ::
+  () =>
+  -- | name of the type
+  Name ->
+  -- | which class instance head we are building
+  Class ->
+  -- | type variables
+  [Type] ->
+  -- | the binders for our tyvars
+  [TyVarBndr] ->
+  -- | variant (datatype, newtype, data family, newtype family)
+  DatatypeVariant ->
+  ShwiftyM Type
 buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
   -- Make sure to expand through type/kind synonyms!
   -- Otherwise, the eta-reduction check might get
@@ -1110,29 +1180,29 @@ buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
 
   -- get the kind status of all of our types.
   -- we must realise them all to *.
-  starKindStats :: [KindStatus] <- foldlM
-    (\stats k -> case canRealiseKindStar k of
-      NotKindStar -> do
-        throwError $ KindVariableCannotBeRealised tyConName k
-      s -> pure (stats ++ [s])
-    ) [] varTysExp
+  starKindStats :: [KindStatus] <-
+    foldlM
+      ( \stats k -> case canRealiseKindStar k of
+          NotKindStar -> do
+            throwError $ KindVariableCannotBeRealised tyConName k
+          s -> pure (stats ++ [s])
+      )
+      []
+      varTysExp
 
   let -- get the names of our kind vars
       kindVarNames :: [Name]
-      kindVarNames = flip mapMaybe starKindStats
-        (\case
-            IsKindVar n -> Just n
-            _ -> Nothing
-        )
+      kindVarNames =
+        mapMaybe
+          ( \case
+              IsKindVar n -> Just n
+              _ -> Nothing
+          )
+          starKindStats
 
-  let
-      -- instantiate polykinded things to star.
+  let -- instantiate polykinded things to star.
       varTysExpSubst :: [Type]
       varTysExpSubst = map (substNamesWithKindStar kindVarNames) varTysExp
-
-      -- the constraints needed on type variables
-      preds :: [Maybe Pred]
-      preds = map (deriveConstraint cls) varTysExpSubst
 
       -- We now sub all of the specialised-to-* kind
       -- variable names with *, but in the original types,
@@ -1153,33 +1223,35 @@ buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
       --   instance C (Fam [Char])
       varTysOrigSubst :: [Type]
       varTysOrigSubst =
-        map (substNamesWithKindStar kindVarNames) $ varTysOrig
+        map (substNamesWithKindStar kindVarNames) varTysOrig
 
       -- if we are working on a data family
       -- or newtype family, we need to peel off
       -- the kinds. See Note [Kind signatures in
       -- derived instances]
       varTysOrigSubst' :: [Type]
-      varTysOrigSubst' = if isDataFamily variant
-        then varTysOrigSubst
-        else map unSigT varTysOrigSubst
-
-      -- the constraints needed on type variables
-      -- makes up the constraint part of the
-      -- instance head.
-      instanceCxt :: Cxt
-      instanceCxt = catMaybes preds
+      varTysOrigSubst' =
+        if isDataFamily variant
+          then varTysOrigSubst
+          else map unSigT varTysOrigSubst
 
       -- the class and type in the instance head.
       instanceType :: Type
-      instanceType = AppT (ConT (shwiftyClassName cls))
-        $ applyTyCon tyConName varTysOrigSubst'
+      instanceType =
+        AppT (ConT (shwiftyClassName cls)) $
+          applyTyCon tyConName varTysOrigSubst'
+
+  -- the constraints needed on type variables
+  -- makes up the constraint part of the
+  -- instance head.
+  instanceCxt <- catMaybes <$> mapM (deriveConstraint cls) varTysExpSubst
 
   -- forall <tys>. ctx tys => Cls ty
-  lift $ forallT
-    (map tyVarBndrNoSig tyVarBndrs)
-    (pure instanceCxt)
-    (pure instanceType)
+  lift $
+    forallT
+      (map tyVarBndrNoSig tyVarBndrs)
+      (pure instanceCxt)
+      (pure instanceType)
 
 -- the class we're generating an instance of
 data Class
@@ -1194,25 +1266,27 @@ shwiftyClassName = \case
 
 -- derive the constraint needed on a type variable
 -- in order to build the instance head for a class.
-deriveConstraint :: ()
-  => Class
-     -- ^ class name
-  -> Type
-     -- ^ type
-  -> Maybe Pred
-     -- ^ constraint on type
+deriveConstraint ::
+  () =>
+  -- | class name
+  Class ->
+  -- | type
+  Type ->
+  -- | constraint on type
+  ShwiftyM (Maybe Pred)
 deriveConstraint c@ClassType typ
-  | not (isTyVar typ) = Nothing
-  | hasKindStar typ = Just (applyCon (shwiftyClassName c) tName)
-  | otherwise = Nothing
+  | not (isTyVar typ) = pure Nothing
+  | hasKindStar typ = Just . applyCon (shwiftyClassName c) <$> tName
+  | otherwise = pure Nothing
   where
-    tName :: Name
+    tName :: ShwiftyM Name
     tName = varTToName typ
+    varTToName :: Type -> ShwiftyM Name
     varTToName = \case
-      VarT n -> n
+      VarT n -> pure n
       SigT t _ -> varTToName t
-      _ -> error "Shwifty.varTToName: encountered non-type variable"
-deriveConstraint ClassData _ = Nothing
+      t -> throwError $ EncounteredNonTypeVariable "deriveConstraint" t
+deriveConstraint ClassData _ = pure Nothing
 
 -- apply a type constructor to a type variable.
 -- this can be useful for letting the kind
@@ -1254,14 +1328,13 @@ substNamesWithKindStar ns t = foldr' (`substNameWithKind` starK) t ns
 -- | The status of a kind variable w.r.t. its
 --   ability to be realised into *.
 data KindStatus
-  = KindStar
-    -- ^ kind * (or some k which can be realised to *)
-  | NotKindStar
-    -- ^ any other kind
-  | IsKindVar Name
-    -- ^ is actually a kind variable
-  | IsCon Name
-    -- ^ is a constructor - this will typically
+  = -- | kind * (or some k which can be realised to *)
+    KindStar
+  | -- | any other kind
+    NotKindStar
+  | -- | is actually a kind variable
+    IsKindVar Name
+  | -- | is a constructor - this will typically
     --   happen in a data family instance, because
     --   we often have to construct a
     --   FlexibleInstance. our old check for
@@ -1270,11 +1343,12 @@ data KindStatus
     --
     --   TODO: Now i think this might need to be
     --   removed in favour of something smarter.
+    IsCon Name
 
 -- can we realise the type's kind to *?
 canRealiseKindStar :: Type -> KindStatus
 canRealiseKindStar = \case
-  VarT{} -> KindStar
+  VarT {} -> KindStar
   SigT _ StarT -> KindStar
   SigT _ (VarT n) -> IsKindVar n
   ConT n -> IsCon n
@@ -1307,9 +1381,10 @@ stringE = LitE . StringL
 -- Note the use of unSigT - see Note
 -- [Kind signatures in derived instances].
 toMoatTypeECxt :: Type -> Exp
-toMoatTypeECxt (unSigT -> typ) = AppE
-  (VarE 'toMoatType)
-  (SigE (ConE 'Proxy) (AppT (ConT ''Proxy) typ))
+toMoatTypeECxt (unSigT -> typ) =
+  AppE
+    (VarE 'toMoatType)
+    (SigE (ConE 'Proxy) (AppT (ConT ''Proxy) typ))
 
 -- convert a type into a 'Ty'.
 -- polymorphic types do not require a 'ToMoatType'
@@ -1331,27 +1406,30 @@ toMoatTypeECxt (unSigT -> typ) = AppE
 toMoatTypeEPoly :: Type -> Exp
 toMoatTypeEPoly = \case
   -- we don't need to special case VarT and SigT
-  VarT n
-    -> AppE (ConE 'Poly) (prettyTyVar n)
-  SigT (VarT n) _
-    -> AppE (ConE 'Poly) (prettyTyVar n)
+  VarT n ->
+    AppE (ConE 'Poly) (prettyTyVar n)
+  SigT (VarT n) _ ->
+    AppE (ConE 'Poly) (prettyTyVar n)
   typ ->
     let decompressed = decompress typ
         prettyName = map Char.toUpper . TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show
-        filledInHoles = decompressed <&>
-          (\case
-            VarT name -> AppT
-              (ConT ''Moat.SingSymbol)
-              (LitT (StrTyLit (prettyName name)))
-            SigT (VarT name) _ -> AppT
-              (ConT ''Moat.SingSymbol)
-              (LitT (StrTyLit (prettyName name)))
-            t -> t
-          )
+        filledInHoles =
+          decompressed
+            <&> ( \case
+                    VarT name ->
+                      AppT
+                        (ConT ''Moat.SingSymbol)
+                        (LitT (StrTyLit (prettyName name)))
+                    SigT (VarT name) _ ->
+                      AppT
+                        (ConT ''Moat.SingSymbol)
+                        (LitT (StrTyLit (prettyName name)))
+                    t -> t
+                )
         typ' = compress filledInHoles
      in AppE
-      (VarE 'toMoatType)
-      (SigE (ConE 'Proxy) (AppT (ConT ''Proxy) typ'))
+          (VarE 'toMoatType)
+          (SigE (ConE 'Proxy) (AppT (ConT ''Proxy) typ'))
 
 decompress :: Type -> Rose Type
 decompress typ = case unapplyTy typ of
@@ -1418,7 +1496,7 @@ unapplyTy = NE.reverse . go
 --     ]
 data Rose a = Rose a [Rose a]
   deriving stock (Eq, Show)
-  deriving stock (Functor,Foldable,Traversable)
+  deriving stock (Functor, Foldable, Traversable)
 
 {-
 Note [Kind signatures in derived instances]
@@ -1469,134 +1547,157 @@ stripConT = mapMaybe noConT
       t -> Just t
 
 -- | Construct a Type Alias.
-aliasExp :: ()
-  => Name
-     -- ^ alias name
-  -> [Type]
-     -- ^ type variables
-  -> Type
-     -- ^ type (RHS)
-  -> Exp
-aliasExp name tyVars field = RecConE 'MoatAlias
-  [ (mkName "aliasName", unqualName name)
-  , (mkName "aliasTyVars", prettyTyVars tyVars)
-  , (mkName "aliasTyp", toMoatTypeECxt field)
-  ]
+aliasExp ::
+  () =>
+  -- | alias name
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | type (RHS)
+  Type ->
+  Exp
+aliasExp name tyVars field =
+  RecConE
+    'MoatAlias
+    [ ('aliasName, unqualName name),
+      ('aliasTyVars, prettyTyVars tyVars),
+      ('aliasTyp, toMoatTypeECxt field)
+    ]
 
 -- | Construct a Tag.
-tagExp :: ()
-  => Name
-     -- ^ tycon name
-  -> Name
-     -- ^ parent name
-  -> Type
-     -- ^ type of the tag (RHS)
-  -> Bool
-     -- ^ Whether or not we are disambiguating.
-  -> Exp
-tagExp tyconName parentName typ dis = RecConE 'Tag
-  [ (mkName "tagName", unqualName tyconName)
-  , (mkName "tagParent", unqualName parentName)
-  , (mkName "tagTyp", toMoatTypeECxt typ)
-  , (mkName "tagDisambiguate", case dis of
-      { False -> ConE 'False
-      ; True  -> ConE 'True
-      })
-  ]
+tagExp ::
+  () =>
+  -- | tycon name
+  Name ->
+  -- | parent name
+  Name ->
+  -- | type of the tag (RHS)
+  Type ->
+  -- | Whether or not we are disambiguating.
+  Bool ->
+  Exp
+tagExp tyconName parentName typ dis =
+  RecConE
+    'Tag
+    [ ('tagName, unqualName tyconName),
+      ('tagParent, unqualName parentName),
+      ('tagTyp, toMoatTypeECxt typ),
+      ( 'tagDisambiguate,
+        if dis then ConE 'True else ConE 'False
+      )
+    ]
 
 -- | Construct an Enum.
-enumExp :: ()
-  => Name
-     -- ^ parent name
-  -> [Type]
-     -- ^ type variables
-  -> [Interface]
-     -- ^ interfaces
-  -> [Protocol]
-     -- ^ protocols
-  -> [Annotation]
-     -- ^ annotations
-  -> [Exp]
-     -- ^ cases
-  -> Maybe MoatType
-     -- ^ Raw Value
-  -> [Exp]
-     -- ^ Tags
-  -> (Bool, Maybe MoatType, [Protocol])
-     -- ^ Make base?
-  -> Exp
-enumExp parentName tyVars ifaces protos anns cases raw tags bs
-  = applyBase bs $ RecConE 'MoatEnum
-      [ (mkName "enumName", unqualName parentName)
-      , (mkName "enumTyVars", prettyTyVars tyVars)
-      , (mkName "enumInterfaces", ifacesExp ifaces)
-      , (mkName "enumProtocols", protosExp protos)
-      , (mkName "enumAnnotations", annsExp anns)
-      , (mkName "enumCases", ListE cases)
-      , (mkName "enumRawValue", rawValueE raw)
-      , (mkName "enumPrivateTypes", ListE [])
-      , (mkName "enumTags", ListE tags)
-      ]
+enumExp ::
+  () =>
+  -- | parent name
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | interfaces
+  [Interface] ->
+  -- | protocols
+  [Protocol] ->
+  -- | annotations
+  [Annotation] ->
+  -- | cases
+  [Exp] ->
+  -- | Raw Value
+  Maybe MoatType ->
+  -- | Tags
+  [Exp] ->
+  -- | Make base?
+  (Bool, Maybe MoatType, [Protocol]) ->
+  Q Exp
+enumExp parentName tyVars ifaces protos anns cases raw tags bs =
+  do
+    enumInterfaces_ <- Syntax.lift ifaces
+    enumAnnotations_ <- Syntax.lift anns
+    enumProtocols_ <- Syntax.lift protos
+    applyBase bs $
+      RecConE
+        'MoatEnum
+        [ ('enumName, unqualName parentName),
+          ('enumTyVars, prettyTyVars tyVars),
+          ('enumInterfaces, enumInterfaces_),
+          ('enumProtocols, enumProtocols_),
+          ('enumAnnotations, enumAnnotations_),
+          ('enumCases, ListE cases),
+          ('enumRawValue, rawValueE raw),
+          ('enumPrivateTypes, ListE []),
+          ('enumTags, ListE tags)
+        ]
 
-newtypeExp :: ()
-  => Name
-  -> [Type]
-  -> [Interface]
-  -> [Protocol]
-  -> [Annotation]
-  -> Exp
-  -> Exp
-newtypeExp name tyVars ifaces protos anns field
-  = RecConE 'MoatNewtype
-      [ (mkName "newtypeName", unqualName name)
-      , (mkName "newtypeTyVars", prettyTyVars tyVars)
-      , (mkName "newtypeField", field)
-      , (mkName "newtypeInterfaces", ifacesExp ifaces)
-      , (mkName "newtypeProtocols", protosExp protos)
-      , (mkName "newtypeAnnotations", annsExp anns)
-      ]
+newtypeExp ::
+  () =>
+  Name ->
+  [Type] ->
+  [Interface] ->
+  [Protocol] ->
+  [Annotation] ->
+  Exp ->
+  Q Exp
+newtypeExp name tyVars ifaces protos anns field =
+  [|
+    MoatNewtype
+        { newtypeName = $(pure $ unqualName name)
+        , newtypeTyVars = $(pure $ prettyTyVars tyVars)
+        , newtypeField = $(pure field)
+        , newtypeProtocols = $(Syntax.lift protos)
+        , newtypeAnnotations = $(Syntax.lift anns)
+        , newtypeInterfaces = $(Syntax.lift ifaces)
+        }
+    |]
 
 -- | Construct a Struct.
-structExp :: ()
-  => Name
-     -- ^ struct name
-  -> [Type]
-     -- ^ type variables
-  -> [Interface]
-     -- ^ interfaces
-  -> [Protocol]
-     -- ^ protocols
-  -> [Annotation]
-     -- ^ annotations
-  -> [Exp]
-     -- ^ fields
-  -> [Exp]
-     -- ^ tags
-  -> (Bool, Maybe MoatType, [Protocol])
-     -- ^ Make base?
-  -> Exp
-structExp name tyVars ifaces protos anns fields tags bs
-  = applyBase bs $ RecConE 'MoatStruct
-      [ (mkName "structName", unqualName name)
-      , (mkName "structTyVars", prettyTyVars tyVars)
-      , (mkName "structInterfaces", ifacesExp ifaces)
-      , (mkName "structProtocols", protosExp protos)
-      , (mkName "structAnnotations", annsExp anns)
-      , (mkName "structFields", ListE fields)
-      , (mkName "structPrivateTypes", ListE [])
-      , (mkName "structTags", ListE tags)
+structExp ::
+  () =>
+  -- | struct name
+  Name ->
+  -- | type variables
+  [Type] ->
+  -- | interfaces
+  [Interface] ->
+  -- | protocols
+  [Protocol] ->
+  -- | annotations
+  [Annotation] ->
+  -- | fields
+  [Exp] ->
+  -- | tags
+  [Exp] ->
+  -- | Make base?
+  (Bool, Maybe MoatType, [Protocol]) ->
+  Q Exp
+structExp name tyVars ifaces protos anns fields tags bs = do
+  structInterfaces_ <- Syntax.lift ifaces
+  structAnnotations_ <- Syntax.lift anns
+  structProtocols_ <- Syntax.lift protos
+  applyBase bs $
+    RecConE
+      'MoatStruct
+      [ ('structName, unqualName name),
+        ('structTyVars, prettyTyVars tyVars),
+        ('structInterfaces, structInterfaces_),
+        ('structProtocols, structProtocols_),
+        ('structAnnotations, structAnnotations_),
+        ('structFields, ListE fields),
+        ('structPrivateTypes, ListE []),
+        ('structTags, ListE tags)
       ]
 
 matchProxy :: Exp -> ShwiftyM Match
-matchProxy e = lift $ match
-  (conP 'Proxy [])
-  (normalB (pure e))
-  []
+matchProxy e =
+  lift $
+    match
+      (conP 'Proxy [])
+      (normalB (pure e))
+      []
 
 stripFields :: MoatData -> MoatData
 stripFields = \case
-  s@MoatStruct{} -> s { structFields = [] }
-  s@MoatEnum{} -> s { enumCases = go (enumCases s) }
+  s@MoatStruct {} -> s {structFields = []}
+  s@MoatEnum {} -> s {enumCases = go (enumCases s)}
     where
       go = map stripOne
       stripOne (x, _) = (x, [])
@@ -1604,20 +1705,20 @@ stripFields = \case
 
 giveProtos :: [Protocol] -> MoatData -> MoatData
 giveProtos ps = \case
-  s@MoatStruct{} -> s { structProtocols = ps }
-  s@MoatEnum{} -> s { enumProtocols = ps }
+  s@MoatStruct {} -> s {structProtocols = ps}
+  s@MoatEnum {} -> s {enumProtocols = ps}
   s -> s
 
 suffixBase :: MoatData -> MoatData
 suffixBase = \case
-  s@MoatStruct{} -> s { structName = structName s ++ "Base" }
-  s@MoatEnum{} -> s { enumName = enumName s ++ "Base" }
+  s@MoatStruct {} -> s {structName = structName s ++ "Base"}
+  s@MoatEnum {} -> s {enumName = enumName s ++ "Base"}
   s -> s
 
 giveBase :: Maybe MoatType -> [Protocol] -> MoatData -> MoatData
 giveBase r ps = \case
-  s@MoatStruct{} -> s { structPrivateTypes = [giveProtos ps (suffixBase (stripFields s))] }
-  s@MoatEnum{} -> s { enumPrivateTypes = [ giveProtos ps (suffixBase (stripFields s)) { enumRawValue = r }] }
+  s@MoatStruct {} -> s {structPrivateTypes = [giveProtos ps (suffixBase (stripFields s))]}
+  s@MoatEnum {} -> s {enumPrivateTypes = [giveProtos ps (suffixBase (stripFields s)) {enumRawValue = r}]}
   s -> s
 
 -- | Apply 'giveBase' to a 'MoatData'.
@@ -1628,34 +1729,13 @@ giveBase r ps = \case
 --
 --
 -- should we strip tyvars as well?
-applyBase :: (Bool, Maybe MoatType, [Protocol]) -> Exp -> Exp
-applyBase (b, r, ps) (ParensE -> s) = if b
-  then
-    AppE (AppE (AppE (VarE 'giveBase) (rawValueE r)) (protosExp ps)) s
-  else s
-
-protosExp :: [Protocol] -> Exp
-protosExp = ListE . map (ConE . mkName . go)
-  where
-    go = \case
-      Equatable -> "Equatable"
-      Hashable -> "Hashable"
-      Codable -> "Codable"
-      OtherProtocol p -> p
-
-ifacesExp :: [Interface] -> Exp
-ifacesExp = ListE . map (ConE . mkName . go)
-  where
-    go = \case
-      Parcelable -> "Parcelable"
-      OtherInterface i -> i
-
-annsExp :: [Annotation] -> Exp
-annsExp = ListE . map (ConE . mkName . go)
-  where
-    go = \case
-      Parcelize -> "Parcelize"
-      Serialize -> "Serialize"
+applyBase :: (Bool, Maybe MoatType, [Protocol]) -> Exp -> Q Exp
+applyBase (b, r, ps) (ParensE -> s) = do
+  protoAnnotations <- Syntax.lift ps
+  pure $
+    if b
+      then VarE 'giveBase `AppE` rawValueE r `AppE` protoAnnotations `AppE` s
+      else s
 
 tupE :: [Exp] -> Exp
 #if MIN_VERSION_template_haskell(2,16,0)
@@ -1665,20 +1745,22 @@ tupE = TupE
 #endif
 
 aliasToNewtype :: MoatData -> MoatData
-aliasToNewtype MoatAlias{..} = MoatNewtype
-  { newtypeName = aliasName
-  , newtypeTyVars = aliasTyVars
-  , newtypeField = ("value", aliasTyp)
-  , newtypeInterfaces = []
-  , newtypeProtocols = []
-  , newtypeAnnotations = []
-  }
+aliasToNewtype MoatAlias {..} =
+  MoatNewtype
+    { newtypeName = aliasName,
+      newtypeTyVars = aliasTyVars,
+      newtypeField = ("value", aliasTyp),
+      newtypeInterfaces = [],
+      newtypeProtocols = [],
+      newtypeAnnotations = []
+    }
 aliasToNewtype m = m
 
 newtypeToAlias :: MoatData -> MoatData
-newtypeToAlias MoatNewtype{..} = MoatAlias
-  { aliasName = newtypeName
-  , aliasTyVars = newtypeTyVars
-  , aliasTyp = snd newtypeField
-  }
+newtypeToAlias MoatNewtype {..} =
+  MoatAlias
+    { aliasName = newtypeName,
+      aliasTyVars = newtypeTyVars,
+      aliasTyp = snd newtypeField
+    }
 newtypeToAlias m = m

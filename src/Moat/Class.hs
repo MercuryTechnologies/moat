@@ -1,48 +1,29 @@
-{-# language
-    FlexibleInstances
-  , ScopedTypeVariables
-  , TypeApplications
-  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Moat.Class
-  ( ToMoatType(..)
-  , ToMoatData(..)
-  ) where
+  ( ToMoatType (..),
+    ToMoatData (..),
+  )
+where
 
-import Control.Monad.Except
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
 import Data.CaseInsensitive (CI)
-import Data.Foldable (foldlM,foldr',foldl')
-import Data.Functor ((<&>))
-import Data.Int (Int8,Int16,Int32,Int64)
-import Data.Kind (Constraint)
-import Data.List (intercalate)
-import Data.List.NonEmpty ((<|), NonEmpty(..))
-import Data.Maybe (mapMaybe, catMaybes)
-import Data.Proxy (Proxy(..))
+import qualified Data.HashMap.Strict as HM
+import Data.Int (Int16, Int32, Int64, Int8)
+import qualified Data.Map as M
+import qualified Data.Primitive as Prim
+import Data.Proxy (Proxy (..))
+import qualified Data.Text as TS
+import qualified Data.Text.Lazy as TL
 import Data.Time (UTCTime)
 import Data.UUID.Types (UUID)
 import Data.Vector (Vector)
-import Data.Void (Void)
-import Data.Word (Word8,Word16,Word32,Word64)
-import GHC.TypeLits
-  ( Symbol, KnownSymbol, symbolVal
-  , TypeError, ErrorMessage(..)
-  )
-import Language.Haskell.TH hiding (stringE)
-import Language.Haskell.TH.Datatype
-import Prelude hiding (Enum(..))
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Char as Char
-import qualified Data.HashMap.Strict as HM
-import qualified Data.List as L
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Map as M
-import qualified Data.Primitive as Prim
-import qualified Data.Text as TS
-import qualified Data.Text.Lazy as TL
-
+import Data.Word (Word16, Word32, Word64, Word8)
 import Moat.Types
+import Prelude hiding (Enum (..))
 
 -- | The class for things which can be converted to
 --   'MoatData'.
@@ -91,19 +72,28 @@ instance forall a b. (ToMoatType a, ToMoatType b) => ToMoatType (Either a b) whe
 instance ToMoatType Integer where
   toMoatType _ = BigInt
 
-instance ToMoatType Int   where toMoatType _ = I
-instance ToMoatType Int8  where toMoatType _ = I8
+instance ToMoatType Int where toMoatType _ = I
+
+instance ToMoatType Int8 where toMoatType _ = I8
+
 instance ToMoatType Int16 where toMoatType _ = I16
+
 instance ToMoatType Int32 where toMoatType _ = I32
+
 instance ToMoatType Int64 where toMoatType _ = I64
 
-instance ToMoatType Word   where toMoatType _ = U
-instance ToMoatType Word8  where toMoatType _ = U8
+instance ToMoatType Word where toMoatType _ = U
+
+instance ToMoatType Word8 where toMoatType _ = U8
+
 instance ToMoatType Word16 where toMoatType _ = U16
+
 instance ToMoatType Word32 where toMoatType _ = U32
+
 instance ToMoatType Word64 where toMoatType _ = U64
 
-instance ToMoatType Float  where toMoatType _ = F32
+instance ToMoatType Float where toMoatType _ = F32
+
 instance ToMoatType Double where toMoatType _ = F64
 
 instance ToMoatType Char where toMoatType _ = Character
@@ -123,15 +113,17 @@ instance forall a. (ToMoatType a) => ToMoatType (Prim.PrimArray a) where
 instance forall a. ToMoatType a => ToMoatType (Vector a) where
   toMoatType _ = Array (toMoatType (Proxy @a))
 
-instance {-# overlappable #-} forall a. ToMoatType a => ToMoatType [a] where
+instance {-# OVERLAPPABLE #-} forall a. ToMoatType a => ToMoatType [a] where
   toMoatType _ = Array (toMoatType (Proxy @a))
 
-instance {-# overlapping #-} ToMoatType [Char] where toMoatType _ = Str
+instance {-# OVERLAPPING #-} ToMoatType [Char] where toMoatType _ = Str
 
 instance ToMoatType TL.Text where toMoatType _ = Str
+
 instance ToMoatType TS.Text where toMoatType _ = Str
 
 instance ToMoatType BL.ByteString where toMoatType _ = Array U8
+
 instance ToMoatType BS.ByteString where toMoatType _ = Array U8
 
 instance ToMoatType (CI s) where toMoatType _ = Str
