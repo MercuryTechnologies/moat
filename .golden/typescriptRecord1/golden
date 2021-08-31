@@ -1,0 +1,6 @@
+export type TRecord1 = IRecord1
+
+type IRecord1 = {
+  record1Field0: number
+  record1Field1: number
+}

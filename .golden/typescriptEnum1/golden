@@ -1,0 +1,11 @@
+export type TEnum1 = IDataCons0 | IDataCons1
+
+type IDataCons0 = {
+  tag: "dataCons0"
+  contents: TRecord0
+}
+
+type IDataCons1 = {
+  tag: "dataCons1"
+  contents: TRecord1
+}

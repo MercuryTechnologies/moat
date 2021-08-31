@@ -1,0 +1,1 @@
+export type TEnum0 = 'a' | 'b' | 'c'
