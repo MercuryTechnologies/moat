@@ -12,6 +12,7 @@ module Moat.Types
     Options (..),
     KeepOrDiscard (..),
     Annotation (..),
+    NewtypeDeclaration (..),
     defaultOptions,
   )
 where
@@ -188,7 +189,8 @@ data MoatData
         newtypeField :: (String, MoatType),
         newtypeInterfaces :: [Interface],
         newtypeProtocols :: [Protocol], -- TODO: remove this?
-        newtypeAnnotations :: [Annotation]
+        newtypeAnnotations :: [Annotation],
+        newtypeDecl :: NewtypeDeclaration
       }
   | -- | A /top-level/ type alias
     MoatAlias
@@ -197,7 +199,9 @@ data MoatData
         -- | the type variables of the type alias
         aliasTyVars :: [String],
         -- | the type this represents (RHS)
-        aliasTyp :: MoatType
+        aliasTyp :: MoatType,
+        -- | syntax to use when converting to newtype
+        aliasNewtypeDecl :: NewtypeDeclaration
       }
   deriving stock (Eq, Read, Show, Generic)
 
@@ -229,7 +233,9 @@ data Interface
   deriving stock (Lift)
 
 data Annotation
-  = -- | The 'Parcelize' annotation, see https://developer.android.com/kotlin/parcelize
+  = -- | The 'JvmInline' annotation is added automatically when using 'ValueClass'
+    JvmInline
+  | -- | The 'Parcelize' annotation, see https://developer.android.com/kotlin/parcelize
     -- automatically generates a Parcelable implementation for the type
     Parcelize
   | -- | The 'Serializable' annotation, see https://developer.android.com/reference/kotlin/java/io/Serializable
@@ -253,6 +259,18 @@ data Protocol
   | -- | A user-specified protocol.
     OtherProtocol String
   deriving stock (Eq, Read, Show, Generic)
+  deriving stock (Lift)
+
+-- | Kotlin newtype declaration syntax.
+--   The original syntax was "inline class".
+--   Kotlin 1.5 introduced "value class", which
+--   requires the 'JvmInline' annotation.
+data NewtypeDeclaration
+  = -- | Use the Kotlin < 1.5 syntax
+    InlineClass
+  | -- | Use the Kotlin >= 1.5 syntax, the default
+    ValueClass
+  deriving stock (Eq, Read, Show)
   deriving stock (Lift)
 
 -- | Options that specify how to encode your 'MoatData' to a concrete type.
@@ -338,6 +356,11 @@ data Options = Options
     -- }
     -- @
     newtypeTag :: Bool,
+    -- | Newtype declaration syntax to use.
+    --
+    --   This is only meaningful on the Kotlin
+    --   backend.
+    newtypeDeclaration :: NewtypeDeclaration,
     -- | Whether or not to lower-case the first
     --   character of a field after applying all
     --   modifiers to it.
@@ -405,6 +428,7 @@ data Options = Options
 --   , dataRawValue = Nothing
 --   , typeAlias = False
 --   , newtypeTag = False
+--   , newtypeDeclaration = ValueClass
 --   , lowerFirstField = True
 --   , lowerFirstCase = True
 --   , omitFields = const Keep
@@ -427,6 +451,7 @@ defaultOptions =
       dataRawValue = Nothing,
       typeAlias = False,
       newtypeTag = False,
+      newtypeDeclaration = ValueClass,
       lowerFirstField = True,
       lowerFirstCase = True,
       omitFields = const Keep,

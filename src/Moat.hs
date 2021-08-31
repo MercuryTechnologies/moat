@@ -38,6 +38,7 @@ module Moat
     Protocol (..),
     Interface (..),
     Annotation (..),
+    NewtypeDeclaration (..),
 
     -- * Options for encoding types
 
@@ -59,6 +60,7 @@ module Moat
     dataRawValue,
     typeAlias,
     newtypeTag,
+    newtypeDeclaration,
     lowerFirstCase,
     lowerFirstField,
     omitFields,
@@ -807,7 +809,7 @@ mkNewtypeInstance o@Options {..} (stripConT -> instTys) = \case
     { constructorFields = [field],
       ..
     } -> do
-      matchProxy =<< lift (newtypeExp constructorName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
+      matchProxy =<< lift (newtypeExp constructorName instTys dataInterfaces dataProtocols dataAnnotations newtypeDeclaration (prettyField o (mkName "value") field))
   _ -> throwError ExpectedNewtypeInstance
 
 -- make a newtype into an empty enum
@@ -880,14 +882,9 @@ mkNewtype ::
   MoatM Match
 mkNewtype o@Options {..} typName instTys = \case
   ConstructorInfo
-    { constructorFields = [field],
-      constructorVariant = RecordConstructor [name]
-    } -> do
-      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o name field))
-  ConstructorInfo
     { constructorFields = [field]
     } -> do
-      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
+      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations newtypeDeclaration (prettyField o (mkName "value") field))
   ci -> throwError $ ImproperNewtypeConstructorInfo ci
 
 -- | Make a single-constructor product (struct)
@@ -1489,9 +1486,10 @@ newtypeExp ::
   [Interface] ->
   [Protocol] ->
   [Annotation] ->
+  NewtypeDeclaration ->
   Exp ->
   Q Exp
-newtypeExp name tyVars ifaces protos anns field =
+newtypeExp name tyVars ifaces protos anns decl field =
   [|
     MoatNewtype
       { newtypeName = $(pure $ unqualName name),
@@ -1499,7 +1497,8 @@ newtypeExp name tyVars ifaces protos anns field =
         newtypeField = $(pure field),
         newtypeProtocols = $(Syntax.lift protos),
         newtypeAnnotations = $(Syntax.lift anns),
-        newtypeInterfaces = $(Syntax.lift ifaces)
+        newtypeInterfaces = $(Syntax.lift ifaces),
+        newtypeDecl = $(Syntax.lift decl)
       }
     |]
 
@@ -1608,7 +1607,8 @@ aliasToNewtype MoatAlias {..} =
       newtypeField = ("value", aliasTyp),
       newtypeInterfaces = [],
       newtypeProtocols = [],
-      newtypeAnnotations = []
+      newtypeAnnotations = [],
+      newtypeDecl = aliasNewtypeDecl
     }
 aliasToNewtype m = m
 
@@ -1618,6 +1618,7 @@ newtypeToAlias MoatNewtype {..} =
   MoatAlias
     { aliasName = newtypeName,
       aliasTyVars = newtypeTyVars,
-      aliasTyp = snd newtypeField
+      aliasTyp = snd newtypeField,
+      aliasNewtypeDecl = newtypeDecl
     }
 newtypeToAlias m = m

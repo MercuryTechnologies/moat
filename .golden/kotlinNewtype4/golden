@@ -1,0 +1,4 @@
+@JvmInline
+@Parcelize
+@Serializable
+inline class Newtype4(val value: String) : Parcelable
