@@ -1640,13 +1640,13 @@ newtypeExp ::
 newtypeExp name tyVars ifaces protos anns field =
   [|
     MoatNewtype
-        { newtypeName = $(pure $ unqualName name)
-        , newtypeTyVars = $(pure $ prettyTyVars tyVars)
-        , newtypeField = $(pure field)
-        , newtypeProtocols = $(Syntax.lift protos)
-        , newtypeAnnotations = $(Syntax.lift anns)
-        , newtypeInterfaces = $(Syntax.lift ifaces)
-        }
+      { newtypeName = $(pure $ unqualName name),
+        newtypeTyVars = $(pure $ prettyTyVars tyVars),
+        newtypeField = $(pure field),
+        newtypeProtocols = $(Syntax.lift protos),
+        newtypeAnnotations = $(Syntax.lift anns),
+        newtypeInterfaces = $(Syntax.lift ifaces)
+      }
     |]
 
 -- | Construct a Struct.

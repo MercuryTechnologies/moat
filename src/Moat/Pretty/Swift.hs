@@ -232,9 +232,6 @@ prettyStructFields indents = go
 prettyNewtypeField :: String -> (String, MoatType) -> String -> String
 prettyNewtypeField indents (alias, _) fieldName = indents ++ "let " ++ alias ++ ": " ++ fieldName ++ "Tag" ++ "\n"
 
-prettyNewtypeField :: String -> (String, MoatType) -> String -> String
-prettyNewtypeField indents (alias, _) fieldName = indents ++ "let " ++ alias ++ ": " ++ fieldName ++ "Tag" ++ "\n"
-
 prettyPrivateTypes :: String -> [MoatData] -> String
 prettyPrivateTypes indents = go
   where
