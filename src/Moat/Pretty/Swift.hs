@@ -53,27 +53,39 @@ prettySwiftDataWith indent = \case
       ++ " = "
       ++ prettyMoatType aliasTyp
   MoatNewtype {..} ->
-    ""
-      ++ "struct "
+    "struct "
       ++ prettyMoatTypeHeader newtypeName newtypeTyVars
       ++ prettyRawValueAndProtocols Nothing newtypeProtocols
       ++ " {\n"
       ++ indents
-      ++ "typealias "
-      ++ newtypeName
-      ++ "Tag"
-      ++ " = Tagged<"
-      ++ newtypeName
-      ++ ", "
-      ++ prettyMoatType (snd newtypeField)
-      ++ ">\n"
-      ++ prettyNewtypeField indents newtypeField newtypeName
-      ++ "}"
+      ++ if isConcrete newtypeField
+        then
+          "let "
+            ++ fst newtypeField
+            ++ ": "
+            ++ prettyMoatType (snd newtypeField)
+            ++ "\n}"
+        else
+          "typealias "
+            ++ newtypeName
+            ++ "Tag"
+            ++ " = Tagged<"
+            ++ newtypeName
+            ++ ", "
+            ++ prettyMoatType (snd newtypeField)
+            ++ ">\n"
+            ++ prettyNewtypeField indents newtypeField newtypeName
+            ++ "}"
   where
     indents = replicate indent ' '
 
     newlineNonEmpty [] = ""
     newlineNonEmpty _ = "\n"
+
+    isConcrete :: (a, MoatType) -> Bool
+    isConcrete = \case
+      (_, Concrete {}) -> True
+      _ -> False
 
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name

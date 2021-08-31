@@ -882,6 +882,11 @@ mkNewtype ::
   MoatM Match
 mkNewtype o@Options {..} typName instTys = \case
   ConstructorInfo
+    { constructorFields = [field],
+      constructorVariant = RecordConstructor [name]
+    } -> do
+      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations newtypeDeclaration (prettyField o name field))
+  ConstructorInfo
     { constructorFields = [field]
     } -> do
       matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations newtypeDeclaration (prettyField o (mkName "value") field))
