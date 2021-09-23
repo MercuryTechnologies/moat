@@ -1501,7 +1501,14 @@ newtypeExp name tyVars ifaces protos anns decl field =
         newtypeTyVars = $(pure $ prettyTyVars tyVars),
         newtypeField = $(pure field),
         newtypeProtocols = $(Syntax.lift protos),
-        newtypeAnnotations = $(Syntax.lift anns),
+        newtypeAnnotations =
+          $( Syntax.lift $
+               -- inline is a deprecated keyword after Kotlin 1.5 and doesn't
+               -- need an annotation
+               case decl of
+                 ValueClass -> JvmInline : anns
+                 InlineClass -> anns
+           ),
         newtypeInterfaces = $(Syntax.lift ifaces),
         newtypeDecl = $(Syntax.lift decl)
       }

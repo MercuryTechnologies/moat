@@ -262,9 +262,9 @@ data Protocol
   deriving stock (Lift)
 
 -- | Kotlin newtype declaration syntax.
---   The original syntax was "inline class".
---   Kotlin 1.5 introduced "value class", which
---   requires the 'JvmInline' annotation.
+--   The original syntax is "inline class".
+--   In Kotlin >= 1.5, use "value class", which
+--   requires an 'JvmInline' annotation.
 data NewtypeDeclaration
   = -- | Use the Kotlin < 1.5 syntax
     InlineClass

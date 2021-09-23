@@ -1,3 +1,4 @@
+@JvmInline
 @Parcelize
 @Serializable
 value class Newtype2(val newtype2: Enum5) : Parcelable
