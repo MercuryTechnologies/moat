@@ -377,7 +377,16 @@ data Options = Options
     --
     --   This option is only meaningful on the
     --   Swift backend.
-    makeBase :: (Bool, Maybe MoatType, [Protocol])
+    makeBase :: (Bool, Maybe MoatType, [Protocol]),
+    -- TODO: This could use some better documentation after implementing this functionality
+
+    -- | Whether or not to truncate Optional types.
+    --   Normally, an Optional ('Maybe') is encoded
+    --   as "A?", which is syntactic sugar for
+    --   "Optional\<A\>". The default value ('False')
+    --   will keep it as sugar. A value of 'True'
+    --   will expand it to be desugared.
+    optionalExpand :: Bool
   }
 
 -- | The default 'Options'.
@@ -401,6 +410,7 @@ data Options = Options
 --   , omitFields = const Keep
 --   , omitCases = const Keep
 --   , makeBase = (False, Nothing, [])
+--   , optionalExpand = False
 --   }
 -- @
 defaultOptions :: Options
@@ -421,7 +431,8 @@ defaultOptions =
       lowerFirstCase = True,
       omitFields = const Keep,
       omitCases = const Keep,
-      makeBase = (False, Nothing, [])
+      makeBase = (False, Nothing, []),
+      optionalExpand = False
     }
 
 data KeepOrDiscard = Keep | Discard

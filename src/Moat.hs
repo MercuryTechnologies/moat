@@ -80,7 +80,6 @@ where
 
 import Control.Monad.Except
 import qualified Data.Char as Char
-import Data.Void (Void)
 import Data.Foldable (foldl', foldlM, foldr')
 import Data.Functor ((<&>))
 import qualified Data.List as L
@@ -90,6 +89,7 @@ import qualified Data.Map as M
 import Data.Maybe (catMaybes, mapMaybe)
 import Data.Proxy (Proxy (..))
 import qualified Data.Text as TS
+import Data.Void (Void)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Language.Haskell.TH hiding (stringE, tupE)
 import Language.Haskell.TH.Datatype
@@ -110,8 +110,8 @@ data SingSymbol (x :: Symbol)
 instance KnownSymbol x => ToMoatType (SingSymbol x) where
   toMoatType _ = Poly (symbolVal (Proxy @x))
 
-
 -- TODO: Add tests which flex the need for this type, see src/Test.hs.bak for examples
+
 -- | A filler type to be used when pretty-printing.
 --   The codegen used by moat doesn't look at
 --   at what a type's type variables are instantiated
