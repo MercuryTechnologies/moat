@@ -82,7 +82,7 @@ data MoatType
     Poly String
   | -- | a concrete type variable, and its
     --   type variables. Will typically be generated
-    --   by 'getShwifty'.
+    --   by 'getMoat'.
     Concrete
       { -- | the name of the type
         concreteName :: String,
@@ -92,7 +92,7 @@ data MoatType
   | -- | A @Tagged@ typealias, for newtyping
     --   in a way that doesn't break Codable.
     --
-    --   See 'getShwiftyWithTags' for examples.
+    --   See 'getMoatWithTags' for examples.
     Tag
       { -- | the name of the type
         tagName :: String,
@@ -330,7 +330,7 @@ data Options = Options
     dataRawValue :: Maybe MoatType,
     -- | Whether or not to generate a newtype as
     --   a type alias. Consider if you want this
-    --   or to use 'getShwiftyWithTags' instead.
+    --   or to use 'getMoatWithTags' instead.
     --
     --   The default ('False') will generate newtypes
     --   as their own structs.
@@ -353,7 +353,7 @@ data Options = Options
     -- === __Examples__
     --
     -- > newtype NonEmptyText = MkNonEmptyText String
-    -- > $(getShwiftyWith (defaultOptions { newtypeTag = True }) ''NonEmpyText)
+    -- > $(getMoatWith (defaultOptions { newtypeTag = True }) ''NonEmpyText)
     --
     -- @
     -- enum NonEmptyTextTag {

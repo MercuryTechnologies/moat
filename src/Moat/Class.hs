@@ -62,7 +62,7 @@ instance forall a. ToMoatType a => ToMoatType (Maybe a) where
   toMoatType _ = Optional (toMoatType (Proxy @a))
 
 -- | /Note/: In Swift, the ordering of the type
---   variables is flipped - Shwifty has made the
+--   variables is flipped - Moat has made the
 --   design choice to flip them for you. If you
 --   take issue with this, please open an issue
 --   for discussion on GitHub.
