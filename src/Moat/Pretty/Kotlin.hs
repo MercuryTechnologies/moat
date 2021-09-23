@@ -56,7 +56,17 @@ prettyStructFields :: String -> [(String, MoatType)] -> String
 prettyStructFields indents = go
   where
     go [] = ""
-    go ((fieldName, ty) : fs) = indents ++ "val " ++ fieldName ++ ": " ++ prettyMoatType ty ++ ",\n" ++ go fs
+    go ((fieldName, ty) : fs) =
+      indents
+        ++ "val "
+        ++ fieldName
+        ++ ": "
+        ++ prettyMoatType ty
+        ++ case ty of
+          Optional _ -> " = null"
+          _ -> ""
+        ++ ",\n"
+        ++ go fs
 
 prettyCEnumCases :: String -> [String] -> String
 prettyCEnumCases indents = go
@@ -103,7 +113,11 @@ prettyEnumCases typName indents = go
 
 labelCase :: Maybe String -> MoatType -> String
 labelCase Nothing ty = prettyMoatType ty
-labelCase (Just label) ty = "val " ++ label ++ ": " ++ prettyMoatType ty
+labelCase (Just label) ty =
+  "val "
+    ++ label
+    ++ ": "
+    ++ prettyMoatType ty
 
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
