@@ -12,7 +12,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 
--- | The Shwifty library allows generation of
+-- | The moat library allows generation of
 --   Swift types (structs and enums) from Haskell
 --   ADTs, using Template Haskell. The main
 --   entry point to the library should be the
@@ -121,7 +121,7 @@ instance KnownSymbol x => ToMoatType (SingSymbol x) where
   toMoatType _ = Poly (symbolVal (Proxy @x))
 
 -- | A filler type to be used when pretty-printing.
---   The codegen used by shwifty doesn't look at
+--   The codegen used by moat doesn't look at
 --   at what a type's type variables are instantiated
 --   to, but rather at the type's top-level
 --   definition. However,
@@ -132,7 +132,7 @@ instance KnownSymbol x => ToMoatType (SingSymbol x) where
 --   but we leave that to the user to handle.
 type X = Void
 
-ensureEnabled :: Extension -> ShwiftyM ()
+ensureEnabled :: Extension -> MoatM ()
 ensureEnabled ext = do
   enabled <- lift $ isExtEnabled ext
   if enabled
@@ -321,7 +321,7 @@ data NewtypeInfo = NewtypeInfo
   }
 
 -- | Reify a newtype.
-reifyNewtype :: Name -> ShwiftyM NewtypeInfo
+reifyNewtype :: Name -> MoatM NewtypeInfo
 reifyNewtype n = do
   DatatypeInfo {..} <- lift $ reifyDatatype n
   case (datatypeCons, datatypeVariant) of
@@ -359,7 +359,7 @@ getTags ::
   Name ->
   -- | tags
   [Name] ->
-  ShwiftyM ([Exp], [Dec])
+  MoatM ([Exp], [Dec])
 getTags parentName ts = do
   let b = length ts > 1
   disambiguate <- lift [||b||]
@@ -419,7 +419,7 @@ getToMoatType ::
   DatatypeVariant ->
   -- | constructors
   [ConstructorInfo] ->
-  ShwiftyM [Dec]
+  MoatM [Dec]
 getToMoatType Options {..} parentName instTys tyVarBndrs variant cons =
   if generateToMoatType
     then do
@@ -462,7 +462,7 @@ getToMoatData ::
   [Exp] ->
   -- | constructors
   [ConstructorInfo] ->
-  ShwiftyM [Dec]
+  MoatM [Dec]
 getToMoatData o@Options {..} parentName instTys tyVarBndrs variant tags cons =
   if generateToMoatData
     then do
@@ -563,15 +563,15 @@ mobileGenWithTags o ts name = do
     -- get tags/ToMoatType instances for tags
     (tags, extraDecs) <- getTags parentName ts
 
-    swiftDataInst <- getToMoatData o parentName instTys tyVarBndrs variant tags cons
+    dataInst <- getToMoatData o parentName instTys tyVarBndrs variant tags cons
 
-    swiftTyInst <- getToMoatType o parentName instTys tyVarBndrs variant cons
-    pure $ swiftDataInst ++ swiftTyInst ++ extraDecs
+    tyInst <- getToMoatType o parentName instTys tyVarBndrs variant cons
+    pure $ dataInst ++ tyInst ++ extraDecs
   case r of
-    Left e -> fail $ prettyShwiftyError e
+    Left e -> fail $ prettyMoatError e
     Right d -> pure d
 
-noExistentials :: [ConstructorInfo] -> ShwiftyM ()
+noExistentials :: [ConstructorInfo] -> MoatM ()
 noExistentials cs = forM_ cs $ \ConstructorInfo {..} ->
   case (constructorName, constructorVars) of
     (_, []) -> do
@@ -579,7 +579,7 @@ noExistentials cs = forM_ cs $ \ConstructorInfo {..} ->
     (cn, cvs) -> do
       throwError $ ExistentialTypes cn cvs
 
-data ShwiftyError
+data MoatError
   = SingleConNonRecord
       { _conName :: Name
       }
@@ -609,11 +609,11 @@ data ShwiftyError
       { _conInfo :: ConstructorInfo
       }
 
-prettyShwiftyError :: ShwiftyError -> String
-prettyShwiftyError = \case
+prettyMoatError :: MoatError -> String
+prettyMoatError = \case
   SingleConNonRecord (nameStr -> n) ->
     n
-      ++ ": Cannot get shwifty with single-constructor "
+      ++ ": Cannot get moat with single-constructor "
       ++ "non-record types. This is due to a "
       ++ "restriction of Swift that prohibits structs "
       ++ "from not having named fields. Try turning "
@@ -621,7 +621,7 @@ prettyShwiftyError = \case
       ++ " into a record!"
   EncounteredInfixConstructor (nameStr -> n) ->
     n
-      ++ ": Cannot get shwifty with infix constructors. "
+      ++ ": Cannot get moat with infix constructors. "
       ++ "Swift doesn't support them. Try changing "
       ++ n
       ++ " into a prefix constructor!"
@@ -635,14 +635,14 @@ prettyShwiftyError = \case
           ++ ") with a kind ("
           ++ kindStr
           ++ ") that can't "
-          ++ "get shwifty! Shwifty needs to be able "
+          ++ "get moat! Moat needs to be able "
           ++ "to realise your kind variables to `*`, "
           ++ "since that's all that makes sense in "
           ++ "Swift. The only kinds that can happen with "
           ++ "are `*` and the free-est kind, `k`."
   ExtensionNotEnabled ext ->
     show ext
-      ++ " is not enabled. Shwifty needs it to work!"
+      ++ " is not enabled. Moat needs it to work!"
   -- TODO: make this not print out implicit kinds.
   -- e.g. for `data Ex = forall x. Ex x`, there are
   -- no implicit `TyVarBndr`s, but for
@@ -655,7 +655,7 @@ prettyShwiftyError = \case
     n
       ++ " has existential type variables ("
       ++ L.intercalate ", " (map prettyTyVarBndrStr tys)
-      ++ ")! Shwifty doesn't support these."
+      ++ ")! Moat doesn't support these."
   ExpectedNewtypeInstance ->
     "Expected a newtype instance. This is an "
       ++ "internal logic error. Please report it as a "
@@ -689,7 +689,7 @@ prettyKindVar = \case
   where
     go = TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show . ppr
 
-type ShwiftyM = ExceptT ShwiftyError Q
+type MoatM = ExceptT MoatError Q
 
 tagToMoatType ::
   () =>
@@ -699,7 +699,7 @@ tagToMoatType ::
   Type ->
   -- | parent name
   Name ->
-  ShwiftyM Exp
+  MoatM Exp
 tagToMoatType tyconName typ parentName = do
   -- TODO: use '_' instead of matching
   value <- lift $ newName "value"
@@ -715,7 +715,7 @@ newtypToMoatType ::
   Name ->
   -- | type variables
   [Type] ->
-  ShwiftyM Exp
+  MoatM Exp
 newtypToMoatType conName (stripConT -> instTys) = do
   typToMoatType False conName instTys
 
@@ -727,7 +727,7 @@ typToMoatType ::
   Name ->
   -- | type variables
   [Type] ->
-  ShwiftyM Exp
+  MoatM Exp
 typToMoatType newtypeTag parentName instTys = do
   let tyVars = map toMoatTypeECxt instTys
   let name =
@@ -802,7 +802,7 @@ consToMoatType ::
   (Bool, Maybe MoatType, [Protocol]) ->
   -- | constructors
   [ConstructorInfo] ->
-  ShwiftyM Exp
+  MoatM Exp
 consToMoatType o@Options {..} parentName instTys variant ts bs = \case
   [] -> do
     value <- lift $ newName "value"
@@ -815,7 +815,7 @@ consToMoatType o@Options {..} parentName instTys variant ts bs = \case
     lift $ lamE [varP value] (caseE (varE value) matches)
     where
       -- bad name
-      matchesWorker :: ShwiftyM [Q Match]
+      matchesWorker :: MoatM [Q Match]
       matchesWorker = case cons of
         [con] -> liftCons $ do
           case variant of
@@ -853,7 +853,7 @@ mkCase ::
   () =>
   Options ->
   ConstructorInfo ->
-  Either ShwiftyError Exp
+  Either MoatError Exp
 mkCase o = \case
   -- non-record
   ConstructorInfo
@@ -919,7 +919,7 @@ mkNewtypeInstanceAlias ::
   [Type] ->
   -- | constructor info
   ConstructorInfo ->
-  ShwiftyM Match
+  MoatM Match
 mkNewtypeInstanceAlias (stripConT -> instTys) = \case
   ConstructorInfo
     { constructorName = conName,
@@ -945,7 +945,7 @@ mkNewtypeInstance ::
   [Type] ->
   -- | constructor info
   ConstructorInfo ->
-  ShwiftyM Match
+  MoatM Match
 mkNewtypeInstance o@Options {..} (stripConT -> instTys) = \case
   ConstructorInfo
     { constructorFields = [field],
@@ -966,7 +966,7 @@ mkTypeTag ::
   [Type] ->
   -- | constructor info
   ConstructorInfo ->
-  ShwiftyM Match
+  MoatM Match
 mkTypeTag Options {..} typName instTys = \case
   ConstructorInfo
     { constructorFields = [field]
@@ -987,7 +987,7 @@ mkTypeAlias ::
   [Type] ->
   -- | constructor info
   ConstructorInfo ->
-  ShwiftyM Match
+  MoatM Match
 mkTypeAlias typName instTys = \case
   ConstructorInfo
     { constructorFields = [field]
@@ -1010,7 +1010,7 @@ mkVoid ::
   [Type] ->
   -- | tags
   [Exp] ->
-  ShwiftyM Match
+  MoatM Match
 mkVoid typName instTys ts =
   matchProxy
     =<< lift (enumExp typName instTys [] [] [] [] Nothing ts (False, Nothing, []))
@@ -1021,7 +1021,7 @@ mkNewtype ::
   Name ->
   [Type] ->
   ConstructorInfo ->
-  ShwiftyM Match
+  MoatM Match
 mkNewtype o@Options {..} typName instTys = \case
   ConstructorInfo
     { constructorFields = [field],
@@ -1047,7 +1047,7 @@ mkProd ::
   [Exp] ->
   -- | constructor info
   ConstructorInfo ->
-  ShwiftyM Match
+  MoatM Match
 mkProd o@Options {..} typName instTys ts = \case
   -- single constructor, no fields
   ConstructorInfo
@@ -1166,7 +1166,7 @@ buildTypeInstance ::
   [TyVarBndr] ->
   -- | variant (datatype, newtype, data family, newtype family)
   DatatypeVariant ->
-  ShwiftyM Type
+  MoatM Type
 buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
   -- Make sure to expand through type/kind synonyms!
   -- Otherwise, the eta-reduction check might get
@@ -1236,7 +1236,7 @@ buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
       -- the class and type in the instance head.
       instanceType :: Type
       instanceType =
-        AppT (ConT (shwiftyClassName cls)) $
+        AppT (ConT (moatClassName cls)) $
           applyTyCon tyConName varTysOrigSubst'
 
   -- the constraints needed on type variables
@@ -1257,8 +1257,8 @@ data Class
   | ClassData -- ToMoatData
 
 -- turn a 'Class' into a 'Name'
-shwiftyClassName :: Class -> Name
-shwiftyClassName = \case
+moatClassName :: Class -> Name
+moatClassName = \case
   ClassType -> ''ToMoatType
   ClassData -> ''ToMoatData
 
@@ -1271,15 +1271,15 @@ deriveConstraint ::
   -- | type
   Type ->
   -- | constraint on type
-  ShwiftyM (Maybe Pred)
+  MoatM (Maybe Pred)
 deriveConstraint c@ClassType typ
   | not (isTyVar typ) = pure Nothing
-  | hasKindStar typ = Just . applyCon (shwiftyClassName c) <$> tName
+  | hasKindStar typ = Just . applyCon (moatClassName c) <$> tName
   | otherwise = pure Nothing
   where
-    tName :: ShwiftyM Name
+    tName :: MoatM Name
     tName = varTToName typ
-    varTToName :: Type -> ShwiftyM Name
+    varTToName :: Type -> MoatM Name
     varTToName = \case
       VarT n -> pure n
       SigT t _ -> varTToName t
@@ -1684,7 +1684,7 @@ structExp name tyVars ifaces protos anns fields tags bs = do
         ('structTags, ListE tags)
       ]
 
-matchProxy :: Exp -> ShwiftyM Match
+matchProxy :: Exp -> MoatM Match
 matchProxy e =
   lift $
     match
