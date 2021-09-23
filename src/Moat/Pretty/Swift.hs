@@ -160,7 +160,8 @@ prettyMoatType = \case
   Tuple2 e1 e2 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ")"
   Tuple3 e1 e2 e3 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e3 ++ ")"
   Optional e -> prettyMoatType e ++ "?"
-  Result e1 e2 -> "Result<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
+  -- Swift flips the parameters for Result, see https://developer.apple.com/documentation/swift/result
+  Result e1 e2 -> "Result<" ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e1 ++ ">"
   Set e -> "Set<" ++ prettyMoatType e ++ ">"
   Dictionary e1 e2 -> "Dictionary<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
   Array e -> "[" ++ prettyMoatType e ++ "]"
