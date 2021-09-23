@@ -34,15 +34,17 @@ prettyStruct ::
   String
 prettyStruct name cases indents =
   "export type T"
-    ++ toUpperFirst name
+    ++ upperFirst
     ++ " = I"
-    ++ toUpperFirst name
+    ++ upperFirst
     ++ "\n\n"
     ++ "type I"
-    ++ toUpperFirst name
+    ++ upperFirst
     ++ " = {\n"
     ++ prettyStructCases indents cases
     ++ "\n}"
+  where
+    upperFirst = toUpperFirst name
 
 prettyStructCases ::
   String ->
