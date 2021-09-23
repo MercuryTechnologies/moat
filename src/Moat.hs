@@ -71,14 +71,16 @@ module Moat
     prettyKotlinData,
     prettySwiftData,
 
-    -- ** Utility
+    -- * Utility
     aliasToNewtype,
     newtypeToAlias,
+    X,
   )
 where
 
 import Control.Monad.Except
 import qualified Data.Char as Char
+import Data.Void (Void)
 import Data.Foldable (foldl', foldlM, foldr')
 import Data.Functor ((<&>))
 import qualified Data.List as L
