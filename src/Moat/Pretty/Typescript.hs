@@ -7,7 +7,7 @@ module Moat.Pretty.Typescript
 where
 
 import qualified Data.Char as Char
-import Data.List (foldl', intercalate)
+import Data.List (intercalate)
 import Moat.Types
 
 prettyTypescriptData :: MoatData -> String
@@ -50,14 +50,17 @@ prettyStructCases ::
   String ->
   [(String, MoatType)] ->
   String
-prettyStructCases indents = intercalate "\n" . foldl' folder []
+prettyStructCases indents = intercalate "\n" . foldMap prettyStructCase
   where
-    folder :: [String] -> (String, MoatType) -> [String]
-    folder accum = \case
-      (caseNm, Optional typ) ->
-        accum ++ [indents ++ caseNm ++ "?: " ++ prettyMoatType typ]
-      (caseNm, typ) ->
-        accum ++ [indents ++ caseNm ++ ": " ++ prettyMoatType typ]
+    prettyStructCase :: (String, MoatType) -> [String]
+    prettyStructCase (caseNm, typ) =
+      [ indents
+          ++ caseNm
+          ++ case typ of
+            Optional _ -> "?: "
+            _ -> ": "
+          ++ prettyMoatType typ
+      ]
 
 prettyEnum ::
   -- | name
@@ -81,63 +84,55 @@ prettyEnum name cases indents =
 prettySimpleEnumCases ::
   [(String, [(Maybe String, MoatType)])] ->
   String
-prettySimpleEnumCases = intercalate " | " . foldl' folder []
+prettySimpleEnumCases = intercalate " | " . foldMap prettyEnumCase
   where
-    folder :: [String] -> (String, [(Maybe String, MoatType)]) -> [String]
-    folder accum = \case
-      (caseNm, _) -> accum ++ ["'" ++ caseNm ++ "'"]
+    prettyEnumCase :: (String, [(Maybe String, MoatType)]) -> [String]
+    prettyEnumCase (caseNm, _) = ["'" <> caseNm <> "'"]
 
 prettyEnumCases ::
   String ->
   [(String, [(Maybe String, MoatType)])] ->
   String
 prettyEnumCases indents cases =
-  export
+  exportLine
     ++ "\n\n"
-    ++ tags
+    ++ taggedUnions
   where
-    export = intercalate " | " . foldl' exportFolder [] $ fst <$> cases
-    exportFolder :: [String] -> String -> [String]
-    exportFolder accum caseNm = accum ++ ["I" ++ toUpperFirst caseNm]
-    tags = intercalate "\n\n" $ foldl' taggedFolder [] cases
-    taggedFolder :: [String] -> (String, [(Maybe String, MoatType)]) -> [String]
-    taggedFolder accum =
-      (accum ++) . \case
-        (caseNm, [tup]) ->
-          [ "type I"
-              ++ toUpperFirst caseNm
-              ++ " = {\n"
-              ++ indents
-              ++ "tag: \""
-              ++ caseNm
-              ++ "\"\n"
-              ++ indents
-              ++ "contents: "
-              ++ intercalate "" (contentFolder "" [] tup)
-              ++ "\n}"
-          ]
-        (caseNm, xs) ->
-          [ "type I"
-              ++ toUpperFirst caseNm
-              ++ " = {\n"
-              ++ indents
-              ++ "tag: \""
-              ++ caseNm
-              ++ "\"\n"
-              ++ indents
-              ++ "contents: {\n"
-              ++ intercalate "\n" (foldl' (contentFolder indents) [] xs)
-              ++ "\n"
-              ++ indents
-              ++ "}\n"
-              ++ "}"
-          ]
-    contentFolder :: String -> [String] -> (Maybe String, MoatType) -> [String]
-    contentFolder inds accum = \case
-      (Nothing, Concrete conc _) -> accum ++ [inds ++ inds ++ "T" ++ toUpperFirst conc]
-      (Nothing, typ) -> accum ++ [inds ++ inds ++ prettyMoatType typ]
-      (Just name, Concrete conc _) -> accum ++ [inds ++ inds ++ name ++ ": " ++ "T" ++ toUpperFirst conc]
-      (Just name, typ) -> accum ++ [inds ++ inds ++ name ++ ": " ++ prettyMoatType typ]
+    exportLine = intercalate " | " . foldMap prettyInterface $ fst <$> cases
+    prettyInterface :: String -> [String]
+    prettyInterface caseNm = ["I" ++ toUpperFirst caseNm]
+
+    taggedUnions = intercalate "\n\n" . foldMap prettyUnion $ cases
+    prettyUnion :: (String, [(Maybe String, MoatType)]) -> [String]
+    prettyUnion (caseNm, xs) =
+      [ "type I"
+          ++ toUpperFirst caseNm
+          ++ " = {\n"
+          ++ indents
+          ++ "tag: \""
+          ++ caseNm
+          ++ "\"\n"
+          ++ indents
+          ++ "contents: "
+          ++ ( case xs of
+                 [tup] ->
+                   intercalate "" (prettyContents "" tup)
+                 _ ->
+                   "{\n"
+                     ++ intercalate "\n" (foldMap (prettyContents indents) xs)
+                     ++ "\n"
+                     ++ indents
+                     ++ "}"
+             )
+          ++ "\n}"
+      ]
+    prettyContents :: String -> (Maybe String, MoatType) -> [String]
+    prettyContents inds =
+      pure . ((inds <> inds) <>) . \case
+        (Nothing, Concrete conc _) -> "T" <> toUpperFirst conc
+        (Nothing, typ) -> prettyMoatType typ
+        (Just name, Concrete conc _) -> name <> ": " <> "T" <> toUpperFirst conc
+        (Just name, typ) -> name <> ": " <> prettyMoatType typ
 
 prettyAlias ::
   String ->
