@@ -7,6 +7,11 @@ import qualified Data.Char as Char
 import Data.List (intercalate)
 import Moat.Types
 
+-- | Convert a 'MoatData' into a canonical representation in Kotlin
+--
+-- This is a decent default if you plan to do Android development, however you
+-- could instead use this as a template to write your own version. Or, use it
+-- to write an entirely new language backend :)
 prettyKotlinData :: MoatData -> String
 prettyKotlinData = \case
   MoatStruct {..} ->

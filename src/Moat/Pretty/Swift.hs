@@ -6,7 +6,11 @@ where
 import Data.List (intercalate)
 import Moat.Types
 
--- | Pretty-print a 'SwiftData'.
+-- | Convert a 'MoatData' into a canonical representation in Swift
+--
+-- This is a decent default if you plan to do iOS development, however you
+-- could instead use this as a template to write your own version. Or, use it
+-- to write an entirely new language backend :)
 prettySwiftData :: MoatData -> String
 prettySwiftData = prettySwiftDataWith 4
 

@@ -19,16 +19,15 @@ where
 import GHC.Generics (Generic)
 import Language.Haskell.TH.Syntax (Lift)
 
--- | An AST representing a type.
+-- | An AST representing a type
 data MoatType
-  = -- | Unit (called "Unit/Void" in swift). Empty struct type.
+  = -- | Equivalent to '()' in Haskell, "Void" in Swift
     Unit
-  | -- | Bool
+  | -- | The boolean type
     Bool
-  | -- | Character
+  | -- | A single character
     Character
-  | -- | String. Named 'Str' to avoid conflicts with
-    --   'Data.Aeson.String'.
+  | -- | String. Named 'Str' to avoid conflicts with 'Data.Aeson.String'.
     Str
   | -- | signed machine integer
     I
@@ -112,27 +111,23 @@ data MoatType
   deriving stock (Generic)
   deriving stock (Lift)
 
--- | A datatype, either a struct (product type),
---   enum (sum type), or type alias. Haskll types are
---   sums-of-products, so the way we differentiate
---   when doing codegen,
---   is that types with a single constructor
---   will be converted to a struct, and those with
---   two or more constructors will be converted to an
---   enum. Types with 0 constructors will be converted
---   to an empty enum.
+-- | A datatype, either a struct (product type), enum (sum type), or type
+-- alias. Haskell types are sums-of-products, so the way we differentiate when
+-- doing codegen, is that types with a single constructor will be converted to
+-- a struct, and those with two or more constructors will be converted to an
+-- enum. Types with 0 constructors will be converted to an empty enum.
 data MoatData
-  = -- | A struct (product type)
+  = -- | A record, struct, or product type
     MoatStruct
       { -- | The name of the struct
         structName :: String,
         -- | The struct's type variables
         structTyVars :: [String],
-        -- | The interfaces which the struct implements
+        -- | The kotlin interfaces which the struct implements
         structInterfaces :: [Interface],
-        -- | The protocols which the struct implements
+        -- | The swift protocols which the struct implements
         structProtocols :: [Protocol],
-        -- | The annotations on the struct
+        -- | The kotlin annotations on the struct
         structAnnotations :: [Annotation],
         -- | The fields of the struct. the pair
         --   is interpreted as (name, type).
@@ -147,7 +142,7 @@ data MoatData
         --   Only used by the Swift backend.
         structTags :: [MoatType]
       }
-  | -- | An enum (sum type)
+  | -- | An enum, sum, or coproduct type
     MoatEnum
       { -- | The name of the enum
         enumName :: String,
@@ -155,13 +150,12 @@ data MoatData
         enumTyVars :: [String],
         -- | The interfaces (Kotlin) which the enum implements
         enumInterfaces :: [Interface],
-        -- | The interfaces (Kotlin) which the enum implements
+        -- | The protocols (Swift) which the enum implements
         enumProtocols :: [Protocol],
-        -- | The annotations on the enum
+        -- | The annotations (Kotlin) on the enum
         enumAnnotations :: [Annotation],
-        -- | The cases of the enum. the type
-        --   can be interpreted as
-        --   (name, [(label, type)]).
+        -- | The cases of the enum. the type can be interpreted as (name,
+        -- [(label, type)]).
         enumCases :: [(String, [(Maybe String, MoatType)])],
         -- | The rawValue of an enum. See
         --   https://developer.apple.com/documentation/swift/rawrepresentable/1540698-rawvalue
@@ -186,7 +180,7 @@ data MoatData
         enumTags :: [MoatType]
       }
   | -- | A newtype.
-    --   Kotlin backend: becomes an inline class.
+    --   Kotlin backend: becomes a value class.
     --   Swift backend: Becomes an empty enum with a tag.
     MoatNewtype
       { newtypeName :: String,
@@ -213,33 +207,39 @@ data Backend
   deriving stock (Eq, Read, Show)
 
 data Interface
-  = Parcelable
-  | -- | Derive from some Kotlin interface
-    -- @
-    --     data class A(
-    --       ...
-    --     ) : {String}
-    -- @
+  = -- | Use the Parcelable interface, may want the 'Parcelize' annotation as well
+    --
+    -- >   data class A(
+    -- >     ...
+    -- >   ) : Parcelable
+    Parcelable
+  | -- | /escape hatch/ Use an arbitrary interface
+    --
+    -- >   data class A(
+    -- >     ...
+    -- >   ) : {String}
     RawInterface String
-  | -- | Derive from a sealed class
-    -- @
-    --     data class A(
-    --       ...
-    --     ) : {String}()
-    -- @
+  | -- | /escape hatch/ Use an arbitrary linked interface
+    --
+    -- >   data class A(
+    -- >     ...
+    -- >   ) : {String}()
     LinkEnumInterface String
   deriving stock (Eq, Read, Show)
   deriving stock (Lift)
 
 data Annotation
-  = Parcelize
-  | Serializable
-  | RawAnnotation String
+  = -- | The 'Parcelize' annotation, see https://developer.android.com/kotlin/parcelize
+    -- automatically generates a Parcelable implementation for the type
+    Parcelize
+  | -- | The 'Serializable' annotation, see https://developer.android.com/reference/kotlin/java/io/Serializable
+    Serializable
+  | -- | /escape hatch/ to add an arbitrary annotation
+    RawAnnotation String
   deriving stock (Eq, Read, Show)
   deriving stock (Lift)
 
--- | Swift protocols.
---   Only a few are supported right now.
+-- | A 'Protocol' are annotations added when writing Swift types via 'prettySwiftType'
 data Protocol
   = -- | The 'Hashable' protocol.
     --   See https://developer.apple.com/documentation/swift/hashable
@@ -255,61 +255,38 @@ data Protocol
   deriving stock (Eq, Read, Show, Generic)
   deriving stock (Lift)
 
--- | Options that specify how to
---   encode your 'MoatData' to a concrete type.
+-- | Options that specify how to encode your 'MoatData' to a concrete type.
 --
---   Options can be set using record syntax on
---   'defaultOptions' with the fields below.
+--   Options can be set using record update syntax on 'defaultOptions' with the
+--   fields below.
 data Options = Options
-  { -- | Function applied to type constructor names.
-    --   The default ('id') makes no changes.
+  { -- | A function to apply to type constructor names.
+    --   The default makes no changes
     typeConstructorModifier :: String -> String,
-    -- | Function applied to field labels.
-    --   Handy for removing common record prefixes,
-    --   for example. The default ('id') makes no
-    --   changes.
+    -- | A function to apply to field labels.  Handy for removing common record
+    -- prefixes, for example. The default makes no changes
     fieldLabelModifier :: String -> String,
-    -- | Function applied to value constructor names.
-    --   The default ('id') makes no changes.
+    -- | A function to apply to data constructor names. The default makes no
+    -- changes.
     constructorModifier :: String -> String,
-    -- | Whether or not to truncate Optional types.
-    --   Normally, an Optional ('Maybe') is encoded
-    --   as "A?", which is syntactic sugar for
-    --   "Optional\<A\>". The default value ('False')
-    --   will keep it as sugar. A value of 'True'
-    --   will expand it to be desugared.
-    optionalExpand :: Bool,
-    -- | Whether or not to generate a 'ToMoatType'
-    --   instance. Sometimes this can be desirable
-    --   if you want to define the instance by hand,
-    --   or the instance exists elsewhere.
-    --   The default is 'True', i.e., to generate
-    --   the instance.
+    -- | Whether or not to generate a 'ToMoatType' instance. Sometimes this can
+    -- be desirable if you want to define the instance by hand, or the instance
+    -- exists elsewhere.  The default is 'True', i.e., to generate the
+    -- instance.
     generateToMoatType :: Bool,
-    -- | Whether or not to generate a 'ToSwiftData'
-    --   instance. Sometime this can be desirable
-    --   if you want to define the instance by hand,
-    --   or the instance exists elsewhere.
-    --   The default is 'True', i.e., to generate
-    --   the instance.
+    -- | Whether or not to generate a 'ToMoatData' instance. Sometimes this can
+    -- be desirable if you want to define the instance by hand, or the instance
+    -- exists elsewhere.  The default is 'True', i.e., to generate the
+    -- instance.
     generateToMoatData :: Bool,
-    -- | Interfaces to add to a type.
+    -- | Kotlin interfaces to add to a type.
     --   The default (@[]@) will add none.
-    --
-    --   This is only meaningful on the Kotlin
-    --   backend.
     dataInterfaces :: [Interface],
-    -- | Protocols to add to a type.
+    -- | Swift protocols to add to a type.
     --   The default (@[]@) will add none.
-    --
-    --   This is only meaningful on the Swift
-    --   backend.
     dataProtocols :: [Protocol],
-    -- | Annotations to add to a type.
+    -- | Kotlin annotations to add to a type.
     --   The default (@[]@) will add none.
-    --
-    --   This is only meaningful on the Kotlin
-    --   backend.
     dataAnnotations :: [Annotation],
     -- | The rawValue of an enum. See
     --   https://developer.apple.com/documentation/swift/rawrepresentable/1540698-rawvalue
@@ -373,15 +350,19 @@ data Options = Options
     --
     --   The default ('True') will do so.
     lowerFirstCase :: Bool,
-    -- | Fields to omit from a struct when
-    --   generating types.
+    -- | A function to apply to fields and choose whether, or not, to keep them
     --
-    --   The default (@[]@) will omit nothing.
+    -- e.g.
+    --
+    -- > \case
+    -- >   "discardThisField" -> Discard
+    -- >   "keepThisField" -> Keep
+    --
+    --   The default (@const Keep@) will not discard fields
     omitFields :: String -> KeepOrDiscard,
-    -- | Cases to omit from an enum when
-    --   generating types.
+    -- | A function to apply to enum cases and choose whether, or not, to keep them
     --
-    --   The default (@[]@) will omit nothing.
+    --   The default (@const Keep@) will omit nothing.
     omitCases :: String -> KeepOrDiscard,
     -- | Whether or not to make a base type,
     --   its raw value, and its protocols.
@@ -407,7 +388,6 @@ data Options = Options
 --   { typeConstructorModifier = id
 --   , fieldLabelModifier = id
 --   , constructorModifier = id
---   , optionalExpand = False
 --   , generateToMoatType = True
 --   , generateToMoatData = True
 --   , dataInterfaces = []
@@ -429,7 +409,6 @@ defaultOptions =
     { typeConstructorModifier = id,
       fieldLabelModifier = id,
       constructorModifier = id,
-      optionalExpand = False,
       generateToMoatType = True,
       generateToMoatData = True,
       dataInterfaces = [],
