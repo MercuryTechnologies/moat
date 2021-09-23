@@ -151,6 +151,10 @@ mobileGenWith
   )
   ''Newtype2
 
+newtype Newtype3 = Newtype3 {newtype3 :: Either String Int}
+
+mobileGen ''Newtype3
+
 showKotlin :: forall a. ToMoatData a => String
 showKotlin = prettyKotlinData $ toMoatData (Proxy @a)
 
@@ -168,6 +172,8 @@ main = hspec $ do
       defaultGolden "kotlinNewtype1" (showKotlin @Newtype1)
     it "kotlinNewtype2" $
       defaultGolden "kotlinNewtype2" (showKotlin @Newtype2)
+    it "kotlinNewtype3" $
+      defaultGolden "kotlinNewtype3" (showKotlin @Newtype3)
     it "kotlinData0" $
       defaultGolden "kotlinData0" (showKotlin @Data0)
     it "kotlinEnum1" $
@@ -193,6 +199,8 @@ main = hspec $ do
       defaultGolden "swiftNewtype1" (showSwift @Newtype1)
     it "swiftNewtype2" $
       defaultGolden "swiftNewtype2" (showSwift @Newtype2)
+    it "swiftNewtype3" $
+      defaultGolden "swiftNewtype3" (showSwift @Newtype3)
     it "swiftData0" $
       defaultGolden "swiftData0" (showSwift @Data0)
     it "swiftEnum1" $

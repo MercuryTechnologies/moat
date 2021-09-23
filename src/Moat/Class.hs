@@ -61,13 +61,8 @@ instance forall a b. (ToMoatType a, ToMoatType b) => ToMoatType (a -> b) where
 instance forall a. ToMoatType a => ToMoatType (Maybe a) where
   toMoatType _ = Optional (toMoatType (Proxy @a))
 
--- | /Note/: In Swift, the ordering of the type
---   variables is flipped - Moat has made the
---   design choice to flip them for you. If you
---   take issue with this, please open an issue
---   for discussion on GitHub.
 instance forall a b. (ToMoatType a, ToMoatType b) => ToMoatType (Either a b) where
-  toMoatType _ = Result (toMoatType (Proxy @b)) (toMoatType (Proxy @a))
+  toMoatType _ = Result (toMoatType (Proxy @a)) (toMoatType (Proxy @b))
 
 instance ToMoatType Integer where
   toMoatType _ = BigInt
