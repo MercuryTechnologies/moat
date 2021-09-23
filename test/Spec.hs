@@ -199,6 +199,8 @@ main = hspec $ do
       defaultGolden "swiftNewtype1" (showSwift @Newtype1)
     it "swiftNewtype2" $
       defaultGolden "swiftNewtype2" (showSwift @Newtype2)
+    it "swiftNewtype3" $
+      defaultGolden "swiftNewtype3" (showSwift @Newtype3)
     it "swiftData0" $
       defaultGolden "swiftData0" (showSwift @Data0)
     it "swiftEnum1" $
