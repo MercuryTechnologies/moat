@@ -1,2 +1,1 @@
 packages: ../../moat.cabal ./readme.cabal
-with-compiler: /nix/store/agbzi1iwbjmp6qsvg4n5a2w27nf80mjm-ghc-8.10.3/bin/ghc
