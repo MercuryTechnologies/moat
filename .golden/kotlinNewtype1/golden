@@ -1,2 +1,0 @@
-@JvmInline
-value class Newtype1(val newtype1: String)

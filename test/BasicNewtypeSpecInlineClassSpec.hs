@@ -1,4 +1,4 @@
-module BasicNewtypeSpecInlineClass where
+module BasicNewtypeSpecInlineClassSpec where
 
 import Common
 import Data.Text (Text)
@@ -16,7 +16,7 @@ mobileGenWith
 spec :: Spec
 spec =
   describe "stays golden" $ do
-    let moduleName = "BasicNewtypeSpecInlineClass"
+    let moduleName = "BasicNewtypeSpecInlineClassSpec"
     it "swift" $
       defaultGolden ("swift" <> moduleName) (showSwift @Newtype)
     it "kotlin" $

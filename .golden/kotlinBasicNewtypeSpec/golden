@@ -1,1 +1,2 @@
-inline class Newtype(val value: String)
+@JvmInline
+value class Newtype(val value: String)

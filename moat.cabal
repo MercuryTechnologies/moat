@@ -64,7 +64,7 @@ test-suite spec
       BasicEnumSpec
       BasicEnumWithRawValueSpec
       BasicNewtypeSpec
-      BasicNewtypeSpecInlineClass
+      BasicNewtypeSpecInlineClassSpec
       BasicNewtypeWithConcreteFieldSpec
       BasicNewtypeWithEitherFieldSpec
       BasicRecordSpec

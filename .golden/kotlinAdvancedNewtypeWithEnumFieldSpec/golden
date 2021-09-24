@@ -1,1 +1,2 @@
-inline class Newtype(val newtypeField: Enum)
+@JvmInline
+value class Newtype(val newtypeField: Enum)
