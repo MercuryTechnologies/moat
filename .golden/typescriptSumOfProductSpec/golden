@@ -1,0 +1,17 @@
+export type TEnum = IDataCons0 | IDataCons1
+
+type IDataCons0 = {
+  tag: "dataCons0"
+  contents: {
+    enumField0: number
+    enumField1: number
+  }
+}
+
+type IDataCons1 = {
+  tag: "dataCons1"
+  contents: {
+    enumField2: string
+    enumField3: string
+  }
+}

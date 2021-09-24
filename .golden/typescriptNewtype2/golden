@@ -1,5 +1,0 @@
-export type TNewtype2 = INewtype2
-
-type INewtype2 = {
-  newtype2: Enum5
-}

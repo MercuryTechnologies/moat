@@ -18,3 +18,5 @@ spec =
       defaultGolden ("swift" <> moduleName) (showSwift @Newtype)
     it "kotlin" $
       defaultGolden ("kotlin" <> moduleName) (showKotlin @Newtype)
+    it "typescript" $
+      defaultGolden ("typescript" <> moduleName) (showTypescript @Newtype)

@@ -1,5 +1,0 @@
-export type TNewtype1 = INewtype1
-
-type INewtype1 = {
-  newtype1: string
-}

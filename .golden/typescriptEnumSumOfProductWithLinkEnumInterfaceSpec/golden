@@ -1,4 +1,4 @@
-export type TEnum1 = IDataCons0 | IDataCons1
+export type TEnum = IDataCons0 | IDataCons1
 
 type IDataCons0 = {
   tag: "dataCons0"

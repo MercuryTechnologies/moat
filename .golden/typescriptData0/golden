@@ -1,6 +1,0 @@
-export type TData0 = IData0
-
-type IData0 = {
-  data0Field0: number
-  data0Field1?: number
-}
