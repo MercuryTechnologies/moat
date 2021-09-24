@@ -28,4 +28,7 @@ hlint:
 clean:
 	cabal clean
 
-.PHONY: build test hpack repl repl-test ghcid ghcid-test format hlint clean
+haddock:
+	cabal haddock
+
+.PHONY: build test hpack repl repl-test ghcid ghcid-test format hlint clean haddock
