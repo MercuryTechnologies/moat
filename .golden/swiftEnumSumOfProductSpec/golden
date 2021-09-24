@@ -1,0 +1,4 @@
+enum Enum: CaseIterable, Hashable, Codable {
+    case dataCons0(_ enumField0: Int, _ enumField1: Int)
+    case dataCons1(_ enumField2: String, _ enumField3: String)
+}

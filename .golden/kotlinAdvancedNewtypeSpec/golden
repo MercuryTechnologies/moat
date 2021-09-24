@@ -1,0 +1,2 @@
+@Parcelize
+inline class Newtype(val value: String) : Parcelable

@@ -1,4 +1,0 @@
-struct Newtype1 {
-    typealias Newtype1Tag = Tagged<Newtype1, String>
-    let newtype1: Newtype1Tag
-}

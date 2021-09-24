@@ -1,0 +1,4 @@
+struct Newtype {
+    typealias NewtypeTag = Tagged<Newtype, Result<Int, String>>
+    let newtypeField: NewtypeTag
+}

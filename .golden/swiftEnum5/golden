@@ -1,4 +1,0 @@
-enum Enum5 {
-    case h
-    case i
-}

@@ -1,0 +1,4 @@
+enum Enum: CaseIterable, Hashable, Codable {
+    case dataCons0(Record0)
+    case dataCons1(Record1)
+}

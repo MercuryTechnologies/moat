@@ -1,4 +1,0 @@
-enum Enum3: String {
-    case d
-    case e
-}

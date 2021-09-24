@@ -1,0 +1,5 @@
+enum Enum: CaseIterable, Hashable, Codable {
+    case a
+    case b
+    case c
+}

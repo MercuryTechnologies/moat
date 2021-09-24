@@ -1,0 +1,4 @@
+struct Data: CaseIterable, Hashable, Codable {
+    let field0: Int
+    let field1: Int?
+}
