@@ -1,4 +1,0 @@
-enum Enum4: String, CaseIterable, Hashable, Codable {
-    case f
-    case g
-}

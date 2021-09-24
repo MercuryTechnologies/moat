@@ -1,0 +1,11 @@
+@Parcelize
+enum class Enum : Parcelable {
+    data class DataCons0(
+        val enumField0: Int,
+        val enumField1: Int
+    )
+    data class DataCons1(
+        val enumField2: String,
+        val enumField3: String
+    )
+}

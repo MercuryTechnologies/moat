@@ -20,7 +20,7 @@ ghcid-test: hpack
 	ghcid -c cabal repl test:spec
 
 format:
-	find src/ test/ -name "*.hs" -exec ormolu -i {} \;
+	find src/ test/ -name "*.hs" -exec ormolu -i {} --ghc-opt -XTypeApplications \;
 
 hlint:
 	hlint .

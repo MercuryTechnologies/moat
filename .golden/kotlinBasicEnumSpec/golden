@@ -1,0 +1,5 @@
+enum class Enum {
+    a,
+    b,
+    c,
+}

@@ -1,5 +1,0 @@
-@Parcelize
-enum class Enum4 : Parcelable {
-    f,
-    g,
-}

@@ -1,0 +1,3 @@
+struct Newtype {
+    let newtypeField: Enum
+}

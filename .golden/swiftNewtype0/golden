@@ -1,4 +1,0 @@
-struct Newtype0: CaseIterable, Hashable, Codable {
-    typealias Newtype0Tag = Tagged<Newtype0, String>
-    let value: Newtype0Tag
-}

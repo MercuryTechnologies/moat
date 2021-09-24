@@ -56,6 +56,20 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      AdvancedEnumSpec
+      AdvancedEnumWithRawValueSpec
+      AdvancedNewtypeSpec
+      AdvancedNewtypeWithEnumFieldSpec
+      AdvancedRecordSpec
+      BasicEnumSpec
+      BasicEnumWithRawValueSpec
+      BasicNewtypeSpec
+      BasicNewtypeWithConcreteFieldSpec
+      BasicNewtypeWithEitherFieldSpec
+      BasicRecordSpec
+      Common
+      SumOfProductSpec
+      SumOfProductWithLinkEnumInterfaceSpec
       Moat
       Moat.Class
       Moat.Pretty.Kotlin
@@ -65,7 +79,7 @@ test-suite spec
   hs-source-dirs:
       test
       src
-  default-extensions: LambdaCase RecordWildCards AllowAmbiguousTypes DataKinds ScopedTypeVariables TemplateHaskell TypeApplications
+  default-extensions: LambdaCase RecordWildCards AllowAmbiguousTypes DataKinds ScopedTypeVariables TemplateHaskell
   ghc-options: -Wall -Wno-unused-top-binds
   build-depends:
       base >=4.11 && <4.15

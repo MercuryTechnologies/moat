@@ -1,1 +1,0 @@
-inline class Newtype3(val newtype3: Either<String, Int>)

@@ -1,7 +1,7 @@
 module Common where
 
-import Moat
 import Data.Proxy (Proxy (..))
+import Moat
 
 showKotlin :: forall a. ToMoatData a => String
 showKotlin = prettyKotlinData $ toMoatData (Proxy @a)

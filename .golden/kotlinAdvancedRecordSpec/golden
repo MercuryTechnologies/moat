@@ -1,0 +1,5 @@
+@Parcelize
+data class Data(
+    val field0: Int,
+    val field1: Int? = null,
+) : Parcelable

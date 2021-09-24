@@ -1,4 +1,0 @@
-struct Data0: CaseIterable, Hashable, Codable {
-    let data0Field0: Int
-    let data0Field1: Int?
-}

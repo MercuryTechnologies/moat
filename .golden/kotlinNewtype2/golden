@@ -1,3 +1,0 @@
-@Parcelize
-@Serializable
-inline class Newtype2(val newtype2: Enum5) : Parcelable
