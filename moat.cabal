@@ -79,7 +79,7 @@ test-suite spec
   hs-source-dirs:
       test
       src
-  default-extensions: LambdaCase RecordWildCards AllowAmbiguousTypes DataKinds ScopedTypeVariables TemplateHaskell
+  default-extensions: LambdaCase RecordWildCards AllowAmbiguousTypes DataKinds ScopedTypeVariables TemplateHaskell TypeApplications
   ghc-options: -Wall -Wno-unused-top-binds
   build-depends:
       base >=4.11 && <4.15
