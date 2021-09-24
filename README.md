@@ -53,7 +53,7 @@ built-ins to deserialize JSON, e.g. `Parcelize` in Android (Kotlin) and
 automatically convert our Haskell types to the frontend equivalents and be sure
 everyone is on the same page.
 
-![A moat use case diagram](./diagram/moat-use-case.png "Moat use case")
+![A moat use case diagram](./diagrams/moat-use-case.png "Moat use case")
 
 Here is a more practical Swift example that uses `Codable` to decode JSON
 blobs.
