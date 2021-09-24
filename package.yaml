@@ -44,3 +44,12 @@ tests:
     dependencies:
       - hspec
       - hspec-golden
+      - hspec-discover
+    default-extensions:
+      - AllowAmbiguousTypes
+      - DataKinds
+      - ScopedTypeVariables
+      - TemplateHaskell
+      - TypeApplications
+    ghc-options:
+      -Wno-unused-top-binds

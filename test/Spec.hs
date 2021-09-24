@@ -1,15 +1,8 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
-
-import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import Moat
 import Test.Hspec
 import Test.Hspec.Golden
+import Common
 
 data Enum0
   = A
@@ -154,12 +147,6 @@ mobileGenWith
 newtype Newtype3 = Newtype3 {newtype3 :: Either String Int}
 
 mobileGen ''Newtype3
-
-showKotlin :: forall a. ToMoatData a => String
-showKotlin = prettyKotlinData $ toMoatData (Proxy @a)
-
-showSwift :: forall a. ToMoatData a => String
-showSwift = prettySwiftData $ toMoatData (Proxy @a)
 
 main :: IO ()
 main = hspec $ do
