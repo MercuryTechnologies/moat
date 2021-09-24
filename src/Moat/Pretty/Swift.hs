@@ -26,36 +26,36 @@ prettySwiftDataWith indent = \case
   MoatEnum {..} ->
     "enum "
       ++ prettyMoatTypeHeader enumName enumTyVars
-      ++ prettyRawValueAndProtocols enumRawValue enumProtocols
+      ++ prettyRawValueAndProtocols (OptionalExpand enumOptionalExpand) enumRawValue enumProtocols
       ++ " {"
       ++ newlineNonEmpty enumCases
-      ++ prettyEnumCases indents enumCases
+      ++ prettyEnumCases (OptionalExpand enumOptionalExpand) indents enumCases
       ++ newlineNonEmpty enumPrivateTypes
       ++ prettyPrivateTypes indents enumPrivateTypes
-      ++ prettyTags indents enumTags
+      ++ prettyTags (OptionalExpand enumOptionalExpand) indents enumTags
       ++ newlineNonEmpty enumTags
       ++ "}"
   MoatStruct {..} ->
     "struct "
       ++ prettyMoatTypeHeader structName structTyVars
-      ++ prettyRawValueAndProtocols Nothing structProtocols
+      ++ prettyRawValueAndProtocols (OptionalExpand structOptionalExpand) Nothing structProtocols
       ++ " {"
       ++ newlineNonEmpty structFields
-      ++ prettyStructFields indents structFields
+      ++ prettyStructFields (OptionalExpand structOptionalExpand) indents structFields
       ++ newlineNonEmpty structPrivateTypes
       ++ prettyPrivateTypes indents structPrivateTypes
-      ++ prettyTags indents structTags
+      ++ prettyTags (OptionalExpand structOptionalExpand) indents structTags
       ++ newlineNonEmpty structTags
       ++ "}"
   MoatAlias {..} ->
     "typealias "
       ++ prettyMoatTypeHeader aliasName aliasTyVars
       ++ " = "
-      ++ prettyMoatType aliasTyp
+      ++ prettyMoatType (OptionalExpand aliasOptionalExpand) aliasTyp
   MoatNewtype {..} ->
     "struct "
       ++ prettyMoatTypeHeader newtypeName newtypeTyVars
-      ++ prettyRawValueAndProtocols Nothing newtypeProtocols
+      ++ prettyRawValueAndProtocols (OptionalExpand newtypeOptionalExpand) Nothing newtypeProtocols
       ++ " {\n"
       ++ indents
       ++ if isConcrete newtypeField
@@ -63,7 +63,7 @@ prettySwiftDataWith indent = \case
           "let "
             ++ fst newtypeField
             ++ ": "
-            ++ prettyMoatType (snd newtypeField)
+            ++ prettyMoatType (OptionalExpand newtypeOptionalExpand) (snd newtypeField)
             ++ "\n}"
         else
           "typealias "
@@ -72,7 +72,7 @@ prettySwiftDataWith indent = \case
             ++ " = Tagged<"
             ++ newtypeName
             ++ ", "
-            ++ prettyMoatType (snd newtypeField)
+            ++ prettyMoatType (OptionalExpand newtypeOptionalExpand) (snd newtypeField)
             ++ ">\n"
             ++ prettyNewtypeField indents newtypeField newtypeName
             ++ "}"
@@ -91,11 +91,11 @@ prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
 prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 
-prettyRawValueAndProtocols :: Maybe MoatType -> [Protocol] -> String
-prettyRawValueAndProtocols Nothing [] = ""
-prettyRawValueAndProtocols Nothing ps = ": " ++ prettyProtocols ps
-prettyRawValueAndProtocols (Just ty) [] = ": " ++ prettyMoatType ty
-prettyRawValueAndProtocols (Just ty) ps = ": " ++ prettyMoatType ty ++ ", " ++ prettyProtocols ps
+prettyRawValueAndProtocols :: OptionalExpand -> Maybe MoatType -> [Protocol] -> String
+prettyRawValueAndProtocols _ Nothing [] = ""
+prettyRawValueAndProtocols _ Nothing ps = ": " ++ prettyProtocols ps
+prettyRawValueAndProtocols o (Just ty) [] = ": " ++ prettyMoatType o ty
+prettyRawValueAndProtocols o (Just ty) ps = ": " ++ prettyMoatType o ty ++ ", " ++ prettyProtocols ps
 
 prettyProtocols :: [Protocol] -> String
 prettyProtocols = \case
@@ -111,8 +111,8 @@ prettyProtocols = \case
 
 -- TODO: Need a plan to avoid @error@ in these pure functions
 {-# ANN prettyTags "HLint: ignore" #-}
-prettyTags :: String -> [MoatType] -> String
-prettyTags indents = go
+prettyTags :: OptionalExpand -> String -> [MoatType] -> String
+prettyTags o indents = go
   where
     go [] = ""
     go (Tag {..} : ts) =
@@ -124,7 +124,7 @@ prettyTags indents = go
         ++ " = Tagged<"
         ++ (if tagDisambiguate then tagName ++ "Tag" else tagParent)
         ++ ", "
-        ++ prettyMoatType tagTyp
+        ++ prettyMoatType o tagTyp
         ++ ">"
         ++ go ts
     go _ = error "non-tag supplied to prettyTags"
@@ -147,28 +147,33 @@ prettyTagDisambiguator disambiguate indents parent =
         ++ "Tag { }\n"
     else ""
 
-labelCase :: Maybe String -> MoatType -> String
-labelCase Nothing ty = prettyMoatType ty
-labelCase (Just label) ty = "_ " ++ label ++ ": " ++ prettyMoatType ty
+labelCase :: OptionalExpand -> Maybe String -> MoatType -> String
+labelCase o Nothing ty = prettyMoatType o ty
+labelCase o (Just label) ty = "_ " ++ label ++ ": " ++ prettyMoatType o ty
+
+newtype OptionalExpand = OptionalExpand Bool
 
 -- | Pretty-print a 'Ty'.
-prettyMoatType :: MoatType -> String
-prettyMoatType = \case
+prettyMoatType :: OptionalExpand -> MoatType -> String
+prettyMoatType o@(OptionalExpand oe) = \case
   Str -> "String"
   Unit -> "()"
   Bool -> "Bool"
   Character -> "Character"
-  Tuple2 e1 e2 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ")"
-  Tuple3 e1 e2 e3 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e3 ++ ")"
-  Optional e -> prettyMoatType e ++ "?"
+  Tuple2 e1 e2 -> "(" ++ prettyMoatType o e1 ++ ", " ++ prettyMoatType o e2 ++ ")"
+  Tuple3 e1 e2 e3 -> "(" ++ prettyMoatType o e1 ++ ", " ++ prettyMoatType o e2 ++ ", " ++ prettyMoatType o e3 ++ ")"
+  Optional e ->
+    if oe
+      then "Optional<" <> prettyMoatType o e <> ">"
+      else prettyMoatType o e <> "?"
   -- Swift flips the parameters for Result, see https://developer.apple.com/documentation/swift/result
-  Result e1 e2 -> "Result<" ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e1 ++ ">"
-  Set e -> "Set<" ++ prettyMoatType e ++ ">"
-  Dictionary e1 e2 -> "Dictionary<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
-  Array e -> "[" ++ prettyMoatType e ++ "]"
+  Result e1 e2 -> "Result<" ++ prettyMoatType o e2 ++ ", " ++ prettyMoatType o e1 ++ ">"
+  Set e -> "Set<" ++ prettyMoatType o e ++ ">"
+  Dictionary e1 e2 -> "Dictionary<" ++ prettyMoatType o e1 ++ ", " ++ prettyMoatType o e2 ++ ">"
+  Array e -> "[" ++ prettyMoatType o e ++ "]"
   -- App is special, we recurse until we no longer
   -- any applications.
-  App e1 e2 -> prettyApp e1 e2
+  App e1 e2 -> prettyApp o e1 e2
   I -> "Int"
   I8 -> "Int8"
   I16 -> "Int16"
@@ -188,16 +193,16 @@ prettyMoatType = \case
   Concrete ty tys ->
     ty
       ++ "<"
-      ++ intercalate ", " (map prettyMoatType tys)
+      ++ intercalate ", " (map (prettyMoatType o) tys)
       ++ ">"
   Tag {..} -> tagParent ++ "." ++ tagName
 
-prettyApp :: MoatType -> MoatType -> String
-prettyApp t1 t2 =
+prettyApp :: OptionalExpand -> MoatType -> MoatType -> String
+prettyApp o t1 t2 =
   "(("
-    ++ intercalate ", " (map prettyMoatType as)
+    ++ intercalate ", " (map (prettyMoatType o) as)
     ++ ") -> "
-    ++ prettyMoatType r
+    ++ prettyMoatType o r
     ++ ")"
   where
     (as, r) = go t1 t2
@@ -205,8 +210,8 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
-prettyEnumCases :: String -> [(String, [(Maybe String, MoatType)])] -> String
-prettyEnumCases indents = go
+prettyEnumCases :: OptionalExpand -> String -> [(String, [(Maybe String, MoatType)])] -> String
+prettyEnumCases o indents = go
   where
     go = \case
       [] -> ""
@@ -221,15 +226,15 @@ prettyEnumCases indents = go
           ++ "case "
           ++ caseNm
           ++ "("
-          ++ intercalate ", " (map (uncurry labelCase) cs)
+          ++ intercalate ", " (map (uncurry $ labelCase o) cs)
           ++ ")\n"
           ++ go xs
 
-prettyStructFields :: String -> [(String, MoatType)] -> String
-prettyStructFields indents = go
+prettyStructFields :: OptionalExpand -> String -> [(String, MoatType)] -> String
+prettyStructFields o indents = go
   where
     go [] = ""
-    go ((fieldName, ty) : fs) = indents ++ "let " ++ fieldName ++ ": " ++ prettyMoatType ty ++ "\n" ++ go fs
+    go ((fieldName, ty) : fs) = indents ++ "let " ++ fieldName ++ ": " ++ prettyMoatType o ty ++ "\n" ++ go fs
 
 prettyNewtypeField :: String -> (String, MoatType) -> String -> String
 prettyNewtypeField indents (alias, _) fieldName = indents ++ "let " ++ alias ++ ": " ++ fieldName ++ "Tag" ++ "\n"

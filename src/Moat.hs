@@ -662,7 +662,7 @@ consToMoatType ::
 consToMoatType o@Options {..} parentName instTys variant ts bs = \case
   [] -> do
     value <- lift $ newName "value"
-    matches <- liftCons (mkVoid parentName instTys ts)
+    matches <- liftCons (mkVoid o parentName instTys ts)
     lift $ lamE [varP value] (caseE (varE value) matches)
   cons -> do
     -- TODO: use '_' instead of matching
@@ -677,14 +677,14 @@ consToMoatType o@Options {..} parentName instTys variant ts bs = \case
           case variant of
             NewtypeInstance -> do
               if typeAlias
-                then mkNewtypeInstanceAlias instTys con
+                then mkNewtypeInstanceAlias o instTys con
                 else mkNewtypeInstance o instTys con
             Newtype -> do
               if
                   | newtypeTag -> do
                     mkTypeTag o parentName instTys con
                   | typeAlias -> do
-                    mkTypeAlias parentName instTys con
+                    mkTypeAlias o parentName instTys con
                   | otherwise -> do
                     mkNewtype o parentName instTys con
             _ -> do
@@ -695,7 +695,7 @@ consToMoatType o@Options {..} parentName instTys variant ts bs = \case
           cases <- forM cons' (liftEither . mkCase o)
           ourMatch <-
             matchProxy
-              =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs)
+              =<< lift (enumExp o parentName instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs)
           pure [pure ourMatch]
 
 liftCons :: (Functor f, Applicative g) => f a -> f [g a]
@@ -770,13 +770,14 @@ mkLabel Options {..} =
     . show
 
 mkNewtypeInstanceAlias ::
-  () =>
+  -- | Options
+  Options ->
   -- | type variables
   [Type] ->
   -- | constructor info
   ConstructorInfo ->
   MoatM Match
-mkNewtypeInstanceAlias (stripConT -> instTys) = \case
+mkNewtypeInstanceAlias o (stripConT -> instTys) = \case
   ConstructorInfo
     { constructorName = conName,
       constructorFields = [field]
@@ -785,8 +786,7 @@ mkNewtypeInstanceAlias (stripConT -> instTys) = \case
         match
           (conP 'Proxy [])
           ( normalB
-              ( pure
-                  (aliasExp conName instTys field)
+              ( aliasExp o conName instTys field
               )
           )
           []
@@ -807,7 +807,7 @@ mkNewtypeInstance o@Options {..} (stripConT -> instTys) = \case
     { constructorFields = [field],
       ..
     } -> do
-      matchProxy =<< lift (newtypeExp constructorName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
+      matchProxy =<< lift (newtypeExp o constructorName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
   _ -> throwError ExpectedNewtypeInstance
 
 -- make a newtype into an empty enum
@@ -823,7 +823,7 @@ mkTypeTag ::
   -- | constructor info
   ConstructorInfo ->
   MoatM Match
-mkTypeTag Options {..} typName instTys = \case
+mkTypeTag o@Options {..} typName instTys = \case
   ConstructorInfo
     { constructorFields = [field]
     } -> do
@@ -831,12 +831,13 @@ mkTypeTag Options {..} typName instTys = \case
             mkName
               (nameStr typName ++ "Tag")
       let tag = tagExp typName parentName field False
-      matchProxy =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []))
+      matchProxy =<< lift (enumExp o parentName instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []))
   _ -> throwError $ NotANewtype typName
 
 -- make a newtype into a type alias
 mkTypeAlias ::
-  () =>
+  -- | Options
+  Options ->
   -- | type name
   Name ->
   -- | type variables
@@ -844,7 +845,7 @@ mkTypeAlias ::
   -- | constructor info
   ConstructorInfo ->
   MoatM Match
-mkTypeAlias typName instTys = \case
+mkTypeAlias o typName instTys = \case
   ConstructorInfo
     { constructorFields = [field]
     } -> do
@@ -852,14 +853,15 @@ mkTypeAlias typName instTys = \case
         match
           (conP 'Proxy [])
           ( normalB
-              (pure (aliasExp typName instTys field))
+              (aliasExp o typName instTys field)
           )
           []
   _ -> throwError $ NotANewtype typName
 
 -- | Make a void type (empty enum)
 mkVoid ::
-  () =>
+  -- | Options
+  Options ->
   -- | type name
   Name ->
   -- | type variables
@@ -867,9 +869,9 @@ mkVoid ::
   -- | tags
   [Exp] ->
   MoatM Match
-mkVoid typName instTys ts =
+mkVoid o typName instTys ts =
   matchProxy
-    =<< lift (enumExp typName instTys [] [] [] [] Nothing ts (False, Nothing, []))
+    =<< lift (enumExp o typName instTys [] [] [] [] Nothing ts (False, Nothing, []))
 
 mkNewtype ::
   () =>
@@ -883,11 +885,11 @@ mkNewtype o@Options {..} typName instTys = \case
     { constructorFields = [field],
       constructorVariant = RecordConstructor [name]
     } -> do
-      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o name field))
+      matchProxy =<< lift (newtypeExp o typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o name field))
   ConstructorInfo
     { constructorFields = [field]
     } -> do
-      matchProxy =<< lift (newtypeExp typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
+      matchProxy =<< lift (newtypeExp o typName instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field))
   ci -> throwError $ ImproperNewtypeConstructorInfo ci
 
 -- | Make a single-constructor product (struct)
@@ -910,7 +912,7 @@ mkProd o@Options {..} typName instTys ts = \case
     { constructorVariant = NormalConstructor,
       constructorFields = []
     } -> do
-      matchProxy =<< lift (structExp typName instTys dataInterfaces dataProtocols dataAnnotations [] ts makeBase)
+      matchProxy =<< lift (structExp o typName instTys dataInterfaces dataProtocols dataAnnotations [] ts makeBase)
   -- single constructor, non-record (Normal)
   ConstructorInfo
     { constructorVariant = NormalConstructor,
@@ -931,7 +933,7 @@ mkProd o@Options {..} typName instTys ts = \case
       ..
     } -> do
       let fields = zipFields o fieldNames constructorFields
-      matchProxy =<< lift (structExp typName instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
+      matchProxy =<< lift (structExp o typName instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
 
 zipFields :: Options -> [Name] -> [Type] -> [Exp]
 zipFields o = zipWithPred p (prettyField o)
@@ -1402,21 +1404,25 @@ stripConT = mapMaybe noConT
 
 -- | Construct a Type Alias.
 aliasExp ::
-  () =>
+  -- | Options
+  Options ->
   -- | alias name
   Name ->
   -- | type variables
   [Type] ->
   -- | type (RHS)
   Type ->
-  Exp
-aliasExp name tyVars field =
-  RecConE
-    'MoatAlias
-    [ ('aliasName, unqualName name),
-      ('aliasTyVars, prettyTyVars tyVars),
-      ('aliasTyp, toMoatTypeECxt field)
-    ]
+  Q Exp
+aliasExp Options {..} name tyVars field = do
+  optionalExpand_ <- Syntax.lift optionalExpand
+  pure $
+    RecConE
+      'MoatAlias
+      [ ('aliasName, unqualName name),
+        ('aliasTyVars, prettyTyVars tyVars),
+        ('aliasTyp, toMoatTypeECxt field),
+        ('aliasOptionalExpand, optionalExpand_)
+      ]
 
 -- | Construct a Tag.
 tagExp ::
@@ -1443,7 +1449,8 @@ tagExp tyconName parentName typ dis =
 
 -- | Construct an Enum.
 enumExp ::
-  () =>
+  -- | Options
+  Options ->
   -- | parent name
   Name ->
   -- | type variables
@@ -1463,11 +1470,12 @@ enumExp ::
   -- | Make base?
   (Bool, Maybe MoatType, [Protocol]) ->
   Q Exp
-enumExp parentName tyVars ifaces protos anns cases raw tags bs =
+enumExp Options {..} parentName tyVars ifaces protos anns cases raw tags bs =
   do
     enumInterfaces_ <- Syntax.lift ifaces
     enumAnnotations_ <- Syntax.lift anns
     enumProtocols_ <- Syntax.lift protos
+    optionalExpand_ <- Syntax.lift optionalExpand
     applyBase bs $
       RecConE
         'MoatEnum
@@ -1479,11 +1487,12 @@ enumExp parentName tyVars ifaces protos anns cases raw tags bs =
           ('enumCases, ListE cases),
           ('enumRawValue, rawValueE raw),
           ('enumPrivateTypes, ListE []),
-          ('enumTags, ListE tags)
+          ('enumTags, ListE tags),
+          ('enumOptionalExpand, optionalExpand_)
         ]
 
 newtypeExp ::
-  () =>
+  Options ->
   Name ->
   [Type] ->
   [Interface] ->
@@ -1491,7 +1500,7 @@ newtypeExp ::
   [Annotation] ->
   Exp ->
   Q Exp
-newtypeExp name tyVars ifaces protos anns field =
+newtypeExp Options {..} name tyVars ifaces protos anns field =
   [|
     MoatNewtype
       { newtypeName = $(pure $ unqualName name),
@@ -1499,13 +1508,15 @@ newtypeExp name tyVars ifaces protos anns field =
         newtypeField = $(pure field),
         newtypeProtocols = $(Syntax.lift protos),
         newtypeAnnotations = $(Syntax.lift anns),
-        newtypeInterfaces = $(Syntax.lift ifaces)
+        newtypeInterfaces = $(Syntax.lift ifaces),
+        newtypeOptionalExpand = $(Syntax.lift optionalExpand)
       }
     |]
 
 -- | Construct a Struct.
 structExp ::
-  () =>
+  -- | Options
+  Options ->
   -- | struct name
   Name ->
   -- | type variables
@@ -1523,10 +1534,11 @@ structExp ::
   -- | Make base?
   (Bool, Maybe MoatType, [Protocol]) ->
   Q Exp
-structExp name tyVars ifaces protos anns fields tags bs = do
+structExp Options {..} name tyVars ifaces protos anns fields tags bs = do
   structInterfaces_ <- Syntax.lift ifaces
   structAnnotations_ <- Syntax.lift anns
   structProtocols_ <- Syntax.lift protos
+  optionalExpand_ <- Syntax.lift optionalExpand
   applyBase bs $
     RecConE
       'MoatStruct
@@ -1537,7 +1549,8 @@ structExp name tyVars ifaces protos anns fields tags bs = do
         ('structAnnotations, structAnnotations_),
         ('structFields, ListE fields),
         ('structPrivateTypes, ListE []),
-        ('structTags, ListE tags)
+        ('structTags, ListE tags),
+        ('structOptionalExpand, optionalExpand_)
       ]
 
 matchProxy :: Exp -> MoatM Match
@@ -1608,7 +1621,8 @@ aliasToNewtype MoatAlias {..} =
       newtypeField = ("value", aliasTyp),
       newtypeInterfaces = [],
       newtypeProtocols = [],
-      newtypeAnnotations = []
+      newtypeAnnotations = [],
+      newtypeOptionalExpand = aliasOptionalExpand
     }
 aliasToNewtype m = m
 
@@ -1618,6 +1632,7 @@ newtypeToAlias MoatNewtype {..} =
   MoatAlias
     { aliasName = newtypeName,
       aliasTyVars = newtypeTyVars,
-      aliasTyp = snd newtypeField
+      aliasTyp = snd newtypeField,
+      aliasOptionalExpand = newtypeOptionalExpand
     }
 newtypeToAlias m = m
