@@ -27,4 +27,4 @@ spec =
     it "swift" $
       defaultGolden ("swift" <> moduleName) (showSwift @Enum)
     it "kotlin" $
-      defaultGolden ("kotlin" <> moduleName) (showKotlin @Enum)
+      defaultGolden ("kotlin-tagged-flat-object-" <> moduleName) (showKotlinTaggedFlatObject @Enum)

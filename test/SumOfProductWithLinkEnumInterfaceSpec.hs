@@ -58,8 +58,8 @@ spec =
     it "swift" $
       defaultGolden ("swiftEnum" <> moduleName) (showSwift @Enum)
     it "kotlin" $
-      defaultGolden ("kotlinRecord0" <> moduleName) (showKotlin @Record0)
+      defaultGolden ("kotlin-tagged-flat-object-Record0" <> moduleName) (showKotlinTaggedFlatObject @Record0)
     it "kotlin" $
-      defaultGolden ("kotlinRecord1" <> moduleName) (showKotlin @Record1)
+      defaultGolden ("kotlin-tagged-flat-object-Record1" <> moduleName) (showKotlinTaggedFlatObject @Record1)
     it "kotlin" $
-      defaultGolden ("kotlinEnum" <> moduleName) (showKotlin @Enum)
+      defaultGolden ("kotlin-tagged-flat-object-Enum" <> moduleName) (showKotlinTaggedFlatObject @Enum)

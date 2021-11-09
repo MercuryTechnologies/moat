@@ -78,6 +78,7 @@
               hpack
               ormolu
               hlint
+              haskell-language-server
             ];
           }
       );

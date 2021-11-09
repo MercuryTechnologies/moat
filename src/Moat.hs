@@ -71,6 +71,11 @@ module Moat
     prettyKotlinData,
     prettySwiftData,
 
+    -- ** Kotlin configuration
+    EncodingStyle (..),
+    TaggedObject (..),
+    TaggedFlatObject (..),
+
     -- * Utility
     aliasToNewtype,
     newtypeToAlias,
@@ -95,7 +100,9 @@ import Language.Haskell.TH hiding (stringE, tupE)
 import Language.Haskell.TH.Datatype
 import qualified Language.Haskell.TH.Syntax as Syntax
 import Moat.Class
-import Moat.Pretty.Kotlin (prettyKotlinData)
+import Moat.Pretty.Kotlin (EncodingStyle (..), prettyKotlinData)
+import Moat.Pretty.Kotlin.TaggedFlatObject (TaggedFlatObject (..))
+import Moat.Pretty.Kotlin.TaggedObject (TaggedObject (..))
 import Moat.Pretty.Swift (prettySwiftData)
 import Moat.Types hiding (newtypeName)
 import qualified Moat.Types

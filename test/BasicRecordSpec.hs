@@ -20,4 +20,4 @@ spec =
     it "swift" $
       defaultGolden ("swift" <> moduleName) (showSwift @Data)
     it "kotlin" $
-      defaultGolden ("kotlin" <> moduleName) (showKotlin @Data)
+      defaultGolden ("kotlin-tagged-flat-object-" <> moduleName) (showKotlinTaggedFlatObject @Data)

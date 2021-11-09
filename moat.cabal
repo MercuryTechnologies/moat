@@ -29,6 +29,8 @@ library
   other-modules:
       Moat.Class
       Moat.Pretty.Kotlin
+      Moat.Pretty.Kotlin.TaggedFlatObject
+      Moat.Pretty.Kotlin.TaggedObject
       Moat.Pretty.Swift
       Moat.Types
       Paths_moat
@@ -73,6 +75,8 @@ test-suite spec
       Moat
       Moat.Class
       Moat.Pretty.Kotlin
+      Moat.Pretty.Kotlin.TaggedFlatObject
+      Moat.Pretty.Kotlin.TaggedObject
       Moat.Pretty.Swift
       Moat.Types
       Paths_moat
