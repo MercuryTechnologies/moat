@@ -40,7 +40,7 @@ data Enum
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [RawAnnotation "Serializable(with = Enum1Serializer::class)"],
+      { dataAnnotations = [],
         dataInterfaces = [Parcelable],
         dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
@@ -58,8 +58,14 @@ spec =
     it "swift" $
       defaultGolden ("swiftEnum" <> moduleName) (showSwift @Enum)
     it "kotlin" $
+      defaultGolden ("kotlin-tagged-object-Record0" <> moduleName) (showKotlinTaggedObject @Record0)
+    it "kotlin" $
       defaultGolden ("kotlin-tagged-flat-object-Record0" <> moduleName) (showKotlinTaggedFlatObject @Record0)
     it "kotlin" $
+      defaultGolden ("kotlin-tagged-object-Record1" <> moduleName) (showKotlinTaggedObject @Record1)
+    it "kotlin" $
       defaultGolden ("kotlin-tagged-flat-object-Record1" <> moduleName) (showKotlinTaggedFlatObject @Record1)
+    it "kotlin" $
+      defaultGolden ("kotlin-tagged-object-Enum" <> moduleName) (showKotlinTaggedObject @Enum)
     it "kotlin" $
       defaultGolden ("kotlin-tagged-flat-object-Enum" <> moduleName) (showKotlinTaggedFlatObject @Enum)

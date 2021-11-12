@@ -1,2 +1,1 @@
-@Serializable(with = Enum1Serializer::class)
 sealed class Enum : Parcelable
