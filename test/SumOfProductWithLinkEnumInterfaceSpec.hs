@@ -40,7 +40,7 @@ data Enum
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [],
+      { dataAnnotations = [Parcelize, Serializable],
         dataInterfaces = [Parcelable],
         dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }

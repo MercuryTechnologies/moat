@@ -5,6 +5,7 @@ module Moat.Pretty.Kotlin.TaggedObject
 where
 
 import qualified Data.Char as Char
+import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Moat.Types
 
@@ -19,10 +20,10 @@ data TaggedObject = TaggedObject
 -- could instead use this as a template to write your own version. Or, use it
 -- to write an entirely new language backend :)
 prettyKotlinData :: TaggedObject -> MoatData -> String
-prettyKotlinData TaggedObject {} = \case
+prettyKotlinData tags = \case
   MoatStruct {..} ->
     ""
-      ++ prettyAnnotations structAnnotations
+      ++ prettyAnnotations indents structAnnotations
       ++ "data class "
       ++ prettyMoatTypeHeader structName structTyVars
       ++ "("
@@ -38,9 +39,10 @@ prettyKotlinData TaggedObject {} = \case
       enumTyVars
       enumCases
       indents
+      tags
   MoatNewtype {..} ->
     ""
-      ++ prettyAnnotations newtypeAnnotations
+      ++ prettyAnnotations indents newtypeAnnotations
       ++ "inline class "
       ++ prettyMoatTypeHeader newtypeName newtypeTyVars
       ++ "(val "
@@ -126,8 +128,8 @@ prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
 prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 
-prettyAnnotations :: [Annotation] -> String
-prettyAnnotations = concatMap (\ann -> "@" ++ prettyAnnotation ann ++ "\n")
+prettyAnnotations :: String -> [Annotation] -> String
+prettyAnnotations indents = concatMap (\ann -> indents <> "@" <> prettyAnnotation ann <> "\n")
   where
     prettyAnnotation :: Annotation -> String
     prettyAnnotation = \case
@@ -198,6 +200,24 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
+prettySumOfProduct_Sum :: String -> [Annotation] -> [(String, [(Maybe String, MoatType)])] -> String -> TaggedObject -> String
+prettySumOfProduct_Sum parentName anns cases indents TaggedObject {..} =
+  intercalate
+    "\n\n"
+    ( cases <&> \(caseNm, [(_, Concrete {concreteName = concreteName})]) ->
+        prettyAnnotations indents (anns ++ [RawAnnotation $ "SerialName(\"" <> caseNm <> "\")"])
+          ++ indents
+          ++ "data class "
+          ++ toUpperFirst caseNm
+          ++ "(val "
+          ++ contentsFieldName
+          ++ ": "
+          ++ concreteName
+          ++ ") : "
+          ++ parentName
+          ++ "()"
+    )
+
 prettyEnum ::
   () =>
   [Annotation] ->
@@ -211,10 +231,12 @@ prettyEnum ::
   [(String, [(Maybe String, MoatType)])] ->
   -- | indents
   String ->
+  -- | tags
+  TaggedObject ->
   String
-prettyEnum anns ifaces name tyVars cases indents
+prettyEnum anns ifaces name tyVars cases indents to@TaggedObject {..}
   | isCEnum cases =
-    prettyAnnotations (dontAddSerializeToEnums anns)
+    prettyAnnotations indents (dontAddSerializeToEnums anns)
       ++ "enum class "
       ++ prettyMoatTypeHeader name tyVars
       ++ prettyInterfaces ifaces
@@ -223,12 +245,17 @@ prettyEnum anns ifaces name tyVars cases indents
       ++ prettyCEnumCases indents (map fst cases)
       ++ "}"
   | allConcrete cases =
-    prettyAnnotations anns
+    prettyAnnotations
+      noIndent
+      [RawAnnotation ("JsonClassDiscriminator(\"" <> tagFieldName <> "\")")]
       ++ "sealed class "
       ++ prettyMoatTypeHeader name tyVars
       ++ prettyInterfaces ifaces
+      ++ " {\n"
+      ++ prettySumOfProduct_Sum name anns cases indents to
+      ++ "\n}"
   | otherwise =
-    prettyAnnotations (dontAddSerializeToEnums anns)
+    prettyAnnotations indents (dontAddSerializeToEnums anns)
       ++ "enum class "
       ++ prettyMoatTypeHeader name tyVars
       ++ prettyInterfaces ifaces
@@ -259,3 +286,6 @@ toUpperFirst :: String -> String
 toUpperFirst = \case
   [] -> []
   (c : cs) -> Char.toUpper c : cs
+
+noIndent :: String
+noIndent = ""
