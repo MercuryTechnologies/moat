@@ -229,7 +229,9 @@ data Interface
   deriving stock (Lift)
 
 data Annotation
-  = -- | The 'Parcelize' annotation, see https://developer.android.com/kotlin/parcelize
+  = -- | The 'JvmInline' annotation, see https://kotlinlang.org/docs/inline-classes.html
+    JvmInline
+  | -- | The 'Parcelize' annotation, see https://developer.android.com/kotlin/parcelize
     -- automatically generates a Parcelable implementation for the type
     Parcelize
   | -- | The 'Serializable' annotation, see https://developer.android.com/reference/kotlin/java/io/Serializable

@@ -1,2 +1,3 @@
 @Parcelize
-inline class Newtype(val value: String) : Parcelable
+@JvmInline
+value class Newtype(val value: String) : Parcelable
