@@ -22,8 +22,7 @@ data TaggedObject = TaggedObject
 prettyKotlinData :: TaggedObject -> MoatData -> String
 prettyKotlinData tags = \case
   MoatStruct {..} ->
-    ""
-      ++ prettyAnnotations indents structAnnotations
+    prettyAnnotations noIndent structAnnotations
       ++ "data class "
       ++ prettyMoatTypeHeader structName structTyVars
       ++ "("

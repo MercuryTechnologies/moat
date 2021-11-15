@@ -14,7 +14,7 @@ data Record0 = Record0
 mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [LinkEnumInterface "Enum"],
+        dataInterfaces = [Parcelable],
         dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
@@ -28,7 +28,7 @@ data Record1 = Record1
 mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [LinkEnumInterface "Enum"],
+        dataInterfaces = [Parcelable],
         dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
