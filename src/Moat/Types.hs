@@ -7,12 +7,17 @@ module Moat.Types
   ( MoatType (..),
     MoatData (..),
     Backend (..),
+    EncodingStyle (..),
+    TaggedObject (..),
+    TaggedFlatObject (..),
     Protocol (..),
     Interface (..),
     Options (..),
     KeepOrDiscard (..),
     Annotation (..),
     defaultOptions,
+    defaultTaggedObjectEncodingStyle,
+    defaultTaggedFlatObjectEncodingStyle,
   )
 where
 
@@ -388,8 +393,60 @@ data Options = Options
     --   "Optional\<A\>". The default value ('False')
     --   will keep it as sugar. A value of 'True'
     --   will expand it to be desugared.
-    optionalExpand :: Bool
+    optionalExpand :: Bool,
+    -- | The encoding style for sum of products in Kotlin,
+    -- see 'TaggedObject' and 'TaggedFlatObject' for details
+    kotlinRenderingStyle :: EncodingStyle
   }
+
+-- The 'TaggedObject' style will encode a sum of products where the parent sum has
+-- a tag field and a contents field.
+--
+-- The 'TaggedFlatObject' style will encode a sum of products where the parent sum
+-- has only a tag field.
+data EncodingStyle
+  = TaggedObjectStyle TaggedObject
+  | TaggedFlatObjectStyle TaggedFlatObject
+
+-- | The contents of a tagged object are inside of the 'contentsFieldName', e.g.
+--
+-- @
+-- {
+--   "tag": ...,
+--   "contents": ...
+-- }
+-- @
+data TaggedObject = TaggedObject
+  { tagFieldName :: String,
+    contentsFieldName :: String
+  }
+
+defaultTaggedObjectEncodingStyle :: EncodingStyle
+defaultTaggedObjectEncodingStyle =
+  TaggedObjectStyle $
+    TaggedObject
+      { tagFieldName = "tag",
+        contentsFieldName = "contents"
+      }
+
+-- | The contents of a tagged flat object are at the same level as the tag, e.g.
+--
+-- @
+-- {
+--   "tag": ...,
+--   ...
+-- }
+-- @
+newtype TaggedFlatObject = TaggedFlatObject
+  { taggedFlatObjectTagFieldName :: String
+  }
+
+defaultTaggedFlatObjectEncodingStyle :: EncodingStyle
+defaultTaggedFlatObjectEncodingStyle =
+  TaggedFlatObjectStyle $
+    TaggedFlatObject
+      { taggedFlatObjectTagFieldName = "tag"
+      }
 
 -- | The default 'Options'.
 --
@@ -413,6 +470,7 @@ data Options = Options
 --   , omitCases = const Keep
 --   , makeBase = (False, Nothing, [])
 --   , optionalExpand = False
+--   , kotlinRenderingStyle = defaultTaggedFlatObjectEncodingStyle
 --   }
 -- @
 defaultOptions :: Options
@@ -434,7 +492,9 @@ defaultOptions =
       omitFields = const Keep,
       omitCases = const Keep,
       makeBase = (False, Nothing, []),
-      optionalExpand = False
+      optionalExpand = False,
+      -- TODO: we should split backend configuration into their own ADTs
+      kotlinRenderingStyle = defaultTaggedFlatObjectEncodingStyle
     }
 
 data KeepOrDiscard = Keep | Discard

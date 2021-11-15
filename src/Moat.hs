@@ -44,6 +44,8 @@ module Moat
     -- ** Option type and defaults
     Options,
     defaultOptions,
+    defaultTaggedObjectEncodingStyle,
+    defaultTaggedFlatObjectEncodingStyle,
 
     -- ** Helper type for omissions
     KeepOrDiscard (..),
@@ -64,6 +66,7 @@ module Moat
     omitFields,
     omitCases,
     makeBase,
+    kotlinRenderingStyle,
 
     -- * Pretty-printing
 
