@@ -4,6 +4,7 @@ module Moat.Pretty.Kotlin
 where
 
 import qualified Data.Char as Char
+import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Moat.Types
 
@@ -16,7 +17,7 @@ prettyKotlinData :: MoatData -> String
 prettyKotlinData = \case
   MoatStruct {..} ->
     ""
-      ++ prettyAnnotations structAnnotations
+      ++ prettyAnnotations noIndent structAnnotations
       ++ "data class "
       ++ prettyMoatTypeHeader structName structTyVars
       ++ "("
@@ -121,8 +122,8 @@ prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
 prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 
-prettyAnnotations :: [Annotation] -> String
-prettyAnnotations = concatMap (\ann -> "@" ++ prettyAnnotation ann ++ "\n")
+prettyAnnotations :: String -> [Annotation] -> String
+prettyAnnotations indents = concatMap (\ann -> indents <> "@" ++ prettyAnnotation ann ++ "\n")
   where
     prettyAnnotation :: Annotation -> String
     prettyAnnotation = \case
@@ -194,6 +195,24 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
+prettySerialName :: String -> [Annotation] -> [(String, [(Maybe String, MoatType)])] -> String -> TaggedObject -> String
+prettySerialName parentName anns cases indents TaggedObject {..} =
+  intercalate
+    "\n\n"
+    ( cases <&> \(caseNm, [(_, Concrete {concreteName = concreteName})]) ->
+        prettyAnnotations indents (anns ++ [RawAnnotation $ "SerialName(\"" <> caseNm <> "\")"])
+          ++ indents
+          ++ "data class "
+          ++ toUpperFirst caseNm
+          ++ "(val "
+          ++ contentsFieldName
+          ++ ": "
+          ++ concreteName
+          ++ ") : "
+          ++ parentName
+          ++ "()"
+    )
+
 prettyEnum ::
   () =>
   [Annotation] ->
@@ -212,7 +231,7 @@ prettyEnum ::
   String
 prettyEnum anns ifaces name tyVars cases es indents
   | isCEnum cases =
-    prettyAnnotations (dontAddSerializeToEnums anns)
+    prettyAnnotations noIndent (dontAddSerializeToEnums anns)
       ++ "enum class "
       ++ prettyMoatTypeHeader name tyVars
       ++ prettyInterfaces ifaces
@@ -221,12 +240,24 @@ prettyEnum anns ifaces name tyVars cases es indents
       ++ prettyCEnumCases indents (map fst cases)
       ++ "}"
   | allConcrete cases =
-    prettyAnnotations anns
-      ++ "sealed class "
-      ++ prettyMoatTypeHeader name tyVars
-      ++ prettyInterfaces ifaces
+    case es of
+      TaggedFlatObjectStyle TaggedFlatObject {} ->
+        prettyAnnotations noIndent anns
+          ++ "sealed class "
+          ++ prettyMoatTypeHeader name tyVars
+          ++ prettyInterfaces ifaces
+      TaggedObjectStyle to@TaggedObject {..} ->
+        prettyAnnotations
+          noIndent
+          (RawAnnotation ("JsonClassDiscriminator(\"" <> tagFieldName <> "\")") : anns)
+          ++ "sealed class "
+          ++ prettyMoatTypeHeader name tyVars
+          ++ prettyInterfaces ifaces
+          ++ " {\n"
+          ++ prettySerialName name anns cases indents to
+          ++ "\n}"
   | otherwise =
-    prettyAnnotations (dontAddSerializeToEnums anns)
+    prettyAnnotations noIndent (dontAddSerializeToEnums anns)
       ++ "enum class "
       ++ prettyMoatTypeHeader name tyVars
       ++ prettyInterfaces ifaces
@@ -257,3 +288,6 @@ toUpperFirst :: String -> String
 toUpperFirst = \case
   [] -> []
   (c : cs) -> Char.toUpper c : cs
+
+noIndent :: String
+noIndent = ""

@@ -1,6 +1,6 @@
+@JsonClassDiscriminator("tag")
 @Parcelize
 @Serializable
-@JsonClassDiscriminator("tag")
 sealed class Enum : Parcelable {
     @Parcelize
     @Serializable
