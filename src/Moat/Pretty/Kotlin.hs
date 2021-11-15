@@ -195,8 +195,14 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
-prettySerialName :: String -> [Annotation] -> [(String, [(Maybe String, MoatType)])] -> String -> TaggedObject -> String
-prettySerialName parentName anns cases indents TaggedObject {..} =
+prettyTaggedObject ::
+  String ->
+  [Annotation] ->
+  [(String, [(Maybe String, MoatType)])] ->
+  String ->
+  TaggedObject ->
+  String
+prettyTaggedObject parentName anns cases indents TaggedObject {..} =
   intercalate
     "\n\n"
     ( cases <&> \(caseNm, [(_, Concrete {concreteName = concreteName})]) ->
@@ -254,7 +260,7 @@ prettyEnum anns ifaces name tyVars cases es indents
           ++ prettyMoatTypeHeader name tyVars
           ++ prettyInterfaces ifaces
           ++ " {\n"
-          ++ prettySerialName name anns cases indents to
+          ++ prettyTaggedObject name anns cases indents to
           ++ "\n}"
   | otherwise =
     prettyAnnotations noIndent (dontAddSerializeToEnums anns)
