@@ -66,7 +66,7 @@ module Moat
     omitFields,
     omitCases,
     makeBase,
-    kotlinRenderingStyle,
+    encodingStyle,
 
     -- * Pretty-printing
 
@@ -665,7 +665,7 @@ consToMoatType ::
 consToMoatType o@Options {..} parentName instTys variant ts bs = \case
   [] -> do
     value <- lift $ newName "value"
-    matches <- liftCons (mkVoid parentName instTys ts)
+    matches <- liftCons (mkVoid o parentName instTys ts)
     lift $ lamE [varP value] (caseE (varE value) matches)
   cons -> do
     -- TODO: use '_' instead of matching
@@ -698,7 +698,7 @@ consToMoatType o@Options {..} parentName instTys variant ts bs = \case
           cases <- forM cons' (liftEither . mkCase o)
           ourMatch <-
             matchProxy
-              =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs)
+              =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs encodingStyle)
           pure [pure ourMatch]
 
 liftCons :: (Functor f, Applicative g) => f a -> f [g a]
@@ -834,7 +834,7 @@ mkTypeTag Options {..} typName instTys = \case
             mkName
               (nameStr typName ++ "Tag")
       let tag = tagExp typName parentName field False
-      matchProxy =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []))
+      matchProxy =<< lift (enumExp parentName instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []) encodingStyle)
   _ -> throwError $ NotANewtype typName
 
 -- make a newtype into a type alias
@@ -863,6 +863,7 @@ mkTypeAlias typName instTys = \case
 -- | Make a void type (empty enum)
 mkVoid ::
   () =>
+  Options ->
   -- | type name
   Name ->
   -- | type variables
@@ -870,9 +871,9 @@ mkVoid ::
   -- | tags
   [Exp] ->
   MoatM Match
-mkVoid typName instTys ts =
+mkVoid Options {..} typName instTys ts =
   matchProxy
-    =<< lift (enumExp typName instTys [] [] [] [] Nothing ts (False, Nothing, []))
+    =<< lift (enumExp typName instTys [] [] [] [] Nothing ts (False, Nothing, []) encodingStyle)
 
 mkNewtype ::
   () =>
@@ -1465,12 +1466,15 @@ enumExp ::
   [Exp] ->
   -- | Make base?
   (Bool, Maybe MoatType, [Protocol]) ->
+  -- | EncodingStyle
+  EncodingStyle ->
   Q Exp
-enumExp parentName tyVars ifaces protos anns cases raw tags bs =
+enumExp parentName tyVars ifaces protos anns cases raw tags bs es =
   do
     enumInterfaces_ <- Syntax.lift ifaces
     enumAnnotations_ <- Syntax.lift anns
     enumProtocols_ <- Syntax.lift protos
+    encodingStyle_ <- Syntax.lift es
     applyBase bs $
       RecConE
         'MoatEnum
@@ -1482,7 +1486,8 @@ enumExp parentName tyVars ifaces protos anns cases raw tags bs =
           ('enumCases, ListE cases),
           ('enumRawValue, rawValueE raw),
           ('enumPrivateTypes, ListE []),
-          ('enumTags, ListE tags)
+          ('enumTags, ListE tags),
+          ('enumEncodingStyle, encodingStyle_)
         ]
 
 newtypeExp ::

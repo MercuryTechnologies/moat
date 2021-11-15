@@ -15,7 +15,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
         dataInterfaces = [Parcelable],
-        kotlinRenderingStyle = defaultTaggedObjectEncodingStyle
+        encodingStyle = defaultTaggedObjectEncodingStyle
       }
   )
   ''Record0
@@ -29,7 +29,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
         dataInterfaces = [Parcelable],
-        kotlinRenderingStyle = defaultTaggedObjectEncodingStyle
+        encodingStyle = defaultTaggedObjectEncodingStyle
       }
   )
   ''Record1
@@ -42,7 +42,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
         dataInterfaces = [Parcelable],
-        kotlinRenderingStyle = defaultTaggedObjectEncodingStyle
+        encodingStyle = defaultTaggedObjectEncodingStyle
       }
   )
   ''Enum

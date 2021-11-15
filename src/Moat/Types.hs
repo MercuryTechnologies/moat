@@ -182,7 +182,9 @@ data MoatData
         -- | The tags of the struct. See 'Tag'.
         --
         --   Only used by the Swift backend.
-        enumTags :: [MoatType]
+        enumTags :: [MoatType],
+        -- |
+        enumEncodingStyle :: EncodingStyle
       }
   | -- | A newtype.
     --   Kotlin backend: becomes a value class.
@@ -396,7 +398,7 @@ data Options = Options
     optionalExpand :: Bool,
     -- | The encoding style for sum of products in Kotlin,
     -- see 'TaggedObject' and 'TaggedFlatObject' for details
-    kotlinRenderingStyle :: EncodingStyle
+    encodingStyle :: EncodingStyle
   }
 
 -- The 'TaggedObject' style will encode a sum of products where the parent sum has
@@ -407,6 +409,7 @@ data Options = Options
 data EncodingStyle
   = TaggedObjectStyle TaggedObject
   | TaggedFlatObjectStyle TaggedFlatObject
+  deriving stock (Eq, Read, Show, Lift)
 
 -- | The contents of a tagged object are inside of the 'contentsFieldName', e.g.
 --
@@ -420,6 +423,7 @@ data TaggedObject = TaggedObject
   { tagFieldName :: String,
     contentsFieldName :: String
   }
+  deriving stock (Eq, Read, Show, Lift)
 
 defaultTaggedObjectEncodingStyle :: EncodingStyle
 defaultTaggedObjectEncodingStyle =
@@ -440,6 +444,7 @@ defaultTaggedObjectEncodingStyle =
 newtype TaggedFlatObject = TaggedFlatObject
   { taggedFlatObjectTagFieldName :: String
   }
+  deriving stock (Eq, Read, Show, Lift)
 
 defaultTaggedFlatObjectEncodingStyle :: EncodingStyle
 defaultTaggedFlatObjectEncodingStyle =
@@ -494,7 +499,7 @@ defaultOptions =
       makeBase = (False, Nothing, []),
       optionalExpand = False,
       -- TODO: we should split backend configuration into their own ADTs
-      kotlinRenderingStyle = defaultTaggedFlatObjectEncodingStyle
+      encodingStyle = defaultTaggedFlatObjectEncodingStyle
     }
 
 data KeepOrDiscard = Keep | Discard

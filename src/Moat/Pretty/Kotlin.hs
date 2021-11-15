@@ -31,6 +31,7 @@ prettyKotlinData = \case
       enumName
       enumTyVars
       enumCases
+      enumEncodingStyle
       indents
   MoatNewtype {..} ->
     ""
@@ -204,10 +205,12 @@ prettyEnum ::
   [String] ->
   -- | cases
   [(String, [(Maybe String, MoatType)])] ->
+  -- | encoding style
+  EncodingStyle ->
   -- | indents
   String ->
   String
-prettyEnum anns ifaces name tyVars cases indents
+prettyEnum anns ifaces name tyVars cases es indents
   | isCEnum cases =
     prettyAnnotations (dontAddSerializeToEnums anns)
       ++ "enum class "
