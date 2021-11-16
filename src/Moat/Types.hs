@@ -398,23 +398,46 @@ data Options = Options
     --   will keep it as sugar. A value of 'True'
     --   will expand it to be desugared.
     optionalExpand :: Bool,
-    -- | Documentation
+    -- | Only applies for a sum in a sum of products. The options
+    -- determine the rendering style for the sum of products.
+    -- The user is responsible for choosing the right options
+    -- for the products in a SOP. See 'SumOfProductEncodingOptions'
     sumOfProductEncodingOptions :: SumOfProductEncodingOptions
   }
 
--- Documentation
 data SumOfProductEncodingOptions = SumOfProductEncodingOptions
-  { encodingStyle :: EncodingStyle,
+  { -- | The encoding style for the sum of product, the library matches the options
+    -- available in aeson, see
+    -- https://hackage.haskell.org/package/aeson/docs/Data-Aeson-TH.html#t:SumEncoding
+    -- and 'EncodingStyle'
+    encodingStyle :: EncodingStyle,
+    -- | The annotations to add solely to sum in the sum of product, e.g.
+    -- in kotlinx.serialization we want to add '@JsonClassDiscriminator("tag")'
+    -- annotation to the sum type but not the products!
     sumAnnotations :: [Annotation],
+    -- | The field name to use for the products, aeson uses "contents" for the TaggedObject
+    -- style. This is unused in the 'TaggedFlatObjectStyle'
     contentsFieldName :: String
   }
   deriving stock (Eq, Read, Show, Lift)
 
--- Documentation
+-- | The resulting enum style for our datatype. This names match
+-- the style in Aeson. A 'TaggedObjectStyle' will have a JSON
+-- payload like,
+--
+-- @
+-- {
+--   "tag": ...,
+--   "contents": ...
+-- }
+-- @
+--
+-- In 'TaggedFlatObjectStyle', the contents are unpacked at the same
+-- level as "tag"
 data EncodingStyle = TaggedObjectStyle | TaggedFlatObjectStyle
   deriving stock (Eq, Read, Show, Lift)
 
--- Documentation
+-- | The default 'SumOfProductEncodingOptions'
 defaultSumOfProductEncodingOptions :: SumOfProductEncodingOptions
 defaultSumOfProductEncodingOptions =
   SumOfProductEncodingOptions
