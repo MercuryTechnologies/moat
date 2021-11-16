@@ -1467,7 +1467,6 @@ enumExp ::
   [Exp] ->
   -- | Make base?
   (Bool, Maybe MoatType, [Protocol]) ->
-  -- | Documentation
   SumOfProductEncodingOptions ->
   Q Exp
 enumExp parentName tyVars ifaces protos anns cases raw tags bs sop =
