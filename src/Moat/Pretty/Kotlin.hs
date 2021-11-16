@@ -123,6 +123,9 @@ prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
 prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 
+-- | This function will take a name and the indentation level and render
+-- annotations in the style '@{string}\n...'. The name parameter is only used
+-- when a 'SerialName' annotation is given for a sum of product
 prettyAnnotations :: Maybe String -> String -> [Annotation] -> String
 prettyAnnotations mCaseNm indents =
   concatMap (\ann -> indents <> "@" <> ann <> "\n")
