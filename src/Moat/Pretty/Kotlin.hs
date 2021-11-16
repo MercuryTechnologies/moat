@@ -134,7 +134,7 @@ prettyAnnotations mCaseNm indents =
       JvmInline -> "JvmInline"
       Parcelize -> "Parcelize"
       Serializable -> "Serializable"
-      SerialName -> maybe Nothing (\caseNm -> Just $ "SerialName(\"" <> caseNm <> "\")") mCaseNm
+      SerialName -> mCaseNm <&> \caseNm -> "SerialName(\"" <> caseNm <> "\")"
       RawAnnotation s -> s
 
 prettyInterfaces :: [Interface] -> String
