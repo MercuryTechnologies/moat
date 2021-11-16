@@ -38,7 +38,7 @@ data Enum
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
+      { dataAnnotations = [Parcelize, Serializable, SerialName],
         dataInterfaces = [Parcelable],
         sumOfProductEncodingOptions =
           SumOfProductEncodingOptions

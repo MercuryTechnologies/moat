@@ -243,6 +243,8 @@ data Annotation
     Serializable
   | -- | /escape hatch/ to add an arbitrary annotation
     RawAnnotation String
+  | -- | The 'SerialName' annotation only applies for products in sum of products
+    SerialName
   deriving stock (Eq, Read, Show)
   deriving stock (Lift)
 

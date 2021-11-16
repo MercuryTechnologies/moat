@@ -6,6 +6,7 @@ where
 import qualified Data.Char as Char
 import Data.Functor ((<&>))
 import Data.List (intercalate)
+import Data.Maybe (catMaybes)
 import Moat.Types
 
 -- | Convert a 'MoatData' into a canonical representation in Kotlin
@@ -17,7 +18,7 @@ prettyKotlinData :: MoatData -> String
 prettyKotlinData = \case
   MoatStruct {..} ->
     ""
-      ++ prettyAnnotations noIndent structAnnotations
+      ++ prettyAnnotations Nothing noIndent structAnnotations
       ++ "data class "
       ++ prettyMoatTypeHeader structName structTyVars
       ++ "("
@@ -122,14 +123,18 @@ prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
 prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 
-prettyAnnotations :: String -> [Annotation] -> String
-prettyAnnotations indents = concatMap (\ann -> indents <> "@" ++ prettyAnnotation ann ++ "\n")
+prettyAnnotations :: Maybe String -> String -> [Annotation] -> String
+prettyAnnotations mCaseNm indents =
+  concatMap (\ann -> indents <> "@" <> ann <> "\n")
+    . catMaybes
+    . fmap prettyAnnotation
   where
-    prettyAnnotation :: Annotation -> String
+    prettyAnnotation :: Annotation -> Maybe String
     prettyAnnotation = \case
       JvmInline -> "JvmInline"
       Parcelize -> "Parcelize"
       Serializable -> "Serializable"
+      SerialName -> maybe Nothing (\caseNm -> Just $ "SerialName(\"" <> caseNm <> "\")") mCaseNm
       RawAnnotation s -> s
 
 prettyInterfaces :: [Interface] -> String
@@ -206,7 +211,7 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
   intercalate
     "\n\n"
     ( cases <&> \(caseNm, [(_, Concrete {concreteName = concreteName})]) ->
-        prettyAnnotations indents (anns ++ [RawAnnotation $ "SerialName(\"" <> caseNm <> "\")"])
+        prettyAnnotations (Just caseNm) indents anns
           ++ indents
           ++ "data class "
           ++ toUpperFirst caseNm
@@ -237,7 +242,7 @@ prettyEnum ::
   String
 prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} indents
   | isCEnum cases =
-    prettyAnnotations noIndent (dontAddSerializeToEnums anns)
+    prettyAnnotations Nothing noIndent (dontAddSerializeToEnums anns)
       ++ "enum class "
       ++ prettyMoatTypeHeader name tyVars
       ++ prettyInterfaces ifaces
@@ -248,12 +253,13 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
   | allConcrete cases =
     case encodingStyle of
       TaggedFlatObjectStyle ->
-        prettyAnnotations noIndent anns
+        prettyAnnotations Nothing noIndent anns
           ++ "sealed class "
           ++ prettyMoatTypeHeader name tyVars
           ++ prettyInterfaces ifaces
       TaggedObjectStyle ->
         prettyAnnotations
+          Nothing
           noIndent
           (sumAnnotations ++ anns)
           ++ "sealed class "
@@ -263,7 +269,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
           ++ prettyTaggedObject name anns cases indents sop
           ++ "\n}"
   | otherwise =
-    prettyAnnotations noIndent (dontAddSerializeToEnums anns)
+    prettyAnnotations Nothing noIndent (dontAddSerializeToEnums anns)
       ++ "enum class "
       ++ prettyMoatTypeHeader name tyVars
       ++ prettyInterfaces ifaces
