@@ -213,18 +213,32 @@ prettyTaggedObject ::
 prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..} =
   intercalate
     "\n\n"
-    ( cases <&> \(caseNm, [(_, Concrete {concreteName = concreteName})]) ->
-        prettyAnnotations (Just caseNm) indents anns
-          ++ indents
-          ++ "data class "
-          ++ toUpperFirst caseNm
-          ++ "(val "
-          ++ contentsFieldName
-          ++ ": "
-          ++ concreteName
-          ++ ") : "
-          ++ parentName
-          ++ "()"
+    ( cases <&> \case
+        (caseNm, [(_, Concrete {concreteName = concreteName})]) ->
+          prettyAnnotations (Just caseNm) indents anns
+            ++ indents
+            ++ "data class "
+            ++ toUpperFirst caseNm
+            ++ "(val "
+            ++ contentsFieldName
+            ++ ": "
+            ++ concreteName
+            ++ ") : "
+            ++ parentName
+            ++ "()"
+        (caseNm, []) ->
+          prettyAnnotations (Just caseNm) indents anns
+            ++ indents
+            ++ "object "
+            ++ toUpperFirst caseNm
+            ++ " : "
+            ++ parentName
+            ++ "()"
+        (caseNm, _) ->
+          error $
+            "prettyTaggedObject: The data constructor "
+              <> caseNm
+              <> " can have zero or one concrete type constructor!"
     )
 
 prettyEnum ::
