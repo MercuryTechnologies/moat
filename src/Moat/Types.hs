@@ -243,7 +243,9 @@ data Annotation
     Serializable
   | -- | /escape hatch/ to add an arbitrary annotation
     RawAnnotation String
-  | -- | The 'SerialName' annotation only applies for products in sum of products
+  | -- | The 'SerialName' annotation is an annotation for products in a sum of
+    -- products and only applies when used on the sum, see
+    -- https://kotlin.github.io/kotlinx.serialization/kotlinx-serialization-core/kotlinx-serialization-core/kotlinx.serialization/-serial-name/index.html
     SerialName
   deriving stock (Eq, Read, Show)
   deriving stock (Lift)
