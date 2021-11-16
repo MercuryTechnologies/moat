@@ -14,8 +14,7 @@ data Record0 = Record0
 mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [Parcelable],
-        encodingStyle = defaultTaggedObjectEncodingStyle
+        dataInterfaces = [Parcelable]
       }
   )
   ''Record0
@@ -28,8 +27,7 @@ data Record1 = Record1
 mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [Parcelable],
-        encodingStyle = defaultTaggedObjectEncodingStyle
+        dataInterfaces = [Parcelable]
       }
   )
   ''Record1
@@ -42,7 +40,12 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable],
         dataInterfaces = [Parcelable],
-        encodingStyle = defaultTaggedObjectEncodingStyle
+        sumOfProductEncodingOptions =
+          SumOfProductEncodingOptions
+            { encodingStyle = TaggedObjectStyle,
+              sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"],
+              contentsFieldName = "contents"
+            }
       }
   )
   ''Enum

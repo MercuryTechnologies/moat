@@ -4,20 +4,18 @@
 {-# LANGUAGE DerivingStrategies #-}
 
 module Moat.Types
-  ( MoatType (..),
-    MoatData (..),
+  ( Annotation (..),
     Backend (..),
     EncodingStyle (..),
-    TaggedObject (..),
-    TaggedFlatObject (..),
-    Protocol (..),
     Interface (..),
-    Options (..),
     KeepOrDiscard (..),
-    Annotation (..),
+    MoatData (..),
+    MoatType (..),
+    Options (..),
+    Protocol (..),
+    SumOfProductEncodingOptions (..),
     defaultOptions,
-    defaultTaggedObjectEncodingStyle,
-    defaultTaggedFlatObjectEncodingStyle,
+    defaultSumOfProductEncodingOptions,
   )
 where
 
@@ -184,7 +182,7 @@ data MoatData
         --   Only used by the Swift backend.
         enumTags :: [MoatType],
         -- |
-        enumEncodingStyle :: EncodingStyle
+        enumSumOfProductEncodingOption :: SumOfProductEncodingOptions
       }
   | -- | A newtype.
     --   Kotlin backend: becomes a value class.
@@ -396,62 +394,30 @@ data Options = Options
     --   will keep it as sugar. A value of 'True'
     --   will expand it to be desugared.
     optionalExpand :: Bool,
-    -- | The encoding style for sum of products in Kotlin,
-    -- see 'TaggedObject' and 'TaggedFlatObject' for details
-    encodingStyle :: EncodingStyle
+    -- | Documentation
+    sumOfProductEncodingOptions :: SumOfProductEncodingOptions
   }
 
--- The 'TaggedObject' style will encode a sum of products where the parent sum has
--- a tag field and a contents field.
---
--- The 'TaggedFlatObject' style will encode a sum of products where the parent sum
--- has only a tag field.
-data EncodingStyle
-  = TaggedObjectStyle TaggedObject
-  | TaggedFlatObjectStyle TaggedFlatObject
-  deriving stock (Eq, Read, Show, Lift)
-
--- | The contents of a tagged object are inside of the 'contentsFieldName', e.g.
---
--- @
--- {
---   "tag": ...,
---   "contents": ...
--- }
--- @
-data TaggedObject = TaggedObject
-  { tagFieldName :: String,
+-- Documentation
+data SumOfProductEncodingOptions = SumOfProductEncodingOptions
+  { encodingStyle :: EncodingStyle,
+    sumAnnotations :: [Annotation],
     contentsFieldName :: String
   }
   deriving stock (Eq, Read, Show, Lift)
 
-defaultTaggedObjectEncodingStyle :: EncodingStyle
-defaultTaggedObjectEncodingStyle =
-  TaggedObjectStyle $
-    TaggedObject
-      { tagFieldName = "tag",
-        contentsFieldName = "contents"
-      }
-
--- | The contents of a tagged flat object are at the same level as the tag, e.g.
---
--- @
--- {
---   "tag": ...,
---   ...
--- }
--- @
-newtype TaggedFlatObject = TaggedFlatObject
-  { taggedFlatObjectTagFieldName :: String
-  }
+-- Documentation
+data EncodingStyle = TaggedObjectStyle | TaggedFlatObjectStyle
   deriving stock (Eq, Read, Show, Lift)
 
-defaultTaggedFlatObjectEncodingStyle :: EncodingStyle
-defaultTaggedFlatObjectEncodingStyle =
-  TaggedFlatObjectStyle $
-    TaggedFlatObject
-      { taggedFlatObjectTagFieldName = "tag"
-      }
+-- Documentation
+defaultSumOfProductEncodingOptions :: SumOfProductEncodingOptions
+defaultSumOfProductEncodingOptions =
+  SumOfProductEncodingOptions
+    { encodingStyle = TaggedFlatObjectStyle,
+      sumAnnotations = [],
+      contentsFieldName = "contents"
+    }
 
 -- | The default 'Options'.
 --
@@ -475,7 +441,7 @@ defaultTaggedFlatObjectEncodingStyle =
 --   , omitCases = const Keep
 --   , makeBase = (False, Nothing, [])
 --   , optionalExpand = False
---   , kotlinRenderingStyle = defaultTaggedFlatObjectEncodingStyle
+--   , sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
 --   }
 -- @
 defaultOptions :: Options
@@ -498,8 +464,7 @@ defaultOptions =
       omitCases = const Keep,
       makeBase = (False, Nothing, []),
       optionalExpand = False,
-      -- TODO: we should split backend configuration into their own ADTs
-      encodingStyle = defaultTaggedFlatObjectEncodingStyle
+      sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
     }
 
 data KeepOrDiscard = Keep | Discard

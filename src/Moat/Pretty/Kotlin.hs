@@ -32,7 +32,7 @@ prettyKotlinData = \case
       enumName
       enumTyVars
       enumCases
-      enumEncodingStyle
+      enumSumOfProductEncodingOption
       indents
   MoatNewtype {..} ->
     ""
@@ -200,9 +200,9 @@ prettyTaggedObject ::
   [Annotation] ->
   [(String, [(Maybe String, MoatType)])] ->
   String ->
-  TaggedObject ->
+  SumOfProductEncodingOptions ->
   String
-prettyTaggedObject parentName anns cases indents TaggedObject {..} =
+prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..} =
   intercalate
     "\n\n"
     ( cases <&> \(caseNm, [(_, Concrete {concreteName = concreteName})]) ->
@@ -231,11 +231,11 @@ prettyEnum ::
   -- | cases
   [(String, [(Maybe String, MoatType)])] ->
   -- | encoding style
-  EncodingStyle ->
+  SumOfProductEncodingOptions ->
   -- | indents
   String ->
   String
-prettyEnum anns ifaces name tyVars cases es indents
+prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} indents
   | isCEnum cases =
     prettyAnnotations noIndent (dontAddSerializeToEnums anns)
       ++ "enum class "
@@ -246,21 +246,21 @@ prettyEnum anns ifaces name tyVars cases es indents
       ++ prettyCEnumCases indents (map fst cases)
       ++ "}"
   | allConcrete cases =
-    case es of
-      TaggedFlatObjectStyle TaggedFlatObject {} ->
+    case encodingStyle of
+      TaggedFlatObjectStyle ->
         prettyAnnotations noIndent anns
           ++ "sealed class "
           ++ prettyMoatTypeHeader name tyVars
           ++ prettyInterfaces ifaces
-      TaggedObjectStyle to@TaggedObject {..} ->
+      TaggedObjectStyle ->
         prettyAnnotations
           noIndent
-          (RawAnnotation ("JsonClassDiscriminator(\"" <> tagFieldName <> "\")") : anns)
+          (sumAnnotations ++ anns)
           ++ "sealed class "
           ++ prettyMoatTypeHeader name tyVars
           ++ prettyInterfaces ifaces
           ++ " {\n"
-          ++ prettyTaggedObject name anns cases indents to
+          ++ prettyTaggedObject name anns cases indents sop
           ++ "\n}"
   | otherwise =
     prettyAnnotations noIndent (dontAddSerializeToEnums anns)
