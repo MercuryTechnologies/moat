@@ -140,7 +140,9 @@ data MoatData
         -- | The tags of the struct. See 'Tag'.
         --
         --   Only used by the Swift backend.
-        structTags :: [MoatType]
+        structTags :: [MoatType],
+        -- | See 'optionalExpand' for understanding this parameter
+        structOptionalExpand :: Bool
       }
   | -- | An enum, sum, or coproduct type
     MoatEnum
@@ -177,7 +179,9 @@ data MoatData
         -- | The tags of the struct. See 'Tag'.
         --
         --   Only used by the Swift backend.
-        enumTags :: [MoatType]
+        enumTags :: [MoatType],
+        -- | See 'optionalExpand' for understanding this parameter
+        enumOptionalExpand :: Bool
       }
   | -- | A newtype.
     --   Kotlin backend: becomes a value class.
@@ -188,7 +192,9 @@ data MoatData
         newtypeField :: (String, MoatType),
         newtypeInterfaces :: [Interface],
         newtypeProtocols :: [Protocol], -- TODO: remove this?
-        newtypeAnnotations :: [Annotation]
+        newtypeAnnotations :: [Annotation],
+        -- | See 'optionalExpand' for understanding this parameter
+        newtypeOptionalExpand :: Bool
       }
   | -- | A /top-level/ type alias
     MoatAlias
@@ -197,7 +203,9 @@ data MoatData
         -- | the type variables of the type alias
         aliasTyVars :: [String],
         -- | the type this represents (RHS)
-        aliasTyp :: MoatType
+        aliasTyp :: MoatType,
+        -- | See 'optionalExpand' for understanding this parameter
+        aliasOptionalExpand :: Bool
       }
   deriving stock (Eq, Read, Show, Generic)
 
