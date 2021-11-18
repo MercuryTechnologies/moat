@@ -35,7 +35,7 @@ prettyKotlinData = \case
   MoatNewtype {..} ->
     ""
       ++ prettyAnnotations newtypeAnnotations
-      ++ "inline class "
+      ++ "value class "
       ++ prettyMoatTypeHeader newtypeName newtypeTyVars
       ++ "(val "
       ++ fst newtypeField
@@ -125,6 +125,7 @@ prettyAnnotations = concatMap (\ann -> "@" ++ prettyAnnotation ann ++ "\n")
   where
     prettyAnnotation :: Annotation -> String
     prettyAnnotation = \case
+      JvmInline -> "JvmInline"
       Parcelize -> "Parcelize"
       Serializable -> "Serializable"
       RawAnnotation s -> s

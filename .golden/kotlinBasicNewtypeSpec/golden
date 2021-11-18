@@ -1,1 +1,1 @@
-inline class Newtype(val value: String)
+value class Newtype(val value: String)

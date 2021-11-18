@@ -1,1 +1,1 @@
-inline class Newtype(val newtypeField: Either<String, Int>)
+value class Newtype(val newtypeField: Either<String, Int>)
