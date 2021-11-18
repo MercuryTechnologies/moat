@@ -37,7 +37,7 @@ prettyKotlinData = \case
       indents
   MoatNewtype {..} ->
     ""
-      ++ prettyAnnotations newtypeAnnotations
+      ++ prettyAnnotations Nothing noIndent newtypeAnnotations
       ++ "value class "
       ++ prettyMoatTypeHeader newtypeName newtypeTyVars
       ++ "(val "
@@ -134,11 +134,11 @@ prettyAnnotations mCaseNm indents =
   where
     prettyAnnotation :: Annotation -> Maybe String
     prettyAnnotation = \case
-      JvmInline -> "JvmInline"
-      Parcelize -> "Parcelize"
-      Serializable -> "Serializable"
+      JvmInline -> Just "JvmInline"
+      Parcelize -> Just "Parcelize"
+      Serializable -> Just "Serializable"
       SerialName -> mCaseNm <&> \caseNm -> "SerialName(\"" <> caseNm <> "\")"
-      RawAnnotation s -> s
+      RawAnnotation s -> Just s
 
 prettyInterfaces :: [Interface] -> String
 prettyInterfaces [] = ""
