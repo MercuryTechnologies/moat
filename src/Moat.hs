@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# language PatternSynonyms #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -91,8 +92,9 @@ import Data.Proxy (Proxy (..))
 import qualified Data.Text as TS
 import Data.Void (Void)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import Language.Haskell.TH hiding (stringE, tupE)
-import Language.Haskell.TH.Datatype
+import qualified Language.Haskell.TH
+import Language.Haskell.TH hiding (stringE, tupE, TyVarBndr(..))
+import Language.Haskell.TH.Datatype hiding (TyVarBndr (..))
 import qualified Language.Haskell.TH.Syntax as Syntax
 import Moat.Class
 import Moat.Pretty.Kotlin (prettyKotlinData)
@@ -100,6 +102,17 @@ import Moat.Pretty.Swift (prettySwiftData)
 import Moat.Types hiding (newtypeName)
 import qualified Moat.Types
 import Prelude hiding (Enum (..))
+import Language.Haskell.TH.Syntax.Compat
+
+#if MIN_VERSION_template_haskell(2,17,0)
+type TyVarBndr = Language.Haskell.TH.TyVarBndr ()
+
+pattern PlainTV n = Language.Haskell.TH.PlainTV n ()
+
+pattern KindedTV n k <- Language.Haskell.TH.KindedTV n _ k
+#else
+type TyVarBndr = Language.Haskell.TH.TyVarBndr
+#endif
 
 -- Used internally to reflect polymorphic type
 -- variables into TH, then reify them into 'Poly'.
@@ -222,7 +235,7 @@ getTags ::
   MoatM ([Exp], [Dec])
 getTags parentName ts = do
   let b = length ts > 1
-  disambiguate <- lift [||b||]
+  disambiguate <- lift $ examineCode [||b||]
   foldlM
     ( \(es, ds) n -> do
         NewtypeInfo {..} <- reifyNewtype n
@@ -1209,10 +1222,20 @@ canRealiseKindStar = \case
   _ -> NotKindStar
 
 -- discard the kind signature from a TyVarBndr.
-tyVarBndrNoSig :: TyVarBndr -> TyVarBndr
+tyVarBndrNoSig
+#if MIN_VERSION_template_haskell(2,17,0)
+  :: Language.Haskell.TH.TyVarBndr a
+  -> Language.Haskell.TH.TyVarBndr Specificity
+tyVarBndrNoSig = \case
+  Language.Haskell.TH.PlainTV n x -> Language.Haskell.TH.PlainTV n SpecifiedSpec
+  Language.Haskell.TH.KindedTV n _ _k -> Language.Haskell.TH.PlainTV n SpecifiedSpec
+#else
+  :: TyVarBndr
+  -> TyVarBndr
 tyVarBndrNoSig = \case
   PlainTV n -> PlainTV n
   KindedTV n _k -> PlainTV n
+#endif
 
 -- fully applies a type constructor to its
 -- type variables
