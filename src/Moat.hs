@@ -97,8 +97,8 @@ import qualified Data.Text as TS
 import Data.Void (Void)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import qualified Language.Haskell.TH
-import Language.Haskell.TH hiding (stringE, tupE, TyVarBndr(..))
-import Language.Haskell.TH.Datatype hiding (TyVarBndr (..))
+import Language.Haskell.TH hiding (stringE, tupE, TyVarBndr(..), newName)
+import Language.Haskell.TH.Datatype
 import qualified Language.Haskell.TH.Syntax as Syntax
 import Moat.Class
 import Moat.Pretty.Kotlin (prettyKotlinData)
@@ -112,10 +112,16 @@ import Language.Haskell.TH.Syntax.Compat
 type TyVarBndr = Language.Haskell.TH.TyVarBndr ()
 
 pattern PlainTV n = Language.Haskell.TH.PlainTV n ()
-
 pattern KindedTV n k <- Language.Haskell.TH.KindedTV n _ k
+
 #else
 type TyVarBndr = Language.Haskell.TH.TyVarBndr
+
+{-# COMPLETE PlainTV, KindedTV #-}
+pattern PlainTV :: Name -> Syntax.TyVarBndr
+pattern PlainTV n = Language.Haskell.TH.PlainTV n
+pattern KindedTV :: Name -> Kind -> Syntax.TyVarBndr
+pattern KindedTV n k = Language.Haskell.TH.KindedTV n k
 #endif
 
 -- Used internally to reflect polymorphic type
@@ -239,7 +245,7 @@ getTags ::
   MoatM ([Exp], [Dec])
 getTags parentName ts = do
   let b = length ts > 1
-  disambiguate <- lift $ examineCode [||b||]
+  disambiguate <- lift $ examineSplice [||b||]
   foldlM
     ( \(es, ds) n -> do
         NewtypeInfo {..} <- reifyNewtype n
