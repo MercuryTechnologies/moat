@@ -18,7 +18,7 @@
       moat =
         { mkDerivation, base, bytestring, case-insensitive
         , containers, hpack, hspec, hspec-golden, lib, mtl, primitive
-        , template-haskell, text, th-abstraction, time
+        , template-haskell, text, th-abstraction, th-compat, time
         , unordered-containers, uuid-types, vector
         }:
         mkDerivation {
