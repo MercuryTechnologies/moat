@@ -4,15 +4,18 @@
 {-# LANGUAGE DerivingStrategies #-}
 
 module Moat.Types
-  ( MoatType (..),
-    MoatData (..),
+  ( Annotation (..),
     Backend (..),
-    Protocol (..),
+    EncodingStyle (..),
     Interface (..),
-    Options (..),
     KeepOrDiscard (..),
-    Annotation (..),
+    MoatData (..),
+    MoatType (..),
+    Options (..),
+    Protocol (..),
+    SumOfProductEncodingOptions (..),
     defaultOptions,
+    defaultSumOfProductEncodingOptions,
   )
 where
 
@@ -177,7 +180,9 @@ data MoatData
         -- | The tags of the struct. See 'Tag'.
         --
         --   Only used by the Swift backend.
-        enumTags :: [MoatType]
+        enumTags :: [MoatType],
+        -- |
+        enumSumOfProductEncodingOption :: SumOfProductEncodingOptions
       }
   | -- | A newtype.
     --   Kotlin backend: becomes a value class.
@@ -238,6 +243,10 @@ data Annotation
     Serializable
   | -- | /escape hatch/ to add an arbitrary annotation
     RawAnnotation String
+  | -- | The 'SerialName' annotation is an annotation for products in a sum of
+    -- products and only applies when used on the sum, see
+    -- https://kotlin.github.io/kotlinx.serialization/kotlinx-serialization-core/kotlinx-serialization-core/kotlinx.serialization/-serial-name/index.html
+    SerialName
   deriving stock (Eq, Read, Show)
   deriving stock (Lift)
 
@@ -388,8 +397,54 @@ data Options = Options
     --   "Optional\<A\>". The default value ('False')
     --   will keep it as sugar. A value of 'True'
     --   will expand it to be desugared.
-    optionalExpand :: Bool
+    optionalExpand :: Bool,
+    -- | Only applies for a sum in a sum of products. The options
+    -- determine the rendering style for the sum of products.
+    -- The user is responsible for choosing the right options
+    -- for the products in a SOP. See 'SumOfProductEncodingOptions'
+    sumOfProductEncodingOptions :: SumOfProductEncodingOptions
   }
+
+data SumOfProductEncodingOptions = SumOfProductEncodingOptions
+  { -- | The encoding style for the sum of product, the library matches the options
+    -- available in aeson, see
+    -- https://hackage.haskell.org/package/aeson/docs/Data-Aeson-TH.html#t:SumEncoding
+    -- and 'EncodingStyle'
+    encodingStyle :: EncodingStyle,
+    -- | The annotations to add solely to sum in the sum of product, e.g.
+    -- in kotlinx.serialization we want to add '@JsonClassDiscriminator("tag")'
+    -- annotation to the sum type but not the products!
+    sumAnnotations :: [Annotation],
+    -- | The field name to use for the products, aeson uses "contents" for the TaggedObject
+    -- style. This is unused in the 'TaggedFlatObjectStyle'
+    contentsFieldName :: String
+  }
+  deriving stock (Eq, Read, Show, Lift)
+
+-- | The resulting enum style for our datatype. This names match
+-- the style in Aeson. A 'TaggedObjectStyle' will have a JSON
+-- payload like,
+--
+-- @
+-- {
+--   "tag": ...,
+--   "contents": ...
+-- }
+-- @
+--
+-- In 'TaggedFlatObjectStyle', the contents are unpacked at the same
+-- level as "tag"
+data EncodingStyle = TaggedObjectStyle | TaggedFlatObjectStyle
+  deriving stock (Eq, Read, Show, Lift)
+
+-- | The default 'SumOfProductEncodingOptions'
+defaultSumOfProductEncodingOptions :: SumOfProductEncodingOptions
+defaultSumOfProductEncodingOptions =
+  SumOfProductEncodingOptions
+    { encodingStyle = TaggedFlatObjectStyle,
+      sumAnnotations = [],
+      contentsFieldName = "contents"
+    }
 
 -- | The default 'Options'.
 --
@@ -413,6 +468,7 @@ data Options = Options
 --   , omitCases = const Keep
 --   , makeBase = (False, Nothing, [])
 --   , optionalExpand = False
+--   , sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
 --   }
 -- @
 defaultOptions :: Options
@@ -434,7 +490,8 @@ defaultOptions =
       omitFields = const Keep,
       omitCases = const Keep,
       makeBase = (False, Nothing, []),
-      optionalExpand = False
+      optionalExpand = False,
+      sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
     }
 
 data KeepOrDiscard = Keep | Discard
