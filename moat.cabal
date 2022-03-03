@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           moat
-version:        0.1
+version:        0.1.1
 synopsis:       Generate swift and kotlin types from haskell types
 description:    See README at <https://github.com/chessai/moat>
 category:       Codegen, Text, TemplateHaskell
@@ -41,17 +41,17 @@ library
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
-      base >=4.11 && <4.16
-    , bytestring ==0.10.*
+      base >=4.11 && <4.18
+    , bytestring >= 0.10 && < 0.12
     , case-insensitive ==1.2.*
     , containers >=0.5.9 && <0.7
     , mtl ==2.2.*
     , primitive >=0.6.4 && <0.8
-    , template-haskell >=2.11 && <2.18
+    , template-haskell >=2.11 && <2.19
     , text ==1.2.*
     , th-abstraction >=0.3 && <0.5
     , th-compat >=0.1.0 && <0.2
-    , time >=1.8 && <1.11
+    , time >=1.8 && <1.12
     , unordered-containers ==0.2.*
     , uuid-types ==1.0.*
     , vector ==0.12.*
@@ -96,8 +96,8 @@ test-suite spec
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
-      base >=4.11 && <4.16
-    , bytestring ==0.10.*
+      base >=4.11 && <4.18
+    , bytestring >= 0.10 && < 0.12
     , case-insensitive ==1.2.*
     , containers >=0.5.9 && <0.7
     , hspec
@@ -105,11 +105,11 @@ test-suite spec
     , hspec-golden
     , mtl ==2.2.*
     , primitive >=0.6.4 && <0.8
-    , template-haskell >=2.11 && <2.18
+    , template-haskell >=2.11 && <2.19
     , text ==1.2.*
     , th-abstraction >=0.3 && <0.5
     , th-compat >=0.1.0 && <0.2
-    , time >=1.8 && <1.11
+    , time >=1.8 && <1.12
     , unordered-containers ==0.2.*
     , uuid-types ==1.0.*
     , vector ==0.12.*
