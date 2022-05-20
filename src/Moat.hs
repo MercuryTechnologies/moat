@@ -111,7 +111,11 @@ import Language.Haskell.TH.Syntax.Compat
 #if MIN_VERSION_template_haskell(2,17,0)
 type TyVarBndr = Language.Haskell.TH.TyVarBndr ()
 
+{-# COMPLETE PlainTV, KindedTV #-}
+pattern PlainTV :: Name -> Syntax.TyVarBndr ()
 pattern PlainTV n = Language.Haskell.TH.PlainTV n ()
+
+pattern KindedTV :: Name -> Kind -> Syntax.TyVarBndr ()
 pattern KindedTV n k <- Language.Haskell.TH.KindedTV n _ k
 
 #else
@@ -1238,7 +1242,7 @@ tyVarBndrNoSig
   :: Language.Haskell.TH.TyVarBndr a
   -> Language.Haskell.TH.TyVarBndr Specificity
 tyVarBndrNoSig = \case
-  Language.Haskell.TH.PlainTV n x -> Language.Haskell.TH.PlainTV n SpecifiedSpec
+  Language.Haskell.TH.PlainTV n _x -> Language.Haskell.TH.PlainTV n SpecifiedSpec
   Language.Haskell.TH.KindedTV n _ _k -> Language.Haskell.TH.PlainTV n SpecifiedSpec
 #else
   :: TyVarBndr
