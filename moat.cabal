@@ -51,7 +51,7 @@ library
     , text ==1.2.*
     , th-abstraction >=0.3 && <0.5
     , th-compat >=0.1.0 && <0.2
-    , time >=1.8 && <1.11
+    , time >=1.8 && <1.12
     , unordered-containers ==0.2.*
     , uuid-types ==1.0.*
     , vector ==0.12.*
@@ -111,7 +111,7 @@ test-suite spec
     , text ==1.2.*
     , th-abstraction >=0.3 && <0.5
     , th-compat >=0.1.0 && <0.2
-    , time >=1.8 && <1.11
+    , time >=1.8 && <1.12
     , unordered-containers ==0.2.*
     , uuid-types ==1.0.*
     , vector ==0.12.*
