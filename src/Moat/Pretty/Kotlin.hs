@@ -270,7 +270,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
   | allConcrete cases =
     case encodingStyle of
       TaggedFlatObjectStyle ->
-        prettyAnnotations Nothing noIndent anns
+        prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
           ++ "sealed class "
           ++ prettyMoatTypeHeader name tyVars
           ++ prettyInterfaces ifaces
@@ -278,7 +278,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
         prettyAnnotations
           Nothing
           noIndent
-          (sumAnnotations ++ anns)
+          (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
           ++ "sealed class "
           ++ prettyMoatTypeHeader name tyVars
           ++ prettyInterfaces ifaces
@@ -308,6 +308,10 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
     -- because they get it automatically
     dontAddSerializeToEnums :: [Annotation] -> [Annotation]
     dontAddSerializeToEnums = filter (/= Serializable)
+
+    -- because Parcelize should only be applied to concrete implementations
+    dontAddParcelizeToSealedClasses :: [Annotation] -> [Annotation]
+    dontAddParcelizeToSealedClasses = filter (/= Parcelize)
 
 newlineNonEmpty :: [a] -> String
 newlineNonEmpty [] = ""
