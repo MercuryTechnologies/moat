@@ -214,7 +214,7 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
   intercalate
     "\n\n"
     ( cases <&> \case
-        (caseNm, [(_, Concrete {concreteName = concreteName})]) ->
+        (caseNm, [(_, caseTy)]) ->
           prettyAnnotations (Just caseNm) indents anns
             ++ indents
             ++ "data class "
@@ -222,7 +222,7 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
             ++ "(val "
             ++ contentsFieldName
             ++ ": "
-            ++ concreteName
+            ++ prettyMoatType caseTy
             ++ ") : "
             ++ parentName
             ++ "()"
@@ -267,7 +267,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
       ++ newlineNonEmpty cases
       ++ prettyCEnumCases indents (map fst cases)
       ++ "}"
-  | allConcrete cases =
+  | otherwise =
     case encodingStyle of
       TaggedFlatObjectStyle ->
         prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
@@ -285,25 +285,9 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
           ++ " {\n"
           ++ prettyTaggedObject name anns cases indents sop
           ++ "\n}"
-  | otherwise =
-    prettyAnnotations Nothing noIndent (dontAddSerializeToEnums anns)
-      ++ "enum class "
-      ++ prettyMoatTypeHeader name tyVars
-      ++ prettyInterfaces ifaces
-      ++ " {"
-      ++ newlineNonEmpty cases
-      ++ prettyEnumCases name indents cases
-      ++ "}"
   where
     isCEnum :: Eq b => [(a, [b])] -> Bool
     isCEnum = all ((== []) . snd)
-
-    allConcrete :: [(a, [(b, MoatType)])] -> Bool
-    allConcrete inp = all isConcrete moatTypes
-      where
-        moatTypes = fmap snd (concatMap snd inp)
-        isConcrete Concrete {} = True
-        isConcrete _ = False
 
     -- because they get it automatically
     dontAddSerializeToEnums :: [Annotation] -> [Annotation]
