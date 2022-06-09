@@ -6,7 +6,7 @@ where
 import qualified Data.Char as Char
 import Data.Functor ((<&>))
 import Data.List (intercalate)
-import Data.Maybe (catMaybes)
+import Data.Maybe (mapMaybe)
 import Moat.Types
 
 -- | Convert a 'MoatData' into a canonical representation in Kotlin
@@ -72,8 +72,8 @@ prettyStructFields indents = go
         ++ ",\n"
         ++ go fs
 
-prettyCEnumCases :: String -> [String] -> String
-prettyCEnumCases indents = go
+prettyEnumCases :: String -> [String] -> String
+prettyEnumCases indents = go
   where
     go = \case
       [] -> ""
@@ -82,42 +82,6 @@ prettyCEnumCases indents = go
           ++ caseName
           ++ ",\n"
           ++ go cases
-
-prettyEnumCases :: String -> String -> [(String, [(Maybe String, MoatType)])] -> String
-prettyEnumCases typName indents = go
-  where
-    go = \case
-      [] -> ""
-      ((caseNm, []) : xs) ->
-        indents
-          ++ "object "
-          ++ toUpperFirst caseNm
-          ++ "() : "
-          ++ typName
-          ++ "\n"
-          ++ go xs
-      ((caseNm, cs) : xs) ->
-        indents
-          ++ "data class "
-          ++ toUpperFirst caseNm
-          ++ "(\n"
-          ++ intercalate
-            ",\n"
-            ( map
-                ( (indents ++)
-                    . (++) indents
-                    . uncurry labelCase
-                )
-                cs
-            )
-          ++ "\n"
-          ++ indents
-          ++ ")\n"
-          ++ go xs
-
-labelCase :: Maybe String -> MoatType -> String
-labelCase Nothing ty = prettyMoatType ty
-labelCase (Just label) ty = "val " ++ label ++ ": " ++ prettyMoatType ty
 
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
@@ -129,8 +93,7 @@ prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 prettyAnnotations :: Maybe String -> String -> [Annotation] -> String
 prettyAnnotations mCaseNm indents =
   concatMap (\ann -> indents <> "@" <> ann <> "\n")
-    . catMaybes
-    . fmap prettyAnnotation
+    . mapMaybe prettyAnnotation
   where
     prettyAnnotation :: Annotation -> Maybe String
     prettyAnnotation = \case
@@ -203,6 +166,7 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
+{- HLINT ignore prettyTaggedObject "Avoid restricted function" -} -- error is restricted
 prettyTaggedObject ::
   String ->
   [Annotation] ->
@@ -265,7 +229,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
       ++ prettyInterfaces ifaces
       ++ " {"
       ++ newlineNonEmpty cases
-      ++ prettyCEnumCases indents (map fst cases)
+      ++ prettyEnumCases indents (map fst cases)
       ++ "}"
   | otherwise =
     case encodingStyle of
