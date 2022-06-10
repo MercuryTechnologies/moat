@@ -6,7 +6,7 @@ where
 import qualified Data.Char as Char
 import Data.Functor ((<&>))
 import Data.List (intercalate)
-import Data.Maybe (catMaybes)
+import Data.Maybe (mapMaybe)
 import Moat.Types
 
 -- | Convert a 'MoatData' into a canonical representation in Kotlin
@@ -72,8 +72,8 @@ prettyStructFields indents = go
         ++ ",\n"
         ++ go fs
 
-prettyCEnumCases :: String -> [String] -> String
-prettyCEnumCases indents = go
+prettyEnumCases :: String -> [String] -> String
+prettyEnumCases indents = go
   where
     go = \case
       [] -> ""
@@ -82,42 +82,6 @@ prettyCEnumCases indents = go
           ++ caseName
           ++ ",\n"
           ++ go cases
-
-prettyEnumCases :: String -> String -> [(String, [(Maybe String, MoatType)])] -> String
-prettyEnumCases typName indents = go
-  where
-    go = \case
-      [] -> ""
-      ((caseNm, []) : xs) ->
-        indents
-          ++ "object "
-          ++ toUpperFirst caseNm
-          ++ "() : "
-          ++ typName
-          ++ "\n"
-          ++ go xs
-      ((caseNm, cs) : xs) ->
-        indents
-          ++ "data class "
-          ++ toUpperFirst caseNm
-          ++ "(\n"
-          ++ intercalate
-            ",\n"
-            ( map
-                ( (indents ++)
-                    . (++) indents
-                    . uncurry labelCase
-                )
-                cs
-            )
-          ++ "\n"
-          ++ indents
-          ++ ")\n"
-          ++ go xs
-
-labelCase :: Maybe String -> MoatType -> String
-labelCase Nothing ty = prettyMoatType ty
-labelCase (Just label) ty = "val " ++ label ++ ": " ++ prettyMoatType ty
 
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
@@ -129,8 +93,7 @@ prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 prettyAnnotations :: Maybe String -> String -> [Annotation] -> String
 prettyAnnotations mCaseNm indents =
   concatMap (\ann -> indents <> "@" <> ann <> "\n")
-    . catMaybes
-    . fmap prettyAnnotation
+    . mapMaybe prettyAnnotation
   where
     prettyAnnotation :: Annotation -> Maybe String
     prettyAnnotation = \case
@@ -203,6 +166,7 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
+{- HLINT ignore prettyTaggedObject "Avoid restricted function" -} -- error is restricted
 prettyTaggedObject ::
   String ->
   [Annotation] ->
@@ -214,7 +178,7 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
   intercalate
     "\n\n"
     ( cases <&> \case
-        (caseNm, [(_, Concrete {concreteName = concreteName})]) ->
+        (caseNm, [(_, caseTy)]) ->
           prettyAnnotations (Just caseNm) indents anns
             ++ indents
             ++ "data class "
@@ -222,7 +186,7 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
             ++ "(val "
             ++ contentsFieldName
             ++ ": "
-            ++ concreteName
+            ++ prettyMoatType caseTy
             ++ ") : "
             ++ parentName
             ++ "()"
@@ -265,12 +229,12 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
       ++ prettyInterfaces ifaces
       ++ " {"
       ++ newlineNonEmpty cases
-      ++ prettyCEnumCases indents (map fst cases)
+      ++ prettyEnumCases indents (map fst cases)
       ++ "}"
-  | allConcrete cases =
+  | otherwise =
     case encodingStyle of
       TaggedFlatObjectStyle ->
-        prettyAnnotations Nothing noIndent anns
+        prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
           ++ "sealed class "
           ++ prettyMoatTypeHeader name tyVars
           ++ prettyInterfaces ifaces
@@ -278,36 +242,24 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
         prettyAnnotations
           Nothing
           noIndent
-          (sumAnnotations ++ anns)
+          (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
           ++ "sealed class "
           ++ prettyMoatTypeHeader name tyVars
           ++ prettyInterfaces ifaces
           ++ " {\n"
           ++ prettyTaggedObject name anns cases indents sop
           ++ "\n}"
-  | otherwise =
-    prettyAnnotations Nothing noIndent (dontAddSerializeToEnums anns)
-      ++ "enum class "
-      ++ prettyMoatTypeHeader name tyVars
-      ++ prettyInterfaces ifaces
-      ++ " {"
-      ++ newlineNonEmpty cases
-      ++ prettyEnumCases name indents cases
-      ++ "}"
   where
     isCEnum :: Eq b => [(a, [b])] -> Bool
     isCEnum = all ((== []) . snd)
 
-    allConcrete :: [(a, [(b, MoatType)])] -> Bool
-    allConcrete inp = all isConcrete moatTypes
-      where
-        moatTypes = fmap snd (concatMap snd inp)
-        isConcrete Concrete {} = True
-        isConcrete _ = False
-
     -- because they get it automatically
     dontAddSerializeToEnums :: [Annotation] -> [Annotation]
     dontAddSerializeToEnums = filter (/= Serializable)
+
+    -- because Parcelize should only be applied to concrete implementations
+    dontAddParcelizeToSealedClasses :: [Annotation] -> [Annotation]
+    dontAddParcelizeToSealedClasses = filter (/= Parcelize)
 
 newlineNonEmpty :: [a] -> String
 newlineNonEmpty [] = ""
