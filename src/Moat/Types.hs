@@ -7,6 +7,7 @@ module Moat.Types
   ( Annotation (..),
     Backend (..),
     EncodingStyle (..),
+    EnumEncodingStyle (..),
     Interface (..),
     KeepOrDiscard (..),
     MoatData (..),
@@ -181,8 +182,8 @@ data MoatData
         --
         --   Only used by the Swift backend.
         enumTags :: [MoatType],
-        -- |
-        enumSumOfProductEncodingOption :: SumOfProductEncodingOptions
+        enumSumOfProductEncodingOption :: SumOfProductEncodingOptions,
+        enumEnumEncodingStyle :: EnumEncodingStyle
       }
   | -- | A newtype.
     --   Kotlin backend: becomes a value class.
@@ -402,7 +403,8 @@ data Options = Options
     -- determine the rendering style for the sum of products.
     -- The user is responsible for choosing the right options
     -- for the products in a SOP. See 'SumOfProductEncodingOptions'
-    sumOfProductEncodingOptions :: SumOfProductEncodingOptions
+    sumOfProductEncodingOptions :: SumOfProductEncodingOptions,
+    enumEncodingStyle :: EnumEncodingStyle
   }
 
 data SumOfProductEncodingOptions = SumOfProductEncodingOptions
@@ -446,6 +448,16 @@ defaultSumOfProductEncodingOptions =
       contentsFieldName = "contents"
     }
 
+-- | Enum encoding style.
+--
+-- 'EnumClassStyle' will emit a normal enum class.
+--
+-- 'ValueClassStyle' will emit an inline type wrapping a string value,
+-- with static members corresponding to enum cases. This can be useful
+-- for maintaining backward compatibility when adding enum cases.
+data EnumEncodingStyle = EnumClassStyle | ValueClassStyle
+  deriving stock (Eq, Read, Show, Lift)
+
 -- | The default 'Options'.
 --
 -- @
@@ -469,6 +481,7 @@ defaultSumOfProductEncodingOptions =
 --   , makeBase = (False, Nothing, [])
 --   , optionalExpand = False
 --   , sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
+--   , enumEncodingStyle = EnumClassStyle
 --   }
 -- @
 defaultOptions :: Options
@@ -491,7 +504,8 @@ defaultOptions =
       omitCases = const Keep,
       makeBase = (False, Nothing, []),
       optionalExpand = False,
-      sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
+      sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions,
+      enumEncodingStyle = EnumClassStyle
     }
 
 data KeepOrDiscard = Keep | Discard

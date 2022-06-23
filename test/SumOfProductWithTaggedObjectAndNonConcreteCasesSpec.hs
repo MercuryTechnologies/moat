@@ -35,6 +35,7 @@ mobileGenWith
 data Enum
   = DataCons0 [Record0]
   | DataCons1 [Record1]
+
 mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable, SerialName],
