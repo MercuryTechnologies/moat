@@ -272,14 +272,14 @@ getTags parentName ts = do
                 ]
 
         -- generate the instance
-        !instHeadTy <-
+        !(context, instHeadTy) <-
           buildTypeInstance newtypeName ClassType newtypeInstTypes newtypeVars newtypeVariant
         -- we do not want to strip here
         clauseTy <- tagToMoatType tyconName typ parentName
         swiftTyInst <-
           lift $
             instanceD
-              (pure [])
+              (pure context)
               (pure instHeadTy)
               [ funD
                   'toMoatType
@@ -310,7 +310,7 @@ getToMoatType ::
 getToMoatType Options {..} parentName instTys tyVarBndrs variant cons =
   if generateToMoatType
     then do
-      instHead <- buildTypeInstance parentName ClassType instTys tyVarBndrs variant
+      (context, instHead) <- buildTypeInstance parentName ClassType instTys tyVarBndrs variant
       clauseTy <- case variant of
         NewtypeInstance -> case cons of
           [ConstructorInfo {..}] -> do
@@ -322,7 +322,7 @@ getToMoatType Options {..} parentName instTys tyVarBndrs variant cons =
       inst <-
         lift $
           instanceD
-            (pure [])
+            (pure context)
             (pure instHead)
             [ funD
                 'toMoatType
@@ -353,12 +353,12 @@ getToMoatData ::
 getToMoatData o@Options {..} parentName instTys tyVarBndrs variant tags cons =
   if generateToMoatData
     then do
-      instHead <- buildTypeInstance parentName ClassData instTys tyVarBndrs variant
+      (context, instHead) <- buildTypeInstance parentName ClassData instTys tyVarBndrs variant
       clauseData <- consToMoatType o parentName instTys variant tags makeBase cons
       inst <-
         lift $
           instanceD
-            (pure [])
+            (pure context)
             (pure instHead)
             [ funD
                 'toMoatData
@@ -1050,7 +1050,7 @@ buildTypeInstance ::
   [TyVarBndr] ->
   -- | variant (datatype, newtype, data family, newtype family)
   DatatypeVariant ->
-  MoatM Type
+  MoatM (Cxt, Type)
 buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
   -- Make sure to expand through type/kind synonyms!
   -- Otherwise, the eta-reduction check might get
@@ -1129,11 +1129,11 @@ buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
   instanceCxt <- catMaybes <$> mapM (deriveConstraint cls) varTysExpSubst
 
   -- forall <tys>. ctx tys => Cls ty
-  lift $
-    forallT
-      (map tyVarBndrNoSig tyVarBndrs)
-      (pure instanceCxt)
-      (pure instanceType)
+  pure $
+    -- forallT
+      -- (map tyVarBndrNoSig tyVarBndrs)
+      (instanceCxt,
+      instanceType)
 
 -- the class we're generating an instance of
 data Class
