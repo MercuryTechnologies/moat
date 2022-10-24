@@ -1,0 +1,34 @@
+name: "Nix"
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+jobs:
+  nix-shell-and-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc:
+          - ghc902
+          - ghc924
+          - ghc942
+    steps:
+    - uses: actions/checkout@v3
+    - uses: cachix/install-nix-action@v14
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          extra-access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+          extra-experimental-features = nix-command flakes ca-derivations
+          extra-substituters = https://cache.nixos.org/
+          extra-trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+          require-sigs = true
+          sandbox = true
+          extra-system-features = nixos-test benchmark big-parallel kvm
+    - run: nix develop '.#${{ matrix.ghc }}' --command true
+    - run: nix build '.#moat-${{ matrix.ghc }}'
