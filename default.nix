@@ -1,6 +1,6 @@
 let
-  flake-compat = import ./.nix/flake-compat.nix {
+  flake-compat = import ./nix/flake-compat.nix {
     src = ./.;
   };
 in
-flake-compat.defaultNix
+  flake-compat.defaultNix
