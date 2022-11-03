@@ -20,7 +20,7 @@ prettyKotlinData = \case
     ""
       ++ prettyAnnotations Nothing noIndent structAnnotations
       ++ "data class "
-      ++ prettyMoatTypeHeader structName structTyVars
+      ++ prettyMoatTypeHeader structName (addTyVarBounds structTyVars structInterfaces)
       ++ "("
       ++ newlineNonEmpty structFields
       ++ prettyStructFields indents structFields
@@ -39,7 +39,7 @@ prettyKotlinData = \case
     ""
       ++ prettyAnnotations Nothing noIndent newtypeAnnotations
       ++ "value class "
-      ++ prettyMoatTypeHeader newtypeName newtypeTyVars
+      ++ prettyMoatTypeHeader newtypeName (addTyVarBounds newtypeTyVars newtypeInterfaces)
       ++ "(val "
       ++ fst newtypeField
       ++ ": "
@@ -236,7 +236,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
       TaggedFlatObjectStyle ->
         prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
           ++ "sealed class "
-          ++ prettyMoatTypeHeader name tyVars
+          ++ prettyMoatTypeHeader name (addTyVarBounds tyVars ifaces)
           ++ prettyInterfaces ifaces
       TaggedObjectStyle ->
         prettyAnnotations
@@ -244,7 +244,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
           noIndent
           (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
           ++ "sealed class "
-          ++ prettyMoatTypeHeader name tyVars
+          ++ prettyMoatTypeHeader name (addTyVarBounds tyVars ifaces)
           ++ prettyInterfaces ifaces
           ++ " {\n"
           ++ prettyTaggedObject name anns cases indents sop
@@ -272,3 +272,8 @@ toUpperFirst = \case
 
 noIndent :: String
 noIndent = ""
+
+addTyVarBounds :: [String] -> [Interface] -> [String]
+addTyVarBounds tyVars ifaces
+  | Parcelable `elem` ifaces = map (++ " : Parcelable") tyVars
+  | otherwise = tyVars

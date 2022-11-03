@@ -1,4 +1,4 @@
 @Parcelize
-data class Data<A>(
+data class Data<A : Parcelable>(
     val field0: A,
 ) : Parcelable
