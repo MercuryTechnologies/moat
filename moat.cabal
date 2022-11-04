@@ -73,6 +73,7 @@ test-suite spec
       BasicNewtypeWithEitherFieldSpec
       BasicRecordSpec
       Common
+      EnumValueClassSpec
       MultipleTypeVariableSpec
       SumOfProductSpec
       SumOfProductWithLinkEnumInterfaceSpec
