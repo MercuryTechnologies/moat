@@ -1,0 +1,4 @@
+struct Data<A, B>: CaseIterable, Hashable, Codable {
+    let field0: A
+    let field1: B
+}
