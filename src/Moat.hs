@@ -273,7 +273,7 @@ getTags parentName ts = do
 
         -- generate the instance
         !(context, instHeadTy) <-
-          buildTypeInstance newtypeName ClassType newtypeInstTypes newtypeVars newtypeVariant
+          buildTypeInstance newtypeName ClassType newtypeInstTypes newtypeVariant
         -- we do not want to strip here
         clauseTy <- tagToMoatType tyconName typ parentName
         swiftTyInst <-
@@ -300,17 +300,15 @@ getToMoatType ::
   Name ->
   -- | type variables
   [Type] ->
-  -- | type binders
-  [TyVarBndr] ->
   -- | type variant
   DatatypeVariant ->
   -- | constructors
   [ConstructorInfo] ->
   MoatM [Dec]
-getToMoatType Options {..} parentName instTys tyVarBndrs variant cons =
+getToMoatType Options {..} parentName instTys variant cons =
   if generateToMoatType
     then do
-      (context, instHead) <- buildTypeInstance parentName ClassType instTys tyVarBndrs variant
+      (context, instHead) <- buildTypeInstance parentName ClassType instTys variant
       clauseTy <- case variant of
         NewtypeInstance -> case cons of
           [ConstructorInfo {..}] -> do
@@ -341,8 +339,6 @@ getToMoatData ::
   Name ->
   -- | type variables
   [Type] ->
-  -- | type binders
-  [TyVarBndr] ->
   -- | type variant
   DatatypeVariant ->
   -- | tags
@@ -350,10 +346,10 @@ getToMoatData ::
   -- | constructors
   [ConstructorInfo] ->
   MoatM [Dec]
-getToMoatData o@Options {..} parentName instTys tyVarBndrs variant tags cons =
+getToMoatData o@Options {..} parentName instTys variant tags cons =
   if generateToMoatData
     then do
-      (context, instHead) <- buildTypeInstance parentName ClassData instTys tyVarBndrs variant
+      (context, instHead) <- buildTypeInstance parentName ClassData instTys variant
       clauseData <- consToMoatType o parentName instTys variant tags makeBase cons
       inst <-
         lift $
@@ -435,7 +431,6 @@ mobileGenWithTags o ts name = do
     ensureEnabled DataKinds
     DatatypeInfo
       { datatypeName = parentName,
-        datatypeVars = tyVarBndrs,
         datatypeInstTypes = instTys,
         datatypeVariant = variant,
         datatypeCons = cons
@@ -446,9 +441,9 @@ mobileGenWithTags o ts name = do
     -- get tags/ToMoatType instances for tags
     (tags, extraDecs) <- getTags parentName ts
 
-    dataInst <- getToMoatData o parentName instTys tyVarBndrs variant tags cons
+    dataInst <- getToMoatData o parentName instTys variant tags cons
 
-    tyInst <- getToMoatType o parentName instTys tyVarBndrs variant cons
+    tyInst <- getToMoatType o parentName instTys variant cons
     pure $ dataInst ++ tyInst ++ extraDecs
   case r of
     Left e -> fail $ prettyMoatError e
@@ -1046,12 +1041,10 @@ buildTypeInstance ::
   Class ->
   -- | type variables
   [Type] ->
-  -- | the binders for our tyvars
-  [TyVarBndr] ->
   -- | variant (datatype, newtype, data family, newtype family)
   DatatypeVariant ->
   MoatM (Cxt, Type)
-buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
+buildTypeInstance tyConName cls varTysOrig variant = do
   -- Make sure to expand through type/kind synonyms!
   -- Otherwise, the eta-reduction check might get
   -- tripped up over type variables in a synonym
@@ -1129,11 +1122,7 @@ buildTypeInstance tyConName cls varTysOrig tyVarBndrs variant = do
   instanceCxt <- catMaybes <$> mapM (deriveConstraint cls) varTysExpSubst
 
   -- forall <tys>. ctx tys => Cls ty
-  pure $
-    -- forallT
-      -- (map tyVarBndrNoSig tyVarBndrs)
-      (instanceCxt,
-      instanceType)
+  pure $ (instanceCxt, instanceType)
 
 -- the class we're generating an instance of
 data Class
@@ -1235,22 +1224,6 @@ canRealiseKindStar = \case
   SigT _ (VarT n) -> IsKindVar n
   ConT n -> IsCon n
   _ -> NotKindStar
-
--- discard the kind signature from a TyVarBndr.
-tyVarBndrNoSig
-#if MIN_VERSION_template_haskell(2,17,0)
-  :: Language.Haskell.TH.TyVarBndr a
-  -> Language.Haskell.TH.TyVarBndr Specificity
-tyVarBndrNoSig = \case
-  Language.Haskell.TH.PlainTV n _x -> Language.Haskell.TH.PlainTV n SpecifiedSpec
-  Language.Haskell.TH.KindedTV n _ _k -> Language.Haskell.TH.PlainTV n SpecifiedSpec
-#else
-  :: TyVarBndr
-  -> TyVarBndr
-tyVarBndrNoSig = \case
-  PlainTV n -> PlainTV n
-  KindedTV n _k -> PlainTV n
-#endif
 
 -- fully applies a type constructor to its
 -- type variables
