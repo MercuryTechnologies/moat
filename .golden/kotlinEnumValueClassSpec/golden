@@ -1,0 +1,16 @@
+@Parcelize
+@Serializable
+@JvmInline
+value class EnumAsValueClass(val value: String) : Parcelable {
+    companion object {
+        val First: EnumAsValueClass = EnumAsValueClass("first")
+        val Second: EnumAsValueClass = EnumAsValueClass("second")
+        val Third: EnumAsValueClass = EnumAsValueClass("third")
+
+        val entries: List<EnumAsValueClass> = listOf(
+            First,
+            Second,
+            Third,
+        )
+    }
+}

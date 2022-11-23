@@ -34,6 +34,7 @@ prettyKotlinData = \case
       enumTyVars
       enumCases
       enumSumOfProductEncodingOption
+      enumEnumEncodingStyle
       indents
   MoatNewtype {..} ->
     ""
@@ -82,6 +83,43 @@ prettyEnumCases indents = go
           ++ caseName
           ++ ",\n"
           ++ go cases
+
+prettyValueClassInstances :: String -> String -> String -> [String] -> String
+prettyValueClassInstances indents typ cons enumCases = case enumCases of
+  [] -> ""
+  _ ->
+    indents
+      ++ "companion object {\n"
+      ++ instanceFields enumCases
+      ++ "\n"
+      ++ entriesField enumCases
+      ++ indents
+      ++ "}"
+  where
+    entriesField :: [String] -> String
+    entriesField [] = indents ++ indents ++ "val entries: List<" ++ typ ++ "> = emptyList()"
+    entriesField _ =
+      indents
+        ++ indents
+        ++ "val entries: List<" ++ typ ++ "> = listOf(\n" ++ (concat $ replicate 3 indents)
+        ++ intercalate (concat $ replicate 3 indents) (map ((++ ",\n") . toUpperFirst) enumCases)
+        ++ indents ++ indents ++ ")\n"
+
+    instanceFields :: [String] -> String
+    instanceFields [] = ""
+    instanceFields (caseName : cases) =
+      indents
+        ++ indents
+        ++ "val "
+        ++ toUpperFirst caseName
+        ++ ": "
+        ++ typ
+        ++ " = "
+        ++ cons
+        ++ "(\""
+        ++ caseName
+        ++ "\")\n"
+        ++ instanceFields cases
 
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
@@ -166,7 +204,8 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
-{- HLINT ignore prettyTaggedObject "Avoid restricted function" -} -- error is restricted
+{- HLINT ignore prettyTaggedObject "Avoid restricted function" -}
+-- error is restricted
 prettyTaggedObject ::
   String ->
   [Annotation] ->
@@ -218,25 +257,40 @@ prettyEnum ::
   [(String, [(Maybe String, MoatType)])] ->
   -- | encoding style
   SumOfProductEncodingOptions ->
+  -- | enum style
+  EnumEncodingStyle ->
   -- | indents
   String ->
   String
-prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} indents
+prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} ees indents
   | isCEnum cases =
-    prettyAnnotations Nothing noIndent (dontAddSerializeToEnums anns)
-      ++ "enum class "
-      ++ prettyMoatTypeHeader name tyVars
-      ++ prettyInterfaces ifaces
-      ++ " {"
-      ++ newlineNonEmpty cases
-      ++ prettyEnumCases indents (map fst cases)
-      ++ "}"
+      case ees of
+        EnumClassStyle ->
+          prettyAnnotations Nothing noIndent (dontAddSerializeToEnums anns)
+            ++ "enum class "
+            ++ classTyp
+            ++ prettyInterfaces ifaces
+            ++ " {"
+            ++ newlineNonEmpty cases
+            ++ prettyEnumCases indents (map fst cases)
+            ++ "}"
+        ValueClassStyle ->
+          prettyAnnotations Nothing noIndent (ensureJvmInlineForValueClasses anns)
+            ++ "value class "
+            ++ classTyp
+            ++ "(val value: String)"
+            ++ prettyInterfaces ifaces
+            ++ " {"
+            ++ newlineNonEmpty cases
+            ++ prettyValueClassInstances indents classTyp name (map fst cases)
+            ++ newlineNonEmpty cases
+            ++ "}"
   | otherwise =
     case encodingStyle of
       TaggedFlatObjectStyle ->
         prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
           ++ "sealed class "
-          ++ prettyMoatTypeHeader name (addTyVarBounds tyVars ifaces)
+          ++ classTyp
           ++ prettyInterfaces ifaces
       TaggedObjectStyle ->
         prettyAnnotations
@@ -244,7 +298,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
           noIndent
           (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
           ++ "sealed class "
-          ++ prettyMoatTypeHeader name (addTyVarBounds tyVars ifaces)
+          ++ classTyp
           ++ prettyInterfaces ifaces
           ++ " {\n"
           ++ prettyTaggedObject name anns cases indents sop
@@ -253,6 +307,9 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
     isCEnum :: Eq b => [(a, [b])] -> Bool
     isCEnum = all ((== []) . snd)
 
+    classTyp :: String
+    classTyp = prettyMoatTypeHeader name (addTyVarBounds tyVars ifaces)
+
     -- because they get it automatically
     dontAddSerializeToEnums :: [Annotation] -> [Annotation]
     dontAddSerializeToEnums = filter (/= Serializable)
@@ -260,6 +317,11 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} in
     -- because Parcelize should only be applied to concrete implementations
     dontAddParcelizeToSealedClasses :: [Annotation] -> [Annotation]
     dontAddParcelizeToSealedClasses = filter (/= Parcelize)
+
+    ensureJvmInlineForValueClasses :: [Annotation] -> [Annotation]
+    ensureJvmInlineForValueClasses as
+      | JvmInline `elem` as = as
+      | otherwise = as ++ [JvmInline]
 
 newlineNonEmpty :: [a] -> String
 newlineNonEmpty [] = ""
