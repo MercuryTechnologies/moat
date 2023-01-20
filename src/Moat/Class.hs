@@ -11,6 +11,7 @@ where
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import Data.CaseInsensitive (CI)
+import Data.List.NonEmpty (NonEmpty)
 import qualified Data.HashMap.Strict as HM
 import Data.Int (Int16, Int32, Int64, Int8)
 import qualified Data.Map as M
@@ -106,6 +107,9 @@ instance forall a. (ToMoatType a) => ToMoatType (Prim.PrimArray a) where
   toMoatType _ = Array (toMoatType (Proxy @a))
 
 instance forall a. ToMoatType a => ToMoatType (Vector a) where
+  toMoatType _ = Array (toMoatType (Proxy @a))
+
+instance forall a. ToMoatType a => ToMoatType (NonEmpty a) where
   toMoatType _ = Array (toMoatType (Proxy @a))
 
 instance {-# OVERLAPPABLE #-} forall a. ToMoatType a => ToMoatType [a] where
