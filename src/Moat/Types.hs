@@ -278,9 +278,15 @@ data Options = Options
     -- | A function to apply to field labels.  Handy for removing common record
     -- prefixes, for example. The default makes no changes
     fieldLabelModifier :: String -> String,
+    -- | Whether or not to lowercase the first letters of fields. Applied before
+    -- 'fieldLabelModifier'.
+    fieldLabelLowerFirst :: Bool,
     -- | A function to apply to data constructor names. The default makes no
     -- changes.
     constructorModifier :: String -> String,
+    -- | Whether or not to lowercase the first letters of constructors. Applied
+    -- after 'constructorModifier'.
+    constructorLowerFirst :: Bool,
     -- | Whether or not to generate a 'ToMoatType' instance. Sometimes this can
     -- be desirable if you want to define the instance by hand, or the instance
     -- exists elsewhere.  The default is 'True', i.e., to generate the
@@ -472,7 +478,9 @@ data EnumEncodingStyle = EnumClassStyle | ValueClassStyle
 -- defaultOptions = Options
 --   { typeConstructorModifier = id
 --   , fieldLabelModifier = id
+--   , fieldLabelLowerFirst = True,
 --   , constructorModifier = id
+--   , constructorLowerFirst = True,
 --   , generateToMoatType = True
 --   , generateToMoatData = True
 --   , dataInterfaces = []
@@ -496,7 +504,9 @@ defaultOptions =
   Options
     { typeConstructorModifier = id,
       fieldLabelModifier = id,
+      fieldLabelLowerFirst = True,
       constructorModifier = id,
+      constructorLowerFirst = True,
       generateToMoatType = True,
       generateToMoatData = True,
       dataInterfaces = [],
