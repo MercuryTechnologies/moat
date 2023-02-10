@@ -55,7 +55,9 @@ module Moat
 
     -- ** Available options
     fieldLabelModifier,
+    fieldLabelLowerFirst,
     constructorModifier,
+    constructorLowerFirst,
     generateToMoatType,
     generateToMoatData,
     dataProtocols,
