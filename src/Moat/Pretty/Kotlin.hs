@@ -42,9 +42,9 @@ prettyKotlinData = \case
       ++ "value class "
       ++ prettyMoatTypeHeader newtypeName (addTyVarBounds newtypeTyVars newtypeInterfaces)
       ++ "(val "
-      ++ fst newtypeField
+      ++ fieldName newtypeField
       ++ ": "
-      ++ prettyMoatType (snd newtypeField)
+      ++ prettyMoatType (fieldType newtypeField)
       ++ ")"
       ++ prettyInterfaces newtypeInterfaces
   MoatAlias {..} ->
@@ -57,11 +57,11 @@ prettyKotlinData = \case
     indent = 4
     indents = replicate indent ' '
 
-prettyStructFields :: String -> [(String, MoatType)] -> String
+prettyStructFields :: String -> [Field] -> String
 prettyStructFields indents = go
   where
     go [] = ""
-    go ((fieldName, ty) : fs) =
+    go (Field fieldName ty _ : fs) =
       indents
         ++ "val "
         ++ fieldName
@@ -209,7 +209,7 @@ prettyApp t1 t2 =
 prettyTaggedObject ::
   String ->
   [Annotation] ->
-  [(String, [(Maybe String, MoatType)])] ->
+  [EnumCase] ->
   String ->
   SumOfProductEncodingOptions ->
   String
@@ -217,7 +217,7 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
   intercalate
     "\n\n"
     ( cases <&> \case
-        (caseNm, [(_, caseTy)]) ->
+        EnumCase caseNm _ [Field _ caseTy _] ->
           prettyAnnotations (Just caseNm) indents anns
             ++ indents
             ++ "data class "
@@ -229,7 +229,7 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
             ++ ") : "
             ++ parentName
             ++ "()"
-        (caseNm, []) ->
+        EnumCase caseNm _ [] ->
           prettyAnnotations (Just caseNm) indents anns
             ++ indents
             ++ "object "
@@ -237,7 +237,7 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
             ++ " : "
             ++ parentName
             ++ "()"
-        (caseNm, _) ->
+        EnumCase caseNm _ _ ->
           error $
             "prettyTaggedObject: The data constructor "
               <> caseNm
@@ -254,7 +254,7 @@ prettyEnum ::
   -- | ty vars
   [String] ->
   -- | cases
-  [(String, [(Maybe String, MoatType)])] ->
+  [EnumCase] ->
   -- | encoding style
   SumOfProductEncodingOptions ->
   -- | enum style
@@ -272,7 +272,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} ee
             ++ prettyInterfaces ifaces
             ++ " {"
             ++ newlineNonEmpty cases
-            ++ prettyEnumCases indents (map fst cases)
+            ++ prettyEnumCases indents (map enumCaseName cases)
             ++ "}"
         ValueClassStyle ->
           prettyAnnotations Nothing noIndent (ensureJvmInlineForValueClasses anns)
@@ -282,7 +282,7 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} ee
             ++ prettyInterfaces ifaces
             ++ " {"
             ++ newlineNonEmpty cases
-            ++ prettyValueClassInstances indents classTyp name (map fst cases)
+            ++ prettyValueClassInstances indents classTyp name (map enumCaseName cases)
             ++ newlineNonEmpty cases
             ++ "}"
   | otherwise =
@@ -304,8 +304,8 @@ prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} ee
           ++ prettyTaggedObject name anns cases indents sop
           ++ "\n}"
   where
-    isCEnum :: Eq b => [(a, [b])] -> Bool
-    isCEnum = all ((== []) . snd)
+    isCEnum :: [EnumCase] -> Bool
+    isCEnum = all ((== []) . enumCaseFields)
 
     classTyp :: String
     classTyp = prettyMoatTypeHeader name (addTyVarBounds tyVars ifaces)

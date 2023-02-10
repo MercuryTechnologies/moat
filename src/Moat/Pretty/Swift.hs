@@ -61,9 +61,9 @@ prettySwiftDataWith indent = \case
       ++ if isConcrete newtypeField
         then
           "let "
-            ++ fst newtypeField
+            ++ fieldName newtypeField
             ++ ": "
-            ++ prettyMoatType (snd newtypeField)
+            ++ prettyMoatType (fieldType newtypeField)
             ++ "\n}"
         else
           "typealias "
@@ -72,7 +72,7 @@ prettySwiftDataWith indent = \case
             ++ " = Tagged<"
             ++ newtypeName
             ++ ", "
-            ++ prettyMoatType (snd newtypeField)
+            ++ prettyMoatType (fieldType newtypeField)
             ++ ">\n"
             ++ prettyNewtypeField indents newtypeField newtypeName
             ++ "}"
@@ -82,9 +82,9 @@ prettySwiftDataWith indent = \case
     newlineNonEmpty [] = ""
     newlineNonEmpty _ = "\n"
 
-    isConcrete :: (a, MoatType) -> Bool
+    isConcrete :: Field -> Bool
     isConcrete = \case
-      (_, Concrete {}) -> True
+      (Field _ Concrete {} _) -> True
       _ -> False
 
 prettyMoatTypeHeader :: String -> [String] -> String
@@ -147,9 +147,9 @@ prettyTagDisambiguator disambiguate indents parent =
         ++ "Tag { }\n"
     else ""
 
-labelCase :: Maybe String -> MoatType -> String
-labelCase Nothing ty = prettyMoatType ty
-labelCase (Just label) ty = "_ " ++ label ++ ": " ++ prettyMoatType ty
+labelCase :: Field -> String
+labelCase (Field "" ty _) = prettyMoatType ty
+labelCase (Field label ty _) = "_ " ++ label ++ ": " ++ prettyMoatType ty
 
 -- | Pretty-print a 'Ty'.
 prettyMoatType :: MoatType -> String
@@ -205,34 +205,34 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
-prettyEnumCases :: String -> [(String, [(Maybe String, MoatType)])] -> String
+prettyEnumCases :: String -> [EnumCase] -> String
 prettyEnumCases indents = go
   where
     go = \case
       [] -> ""
-      ((caseNm, []) : xs) ->
+      (EnumCase caseNm _ [] : xs) ->
         indents
           ++ "case "
           ++ caseNm
           ++ "\n"
           ++ go xs
-      ((caseNm, cs) : xs) ->
+      (EnumCase caseNm _ cs : xs) ->
         indents
           ++ "case "
           ++ caseNm
           ++ "("
-          ++ intercalate ", " (map (uncurry labelCase) cs)
+          ++ intercalate ", " (map labelCase cs)
           ++ ")\n"
           ++ go xs
 
-prettyStructFields :: String -> [(String, MoatType)] -> String
+prettyStructFields :: String -> [Field] -> String
 prettyStructFields indents = go
   where
     go [] = ""
-    go ((fieldName, ty) : fs) = indents ++ "let " ++ fieldName ++ ": " ++ prettyMoatType ty ++ "\n" ++ go fs
+    go (Field {..} : fs) = indents ++ "let " ++ fieldName ++ ": " ++ prettyMoatType fieldType ++ "\n" ++ go fs
 
-prettyNewtypeField :: String -> (String, MoatType) -> String -> String
-prettyNewtypeField indents (alias, _) fieldName = indents ++ "let " ++ alias ++ ": " ++ fieldName ++ "Tag" ++ "\n"
+prettyNewtypeField :: String -> Field -> String -> String
+prettyNewtypeField indents (Field alias _ _) fieldName = indents ++ "let " ++ alias ++ ": " ++ fieldName ++ "Tag" ++ "\n"
 
 prettyPrivateTypes :: String -> [MoatData] -> String
 prettyPrivateTypes indents = go

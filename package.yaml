@@ -22,7 +22,7 @@ dependencies:
   - containers >= 0.5.9 && < 0.7
   - mtl >= 2.2 && < 2.3
   - primitive >= 0.6.4 && < 0.8
-  - template-haskell >= 2.11 && < 2.20
+  - template-haskell >= 2.18 && < 2.20
   - text >= 1.2 && < 2.1
   - th-abstraction >= 0.3 && < 0.5
   - th-compat >= 0.1.0 && < 0.2
