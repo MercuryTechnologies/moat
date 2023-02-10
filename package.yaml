@@ -1,5 +1,5 @@
 name: moat
-version: 0.1
+version: 0.1.1
 synopsis: Generate swift and kotlin types from haskell types
 description: See README at <https://github.com/chessai/moat>
 maintainer: chessai <chessai1996@gmail.com>
