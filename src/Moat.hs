@@ -79,6 +79,7 @@ module Moat
     -- ** Functions
     prettyKotlinData,
     prettySwiftData,
+    prettyTypescriptData,
 
     -- * Utility
     aliasToNewtype,
@@ -108,6 +109,7 @@ import qualified Language.Haskell.TH.Syntax as Syntax
 import Moat.Class
 import Moat.Pretty.Kotlin (prettyKotlinData)
 import Moat.Pretty.Swift (prettySwiftData)
+import Moat.Pretty.Typescript (prettyTypescriptData)
 import Moat.Types hiding (newtypeName)
 import qualified Moat.Types
 import Prelude hiding (Enum (..))

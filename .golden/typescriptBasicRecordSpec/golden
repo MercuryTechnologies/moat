@@ -1,0 +1,6 @@
+export type TData = IData
+
+type IData = {
+  field0: number
+  field1?: number
+}

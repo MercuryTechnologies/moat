@@ -28,3 +28,5 @@ spec =
       defaultGolden ("swiftEnum" <> moduleName) (showSwift @Enum)
     it "kotlin" $
       defaultGolden ("kotlinEnum" <> moduleName) (showKotlin @Enum)
+    it "typescript" $
+      defaultGolden ("typescript" <> moduleName) (showTypescript @Enum)

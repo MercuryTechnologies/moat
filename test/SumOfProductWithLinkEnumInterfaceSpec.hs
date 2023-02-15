@@ -63,3 +63,9 @@ spec =
       defaultGolden ("kotlinRecord1" <> moduleName) (showKotlin @Record1)
     it "kotlin" $
       defaultGolden ("kotlinEnum" <> moduleName) (showKotlin @Enum)
+    it "typescript" $
+      defaultGolden ("typescriptRecord0" <> moduleName) (showTypescript @Record0)
+    it "typescript" $
+      defaultGolden ("typescriptRecord1" <> moduleName) (showTypescript @Record1)
+    it "typescript" $
+      defaultGolden ("typescriptEnum" <> moduleName) (showTypescript @Enum)
