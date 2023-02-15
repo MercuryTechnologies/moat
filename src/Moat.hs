@@ -55,7 +55,9 @@ module Moat
 
     -- ** Available options
     fieldLabelModifier,
+    fieldLabelLowerFirst,
     constructorModifier,
+    constructorLowerFirst,
     generateToMoatType,
     generateToMoatData,
     dataProtocols,
@@ -86,6 +88,7 @@ module Moat
 where
 
 import Control.Monad.Except
+import Data.Bool (bool)
 import qualified Data.Char as Char
 import Data.Foldable (foldl', foldlM, foldr')
 import Data.Functor ((<&>))
@@ -786,7 +789,7 @@ mkLabel Options {..} =
   AppE (ConE 'Just)
     . stringE
     . fieldLabelModifier
-    . onHeadWith lowerFirstField
+    . bool id (onHeadWith lowerFirstField) fieldLabelLowerFirst
     . TS.unpack
     . last
     . TS.splitOn "."
@@ -991,7 +994,7 @@ zipWithPred p f (x : xs) (y : ys)
 caseName :: Options -> Name -> Exp
 caseName Options {..} =
   stringE
-    . onHeadWith lowerFirstCase
+    . bool id (onHeadWith lowerFirstCase) constructorLowerFirst
     . constructorModifier
     . TS.unpack
     . last
