@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Moat.Pretty.Doc.Markdown
   ( block,
@@ -48,10 +49,18 @@ markdownBlocks m i = \case
   DocAppend a b -> markdownBlocks m i a ++ markdownBlocks m i b
   DocParagraph d -> [node PARAGRAPH (markdownInlines m i d)]
   DocUnorderedList ds -> [ul (map (markdownListItem m i) ds)]
-  DocOrderedList ds -> [ol (fst (head ds)) (map (markdownListItem m i . snd) ds)]
+  DocOrderedList ds -> [markdownOrderedList m i ds]
   DocCodeBlock d -> [node (CODE_BLOCK T.empty (T.pack (markupText d))) []]
   DocHeader (Header l t) -> [node (HEADING l) (markdownInlines m i t)]
   _ -> []
+
+#if MIN_VERSION_haddock_library(1,11,0)
+markdownOrderedList :: (String -> Node) -> (String -> Node) -> [(Int, DocH String String)] -> Node
+markdownOrderedList m i ds = ol (fst (head ds)) (map (markdownListItem m i . snd) ds)
+#else
+markdownOrderedList :: (String -> Node) -> (String -> Node) -> [DocH String String] -> Node
+markdownOrderedList m i ds = ol 1 (map (markdownListItem m i) ds)
+#endif
 
 markdownListItem :: (String -> Node) -> (String -> Node) -> DocH String String -> Node
 markdownListItem m i doc = node ITEM (markdownBlocks m i doc)
