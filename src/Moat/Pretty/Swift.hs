@@ -4,7 +4,9 @@ module Moat.Pretty.Swift
 where
 
 import Data.List (intercalate)
+import Moat.Pretty.Doc.DocC
 import Moat.Types
+import Data.Maybe (catMaybes)
 
 -- | Convert a 'MoatData' into a canonical representation in Swift
 --
@@ -24,7 +26,8 @@ prettySwiftDataWith ::
   String
 prettySwiftDataWith indent = \case
   MoatEnum {..} ->
-    "enum "
+    prettyTypeDoc "" enumDoc []
+      ++ "enum "
       ++ prettyMoatTypeHeader enumName enumTyVars
       ++ prettyRawValueAndProtocols enumRawValue enumProtocols
       ++ " {"
@@ -36,7 +39,8 @@ prettySwiftDataWith indent = \case
       ++ newlineNonEmpty enumTags
       ++ "}"
   MoatStruct {..} ->
-    "struct "
+    prettyTypeDoc "" structDoc structFields
+      ++ "struct "
       ++ prettyMoatTypeHeader structName structTyVars
       ++ prettyRawValueAndProtocols Nothing structProtocols
       ++ " {"
@@ -48,12 +52,14 @@ prettySwiftDataWith indent = \case
       ++ newlineNonEmpty structTags
       ++ "}"
   MoatAlias {..} ->
-    "typealias "
+    prettyTypeDoc "" aliasDoc []
+      ++ "typealias "
       ++ prettyMoatTypeHeader aliasName aliasTyVars
       ++ " = "
       ++ prettyMoatType aliasTyp
   MoatNewtype {..} ->
-    "struct "
+    prettyTypeDoc "" newtypeDoc [newtypeField]
+      ++ "struct "
       ++ prettyMoatTypeHeader newtypeName newtypeTyVars
       ++ prettyRawValueAndProtocols Nothing newtypeProtocols
       ++ " {\n"
@@ -86,6 +92,13 @@ prettySwiftDataWith indent = \case
     isConcrete = \case
       (Field _ Concrete {} _) -> True
       _ -> False
+
+prettyTypeDoc :: String -> Maybe String -> [Field] -> String
+prettyTypeDoc indents doc fields =
+  let
+    wrap = 100 - length indents - 4 -- "/// " doc comment prefix
+    docC = intercalate "\n" (catMaybes [prettyDoc wrap <$> doc, prettyFieldDoc wrap fields])
+  in prettyDocComment indents docC
 
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
@@ -210,14 +223,16 @@ prettyEnumCases indents = go
   where
     go = \case
       [] -> ""
-      (EnumCase caseNm _ [] : xs) ->
-        indents
+      (EnumCase caseNm caseDoc [] : xs) ->
+        prettyTypeDoc indents caseDoc []
+          ++ indents
           ++ "case "
           ++ caseNm
           ++ "\n"
           ++ go xs
-      (EnumCase caseNm _ cs : xs) ->
-        indents
+      (EnumCase caseNm caseDoc cs : xs) ->
+        prettyTypeDoc indents caseDoc cs
+          ++ indents
           ++ "case "
           ++ caseNm
           ++ "("

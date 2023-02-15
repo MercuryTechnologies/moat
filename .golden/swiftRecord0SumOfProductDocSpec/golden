@@ -1,0 +1,9 @@
+/// Documentation for ``Record0``.
+/// 
+///   - Parameters:
+///       - record0Field0: The zeroth field of record 0
+///       - record0Field1: The first field of record 0
+struct Record0: CaseIterable, Hashable, Codable {
+    let record0Field0: Int
+    let record0Field1: Int
+}

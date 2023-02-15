@@ -6,7 +6,8 @@ where
 import qualified Data.Char as Char
 import Data.Functor ((<&>))
 import Data.List (intercalate)
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, catMaybes)
+import Moat.Pretty.Doc.KDoc
 import Moat.Types
 
 -- | Convert a 'MoatData' into a canonical representation in Kotlin
@@ -17,7 +18,7 @@ import Moat.Types
 prettyKotlinData :: MoatData -> String
 prettyKotlinData = \case
   MoatStruct {..} ->
-    ""
+    prettyTypeDoc noIndent structDoc structFields
       ++ prettyAnnotations Nothing noIndent structAnnotations
       ++ "data class "
       ++ prettyMoatTypeHeader structName (addTyVarBounds structTyVars structInterfaces)
@@ -28,6 +29,7 @@ prettyKotlinData = \case
       ++ prettyInterfaces structInterfaces
   MoatEnum {..} ->
     prettyEnum
+      enumDoc
       enumAnnotations
       enumInterfaces
       enumName
@@ -37,7 +39,7 @@ prettyKotlinData = \case
       enumEnumEncodingStyle
       indents
   MoatNewtype {..} ->
-    ""
+    prettyTypeDoc noIndent newtypeDoc [newtypeField]
       ++ prettyAnnotations Nothing noIndent newtypeAnnotations
       ++ "value class "
       ++ prettyMoatTypeHeader newtypeName (addTyVarBounds newtypeTyVars newtypeInterfaces)
@@ -48,7 +50,7 @@ prettyKotlinData = \case
       ++ ")"
       ++ prettyInterfaces newtypeInterfaces
   MoatAlias {..} ->
-    ""
+    prettyTypeDoc noIndent aliasDoc []
       ++ "typealias "
       ++ prettyMoatTypeHeader aliasName aliasTyVars
       ++ " = "
@@ -56,6 +58,13 @@ prettyKotlinData = \case
   where
     indent = 4
     indents = replicate indent ' '
+
+prettyTypeDoc :: String -> Maybe String -> [Field] -> String
+prettyTypeDoc indents doc fields =
+  let
+    wrap = wrapColumn indents 100
+    kdoc = intercalate "\n" (catMaybes [prettyDoc wrap <$> doc, prettyFieldDoc wrap fields])
+  in prettyDocComment wrap indents kdoc
 
 prettyStructFields :: String -> [Field] -> String
 prettyStructFields indents = go
@@ -73,18 +82,19 @@ prettyStructFields indents = go
         ++ ",\n"
         ++ go fs
 
-prettyEnumCases :: String -> [String] -> String
+prettyEnumCases :: String -> [EnumCase] -> String
 prettyEnumCases indents = go
   where
     go = \case
       [] -> ""
-      (caseName : cases) ->
-        indents
-          ++ caseName
+      (EnumCase {..} : cases) ->
+        prettyTypeDoc indents enumCaseDoc enumCaseFields
+          ++ indents
+          ++ enumCaseName
           ++ ",\n"
           ++ go cases
 
-prettyValueClassInstances :: String -> String -> String -> [String] -> String
+prettyValueClassInstances :: String -> String -> String -> [EnumCase] -> String
 prettyValueClassInstances indents typ cons enumCases = case enumCases of
   [] -> ""
   _ ->
@@ -92,32 +102,33 @@ prettyValueClassInstances indents typ cons enumCases = case enumCases of
       ++ "companion object {\n"
       ++ instanceFields enumCases
       ++ "\n"
-      ++ entriesField enumCases
+      ++ entriesField (map enumCaseName enumCases)
       ++ indents
       ++ "}"
   where
     entriesField :: [String] -> String
     entriesField [] = indents ++ indents ++ "val entries: List<" ++ typ ++ "> = emptyList()"
-    entriesField _ =
+    entriesField caseNames =
       indents
         ++ indents
-        ++ "val entries: List<" ++ typ ++ "> = listOf(\n" ++ (concat $ replicate 3 indents)
-        ++ intercalate (concat $ replicate 3 indents) (map ((++ ",\n") . toUpperFirst) enumCases)
+        ++ "val entries: List<" ++ typ ++ "> = listOf(\n" ++ concat (replicate 3 indents)
+        ++ intercalate (concat (replicate 3 indents)) (map ((++ ",\n") . toUpperFirst) caseNames)
         ++ indents ++ indents ++ ")\n"
 
-    instanceFields :: [String] -> String
+    instanceFields :: [EnumCase] -> String
     instanceFields [] = ""
-    instanceFields (caseName : cases) =
-      indents
+    instanceFields (EnumCase {..} : cases) =
+      prettyTypeDoc (indents ++ indents) enumCaseDoc []
+        ++ indents
         ++ indents
         ++ "val "
-        ++ toUpperFirst caseName
+        ++ toUpperFirst enumCaseName
         ++ ": "
         ++ typ
         ++ " = "
         ++ cons
         ++ "(\""
-        ++ caseName
+        ++ enumCaseName
         ++ "\")\n"
         ++ instanceFields cases
 
@@ -217,8 +228,9 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
   intercalate
     "\n\n"
     ( cases <&> \case
-        EnumCase caseNm _ [Field _ caseTy _] ->
-          prettyAnnotations (Just caseNm) indents anns
+        EnumCase caseNm caseDoc fields@[Field _ caseTy _] ->
+          prettyTypeDoc indents caseDoc fields
+            ++ prettyAnnotations (Just caseNm) indents anns
             ++ indents
             ++ "data class "
             ++ toUpperFirst caseNm
@@ -229,8 +241,9 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
             ++ ") : "
             ++ parentName
             ++ "()"
-        EnumCase caseNm _ [] ->
-          prettyAnnotations (Just caseNm) indents anns
+        EnumCase caseNm caseDoc [] ->
+          prettyTypeDoc indents caseDoc []
+            ++ prettyAnnotations (Just caseNm) indents anns
             ++ indents
             ++ "object "
             ++ toUpperFirst caseNm
@@ -246,6 +259,8 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
 
 prettyEnum ::
   () =>
+  -- | doc
+  Maybe String ->
   [Annotation] ->
   -- | interfaces
   [Interface] ->
@@ -262,41 +277,45 @@ prettyEnum ::
   -- | indents
   String ->
   String
-prettyEnum anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} ees indents
+prettyEnum doc anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..} ees indents
   | isCEnum cases =
       case ees of
         EnumClassStyle ->
-          prettyAnnotations Nothing noIndent (dontAddSerializeToEnums anns)
+          prettyTypeDoc noIndent doc []
+            ++ prettyAnnotations Nothing noIndent (dontAddSerializeToEnums anns)
             ++ "enum class "
             ++ classTyp
             ++ prettyInterfaces ifaces
             ++ " {"
             ++ newlineNonEmpty cases
-            ++ prettyEnumCases indents (map enumCaseName cases)
+            ++ prettyEnumCases indents cases
             ++ "}"
         ValueClassStyle ->
-          prettyAnnotations Nothing noIndent (ensureJvmInlineForValueClasses anns)
+          prettyTypeDoc noIndent doc []
+            ++ prettyAnnotations Nothing noIndent (ensureJvmInlineForValueClasses anns)
             ++ "value class "
             ++ classTyp
             ++ "(val value: String)"
             ++ prettyInterfaces ifaces
             ++ " {"
             ++ newlineNonEmpty cases
-            ++ prettyValueClassInstances indents classTyp name (map enumCaseName cases)
+            ++ prettyValueClassInstances indents classTyp name cases
             ++ newlineNonEmpty cases
             ++ "}"
   | otherwise =
     case encodingStyle of
       TaggedFlatObjectStyle ->
-        prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
+        prettyTypeDoc noIndent doc []
+          ++ prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
           ++ "sealed class "
           ++ classTyp
           ++ prettyInterfaces ifaces
       TaggedObjectStyle ->
-        prettyAnnotations
-          Nothing
-          noIndent
-          (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
+        prettyTypeDoc noIndent doc []
+        ++ prettyAnnotations
+             Nothing
+             noIndent
+             (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
           ++ "sealed class "
           ++ classTyp
           ++ prettyInterfaces ifaces
@@ -339,3 +358,6 @@ addTyVarBounds :: [String] -> [Interface] -> [String]
 addTyVarBounds tyVars ifaces
   | Parcelable `elem` ifaces = map (++ " : Parcelable") tyVars
   | otherwise = tyVars
+
+wrapColumn :: String -> Int -> Int
+wrapColumn indents col = col - length indents - 3 -- " * " doc comment prefix

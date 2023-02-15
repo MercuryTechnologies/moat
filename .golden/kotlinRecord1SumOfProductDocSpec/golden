@@ -1,0 +1,12 @@
+/**
+ * Documentation for [Record1].
+ * 
+ * @param record1Field0 The zeroth field of record 1  
+ * @param record1Field1 The first field of record 1
+ */
+@Parcelize
+@Serializable
+data class Record1(
+    val record1Field0: Int,
+    val record1Field1: Int,
+) : Enum()

@@ -1,0 +1,7 @@
+/// Top-level documentation describing ``Enum``.
+enum Enum: CaseIterable, Hashable, Codable {
+    /// A constructor.
+    case dataCons0(Record0)
+    /// Another constructor.
+    case dataCons1(Record1)
+}

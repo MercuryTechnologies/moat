@@ -1,0 +1,9 @@
+/// Top-level enum documentation.
+enum EnumAsValueClass: CaseIterable, Hashable, Codable {
+    /// ``First``
+    case first
+    /// ``Second``
+    case second
+    /// ``Third``
+    case third
+}

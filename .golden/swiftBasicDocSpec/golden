@@ -1,0 +1,37 @@
+/// # Heading
+/// 
+/// ## *Second-level heading, italic*
+/// 
+/// Paragraphs of documentation for the ``Data`` type. This line should wrap according to your
+/// preference.
+/// 
+/// Some additional markup: *emphasis*, **bold**, `monospaced`.
+/// 
+/// ### **Lists**
+/// 
+/// Unordered
+/// 
+///   - Unordered item
+///   - Second unordered item
+///   - Third unordered item
+/// 
+/// Ordered
+/// 
+/// 1.  Ordered item
+/// 2.  Second ordrered item
+/// 3.  Third ordered item
+/// 
+/// ## Code block
+/// 
+///     func fibonacci(_ n: Int) -> Int {
+///         guard n != 0, n != 1 else { return n }
+///         return fibonacci(n - 1) + fibonacci(n - 2)
+///     }
+/// 
+///   - Parameters:
+///       - first: First field, it's an Int
+///       - second: Second field, it's maybe an Int
+struct Data {
+    let first: Int
+    let second: Int?
+}
