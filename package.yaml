@@ -59,3 +59,4 @@ tests:
       - TypeApplications
     ghc-options:
       -Wno-unused-top-binds
+      -haddock

@@ -109,7 +109,7 @@ test-suite spec
       ScopedTypeVariables
       TemplateHaskell
       TypeApplications
-  ghc-options: -Wall -Wno-unused-top-binds
+  ghc-options: -Wall -Wno-unused-top-binds -haddock
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
