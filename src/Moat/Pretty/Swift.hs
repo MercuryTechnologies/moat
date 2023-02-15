@@ -39,7 +39,7 @@ prettySwiftDataWith indent = \case
       ++ newlineNonEmpty enumTags
       ++ "}"
   MoatStruct {..} ->
-    prettyTypeDoc "" structDoc structFields
+    prettyTypeDoc "" structDoc []
       ++ "struct "
       ++ prettyMoatTypeHeader structName structTyVars
       ++ prettyRawValueAndProtocols Nothing structProtocols
@@ -58,7 +58,7 @@ prettySwiftDataWith indent = \case
       ++ " = "
       ++ prettyMoatType aliasTyp
   MoatNewtype {..} ->
-    prettyTypeDoc "" newtypeDoc [newtypeField]
+    prettyTypeDoc "" newtypeDoc []
       ++ "struct "
       ++ prettyMoatTypeHeader newtypeName newtypeTyVars
       ++ prettyRawValueAndProtocols Nothing newtypeProtocols
@@ -244,7 +244,9 @@ prettyStructFields :: String -> [Field] -> String
 prettyStructFields indents = go
   where
     go [] = ""
-    go (Field {..} : fs) = indents ++ "let " ++ fieldName ++ ": " ++ prettyMoatType fieldType ++ "\n" ++ go fs
+    go (Field {..} : fs) =
+      prettyTypeDoc indents fieldDoc []
+        ++ indents ++ "let " ++ fieldName ++ ": " ++ prettyMoatType fieldType ++ "\n" ++ go fs
 
 prettyNewtypeField :: String -> Field -> String -> String
 prettyNewtypeField indents (Field alias _ _) fieldName = indents ++ "let " ++ alias ++ ": " ++ fieldName ++ "Tag" ++ "\n"

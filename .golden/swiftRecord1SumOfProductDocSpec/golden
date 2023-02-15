@@ -1,9 +1,7 @@
 /// Documentation for ``Record1``.
-/// 
-///   - Parameters:
-///       - record1Field0: The zeroth field of record 1
-///       - record1Field1: The first field of record 1
 struct Record1: CaseIterable, Hashable, Codable {
+    /// The zeroth field of record 1
     let record1Field0: Int
+    /// The first field of record 1
     let record1Field1: Int
 }
