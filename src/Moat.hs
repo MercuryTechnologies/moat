@@ -102,7 +102,7 @@ import qualified Data.Text as TS
 import Data.Void (Void)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import qualified Language.Haskell.TH
-import Language.Haskell.TH hiding (stringE, tupE, TyVarBndr(..), newName, getDoc, DocLoc(..))
+import Language.Haskell.TH hiding (stringE, tupE, TyVarBndr(..), newName)
 import Language.Haskell.TH.Datatype
 import qualified Language.Haskell.TH.Syntax as Syntax
 import Moat.Class
@@ -449,7 +449,7 @@ mobileGenWithTags o ts name = do
     (tags, extraDecs) <- getTags parentName ts
 
     -- get haddock for top-level declaration
-    doc <- lift $ getDoc name
+    doc <- lift $ getDeclDoc name
 
     dataInst <- getToMoatData o parentName doc instTys variant tags cons
 
@@ -758,7 +758,7 @@ mkCase o = \case
       constructorFields = fields
     } ->
     do
-      doc <- lift $ getDoc name
+      doc <- lift $ getDeclDoc name
       pure $ mkCaseHelper o name doc $ fields
         <&> ( \typ ->
                 RecConE
@@ -780,8 +780,8 @@ mkCase o = \case
       constructorFields = fields
     } ->
     do
-      doc <- lift $ getDoc name
-      fieldDocs <- lift $ mapM getDoc fieldNames
+      doc <- lift $ getDeclDoc name
+      fieldDocs <- lift $ mapM getDeclDoc fieldNames
       let cases = zipWith3 (caseField o) fieldNames fields fieldDocs
        in pure $ mkCaseHelper o name doc cases
 
@@ -986,23 +986,17 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
     { constructorVariant = RecordConstructor fieldNames,
       ..
     } -> do
-      fieldDocs <- lift $ mapM getDoc fieldNames
+      fieldDocs <- lift $ mapM getDeclDoc fieldNames
       let fields = zipFields o fieldNames constructorFields fieldDocs
       matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
 
 zipFields :: Options -> [Name] -> [Type] -> [Maybe String] -> [Exp]
-zipFields o = zipWithPred p (prettyField o)
+zipFields o ns ts ds = catMaybes $ zipWith3 mkField ns ts ds
   where
-    p :: Name -> Type -> Maybe String -> Bool
-    p n _ _ = omitFields o (nameStr n) == Keep
-
-zipWithPred :: (a -> b -> c -> Bool) -> (a -> b -> c -> d) -> [a] -> [b] -> [c] -> [d]
-zipWithPred _ _ [] _ _ = []
-zipWithPred _ _ _ [] _ = []
-zipWithPred _ _ _ _ [] = []
-zipWithPred p f (x : xs) (y : ys) (z : zs)
-  | p x y z = f x y z : zipWithPred p f xs ys zs
-  | otherwise = zipWithPred p f xs ys zs
+    mkField :: Name -> Type -> Maybe String -> Maybe Exp
+    mkField n t d = case omitFields o (nameStr n) of
+      Keep -> Just $ prettyField o n t d
+      Discard -> Nothing
 
 -- turn a field name into a swift case name.
 -- examples:
@@ -1076,12 +1070,12 @@ prettyDoc = \case
   Just doc -> AppE (ConE 'Just) (stringE doc)
 
 -- get doc string for Name
-getDoc :: Name -> Q (Maybe String)
+getDeclDoc :: Name -> Q (Maybe String)
 
 #if MIN_VERSION_template_haskell(2,18,0)
-getDoc = Language.Haskell.TH.getDoc . Language.Haskell.TH.DeclDoc
+getDeclDoc = getDoc . DeclDoc
 #else
-getDoc _ = pure Nothing
+getDeclDoc _ = pure Nothing
 #endif
 
 -- build the instance head for a type

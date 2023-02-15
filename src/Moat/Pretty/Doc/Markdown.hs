@@ -36,7 +36,6 @@ markdown ::
   (String -> Node) ->
   -- | Incoming Haddock documentation.
   DocH String String
-  -- | Generated markdown nodes.
   -> Node
 markdown m i doc = document (markdownBlocks m i doc)
 
@@ -125,15 +124,16 @@ inlineContent n@(Node _ typ xs) =
   else [n]
 
 isBlock :: NodeType -> Bool
-isBlock DOCUMENT = True
-isBlock BLOCK_QUOTE = True
-isBlock (LIST _) = True
-isBlock ITEM = True
-isBlock (CODE_BLOCK _ _) = True
-isBlock (HTML_BLOCK _) = True
-isBlock (CUSTOM_BLOCK _ _) = True
-isBlock PARAGRAPH = True
-isBlock (HEADING _) = True
-isBlock THEMATIC_BREAK = True
-isBlock FOOTNOTE_DEFINITION = True
-isBlock _ = False
+isBlock = \case
+  DOCUMENT -> True
+  BLOCK_QUOTE -> True
+  (LIST _) -> True
+  ITEM -> True
+  (CODE_BLOCK _ _) -> True
+  (HTML_BLOCK _) -> True
+  (CUSTOM_BLOCK _ _) -> True
+  PARAGRAPH -> True
+  (HEADING _) -> True
+  THEMATIC_BREAK -> True
+  FOOTNOTE_DEFINITION -> True
+  _ -> False
