@@ -39,6 +39,8 @@ module Moat
     Protocol (..),
     Interface (..),
     Annotation (..),
+    Field (..),
+    EnumCase (..),
 
     -- * Options for encoding types
 
