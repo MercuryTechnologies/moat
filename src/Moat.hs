@@ -499,11 +499,6 @@ data MoatError
   | ImproperNewtypeConstructorInfo
       { _conInfo :: ConstructorInfo
       }
-  | GetFieldDocFailed
-      { _conName :: Name,
-        _fieldName :: Name,
-        _isDupRecFieldExtEnabled :: Bool
-      }
 
 prettyMoatError :: MoatError -> String
 prettyMoatError = \case
@@ -568,15 +563,6 @@ prettyMoatError = \case
   ImproperNewtypeConstructorInfo conInfo ->
     "Expected `ConstructorInfo` with single field, but got "
       ++ show conInfo
-  GetFieldDocFailed (nameStr -> con) (nameStr -> fld) hasDrf ->
-    con
-      ++ "."
-      ++ fld
-      ++ ": Moat could not get documentation for this field."
-      ++ if hasDrf
-         then "\nThis could be caused by DuplicateRecordFields; "
-                ++ "see https://gitlab.haskell.org/ghc/ghc/-/issues/17551"
-         else ""
 
 prettyTyVarBndrStr :: TyVarBndr -> String
 prettyTyVarBndrStr = \case
@@ -798,7 +784,7 @@ mkCase o = \case
     } ->
     do
       doc <- lift $ getDocWith o name
-      fieldDocs <- lift $ mapM (getFieldDoc o name) fieldNames
+      fieldDocs <- lift $ mapM (getDocWith o) fieldNames
       let cases = zipWith3 (caseField o) fieldNames fields fieldDocs
        in pure $ mkCaseHelper o name doc cases
 
@@ -1003,7 +989,7 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
     { constructorVariant = RecordConstructor fieldNames,
       ..
     } -> do
-      fieldDocs <- lift $ mapM (getFieldDoc o typName) fieldNames
+      fieldDocs <- lift $ mapM (getDocWith o) fieldNames
       let fields = zipFields o fieldNames constructorFields fieldDocs
       matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
 
@@ -1090,7 +1076,7 @@ prettyDoc = \case
 getDeclDoc :: Name -> Q (Maybe String)
 
 #if MIN_VERSION_template_haskell(2,18,0)
-getDeclDoc name = getDoc (DeclDoc name)
+getDeclDoc name = recover (pure Nothing) (getDoc (DeclDoc name))
 #else
 getDeclDoc _ = pure Nothing
 #endif
@@ -1101,17 +1087,6 @@ getDocWith Options{..} n =
   if generateDocComments
   then getDeclDoc n
   else pure Nothing
-
--- get doc string for a field name, recovering for ambiguous fields
-getFieldDoc :: Options -> Name -> Name -> Q (Maybe String)
-getFieldDoc o con fld =
-    recover
-    ( do
-        hasDrf <- isExtEnabled DuplicateRecordFields
-        reportWarning $ prettyMoatError (GetFieldDocFailed con fld hasDrf)
-        pure Nothing
-    )
-    (getDocWith o fld)
 
 -- build the instance head for a type
 buildTypeInstance ::
