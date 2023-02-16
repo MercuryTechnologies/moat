@@ -62,6 +62,7 @@ module Moat
     constructorLowerFirst,
     generateToMoatType,
     generateToMoatData,
+    generateDocComments,
     dataProtocols,
     dataInterfaces,
     dataAnnotations,
@@ -451,7 +452,7 @@ mobileGenWithTags o ts name = do
     (tags, extraDecs) <- getTags parentName ts
 
     -- get haddock for top-level declaration
-    doc <- lift $ getDeclDoc name
+    doc <- lift $ getDocWith o name
 
     dataInst <- getToMoatData o parentName doc instTys variant tags cons
 
@@ -774,7 +775,7 @@ mkCase o = \case
       constructorFields = fields
     } ->
     do
-      doc <- lift $ getDeclDoc name
+      doc <- lift $ getDocWith o name
       pure $ mkCaseHelper o name doc $ fields
         <&> ( \typ ->
                 RecConE
@@ -796,8 +797,8 @@ mkCase o = \case
       constructorFields = fields
     } ->
     do
-      doc <- lift $ getDeclDoc name
-      fieldDocs <- lift $ mapM (getFieldDoc name) fieldNames
+      doc <- lift $ getDocWith o name
+      fieldDocs <- lift $ mapM (getFieldDoc o name) fieldNames
       let cases = zipWith3 (caseField o) fieldNames fields fieldDocs
        in pure $ mkCaseHelper o name doc cases
 
@@ -1002,7 +1003,7 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
     { constructorVariant = RecordConstructor fieldNames,
       ..
     } -> do
-      fieldDocs <- lift $ mapM (getFieldDoc typName) fieldNames
+      fieldDocs <- lift $ mapM (getFieldDoc o typName) fieldNames
       let fields = zipFields o fieldNames constructorFields fieldDocs
       matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
 
@@ -1094,16 +1095,23 @@ getDeclDoc name = getDoc (DeclDoc name)
 getDeclDoc _ = pure Nothing
 #endif
 
+-- get doc string if enabled in options
+getDocWith :: Options -> Name -> Q (Maybe String)
+getDocWith Options{..} n =
+  if generateDocComments
+  then getDeclDoc n
+  else pure Nothing
+
 -- get doc string for a field name, recovering for ambiguous fields
-getFieldDoc :: Name -> Name -> Q (Maybe String)
-getFieldDoc con fld =
+getFieldDoc :: Options -> Name -> Name -> Q (Maybe String)
+getFieldDoc o con fld =
     recover
     ( do
         hasDrf <- isExtEnabled DuplicateRecordFields
         reportWarning $ prettyMoatError (GetFieldDocFailed con fld hasDrf)
         pure Nothing
     )
-    (getDeclDoc fld)
+    (getDocWith o fld)
 
 -- build the instance head for a type
 buildTypeInstance ::

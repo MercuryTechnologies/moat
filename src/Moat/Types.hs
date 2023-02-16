@@ -321,6 +321,11 @@ data Options = Options
     -- exists elsewhere.  The default is 'True', i.e., to generate the
     -- instance.
     generateToMoatData :: Bool,
+    -- | Whether or not to generate documentation comments. This works by
+    -- translating Haddock documentation annotations to the target language's
+    -- documentation comment syntax. The default  is 'True', i.e. to generate
+    -- documentation comments.
+    generateDocComments :: Bool,
     -- | Kotlin interfaces to add to a type.
     --   The default (@[]@) will add none.
     dataInterfaces :: [Interface],
@@ -533,6 +538,7 @@ defaultOptions =
       constructorLowerFirst = True,
       generateToMoatType = True,
       generateToMoatData = True,
+      generateDocComments = True,
       dataInterfaces = [],
       dataProtocols = [],
       dataAnnotations = [],
