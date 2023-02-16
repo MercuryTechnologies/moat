@@ -1,0 +1,6 @@
+/// Record 0 with duplicate fields
+struct Data0 {
+    let field0: Int
+    /// not a duplicate
+    let field1: Int?
+}

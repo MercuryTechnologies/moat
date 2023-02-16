@@ -79,6 +79,7 @@ test-suite spec
       BasicNewtypeWithEitherFieldSpec
       BasicRecordSpec
       Common
+      DuplicateRecordFieldSpec
       EnumValueClassDocSpec
       EnumValueClassSpec
       MultipleTypeVariableSpec

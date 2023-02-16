@@ -1,0 +1,9 @@
+/**
+ * Record 0 with duplicate fields
+ * 
+ * @param field1 not a duplicate
+ */
+data class Data0(
+    val field0: Int,
+    val field1: Int? = null,
+)
