@@ -7,11 +7,12 @@ module Moat.Pretty.Doc.KDoc
   )
 where
 
+import CMarkGFM (nodeToCommonmark, Node (..))
+import Data.Char (isSpace)
+import Data.List (intercalate, dropWhileEnd)
+import qualified Data.Text as T
 import Moat.Pretty.Doc.Markdown
 import Moat.Types (Field (..))
-import CMarkGFM (nodeToCommonmark, Node (..))
-import qualified Data.Text as T
-import Data.List (intercalate)
 
 prettyDocComment :: Int -> String -> String -> String
 prettyDocComment wrap indents str =
@@ -28,7 +29,7 @@ prettyDocComment wrap indents str =
     long ls =
       indents
         ++ "/**\n"
-        ++ concatMap (\s -> indents ++ " * " ++ s ++ "\n") ls
+        ++ concatMap (\s -> dropWhileEnd isSpace (indents ++ " * " ++ s) ++ "\n") ls
         ++ indents
         ++ " */\n"
 

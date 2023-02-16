@@ -1,6 +1,6 @@
 /**
  * Record 0 with duplicate fields
- * 
+ *
  * @param field1 not a duplicate
  */
 data class Data0(

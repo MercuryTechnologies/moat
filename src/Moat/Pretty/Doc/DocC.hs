@@ -7,14 +7,17 @@ module Moat.Pretty.Doc.DocC
   )
 where
 
+import CMarkGFM (nodeToCommonmark, Node (..))
+import Data.Char (isSpace)
+import Data.List (dropWhileEnd)
+import Data.Maybe (mapMaybe)
+import qualified Data.Text as T
 import Moat.Pretty.Doc.Markdown
 import Moat.Types (Field (..))
-import CMarkGFM (nodeToCommonmark, Node (..))
-import qualified Data.Text as T
-import Data.Maybe (mapMaybe)
 
 prettyDocComment :: String -> String -> String
-prettyDocComment indents str = concatMap (\s -> indents ++ "/// " ++ s ++ "\n") (lines str)
+prettyDocComment indents str =
+  concatMap (\s -> dropWhileEnd isSpace (indents ++ "/// " ++ s) ++ "\n") (lines str)
 
 -- | Format Haddock documentation as Markdown, wrapping at the
 -- given column.
