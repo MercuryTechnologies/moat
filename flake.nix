@@ -42,10 +42,6 @@
           dontCheck
           overrideCabal
           ;
-        inherit
-          (pkgs.haskell.lib.compose)
-          appendPatches
-          ;
 
         enableSeparateBinOutput = drv:
           if (pkgs.stdenv.hostPlatform.isDarwin && pkgs.stdenv.hostPlatform.isAarch64)
@@ -54,6 +50,10 @@
 
         haskellOverlays = {
           ghc902 = hself: hsuper: {
+            # Wants cabal == 3.6
+            fourmolu = hsuper.fourmolu.overrideScope (lself: lsuper: {
+              Cabal = lself.Cabal_3_6_3_0;
+            });
           };
           ghc924 = hself: hsuper: {
             # https://github.com/NixOS/nixpkgs/issues/140774
