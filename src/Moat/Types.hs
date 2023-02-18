@@ -7,7 +7,9 @@ module Moat.Types
   ( Annotation (..),
     Backend (..),
     EncodingStyle (..),
+    EnumCase (..),
     EnumEncodingStyle (..),
+    Field (..),
     Interface (..),
     KeepOrDiscard (..),
     MoatData (..),
@@ -125,6 +127,8 @@ data MoatData
     MoatStruct
       { -- | The name of the struct
         structName :: String,
+        -- | Haddock documentation for the struct.
+        structDoc :: Maybe String,
         -- | The struct's type variables
         structTyVars :: [String],
         -- | The kotlin interfaces which the struct implements
@@ -133,9 +137,8 @@ data MoatData
         structProtocols :: [Protocol],
         -- | The kotlin annotations on the struct
         structAnnotations :: [Annotation],
-        -- | The fields of the struct. the pair
-        --   is interpreted as (name, type).
-        structFields :: [(String, MoatType)],
+        -- | The fields of the struct.
+        structFields :: [Field],
         -- | Private types of the struct. Typically
         --   populated by setting 'makeBase'.
         --
@@ -150,6 +153,8 @@ data MoatData
     MoatEnum
       { -- | The name of the enum
         enumName :: String,
+        -- | Haddock documentation for the enum.
+        enumDoc :: Maybe String,
         -- | The enum's type variables
         enumTyVars :: [String],
         -- | The interfaces (Kotlin) which the enum implements
@@ -158,9 +163,8 @@ data MoatData
         enumProtocols :: [Protocol],
         -- | The annotations (Kotlin) on the enum
         enumAnnotations :: [Annotation],
-        -- | The cases of the enum. the type can be interpreted as (name,
-        -- [(label, type)]).
-        enumCases :: [(String, [(Maybe String, MoatType)])],
+        -- | The cases of the enum.
+        enumCases :: [EnumCase],
         -- | The rawValue of an enum. See
         --   https://developer.apple.com/documentation/swift/rawrepresentable/1540698-rawvalue
         --
@@ -190,8 +194,10 @@ data MoatData
     --   Swift backend: Becomes an empty enum with a tag.
     MoatNewtype
       { newtypeName :: String,
+        -- | Haddock documentation for the newtype.
+        newtypeDoc :: Maybe String,
         newtypeTyVars :: [String],
-        newtypeField :: (String, MoatType),
+        newtypeField :: Field,
         newtypeInterfaces :: [Interface],
         newtypeProtocols :: [Protocol], -- TODO: remove this?
         newtypeAnnotations :: [Annotation]
@@ -200,12 +206,30 @@ data MoatData
     MoatAlias
       { -- | the name of the type alias
         aliasName :: String,
+        -- | Haddock documentation for the alias.
+        aliasDoc :: Maybe String,
         -- | the type variables of the type alias
         aliasTyVars :: [String],
         -- | the type this represents (RHS)
         aliasTyp :: MoatType
       }
   deriving stock (Eq, Read, Show, Generic)
+
+-- | An enum case.
+data EnumCase = EnumCase
+  { enumCaseName :: String,
+    enumCaseDoc :: Maybe String,
+    enumCaseFields :: [Field]
+  }
+  deriving stock (Eq, Read, Show)
+
+-- | A named field for enum cases and structs.
+data Field = Field
+  { fieldName :: String,
+    fieldType :: MoatType,
+    fieldDoc :: Maybe String
+  }
+  deriving stock (Eq, Read, Show)
 
 data Backend
   = Kotlin
@@ -297,6 +321,11 @@ data Options = Options
     -- exists elsewhere.  The default is 'True', i.e., to generate the
     -- instance.
     generateToMoatData :: Bool,
+    -- | Whether or not to generate documentation comments. This works by
+    -- translating Haddock documentation annotations to the target language's
+    -- documentation comment syntax. The default  is 'True', i.e. to generate
+    -- documentation comments.
+    generateDocComments :: Bool,
     -- | Kotlin interfaces to add to a type.
     --   The default (@[]@) will add none.
     dataInterfaces :: [Interface],
@@ -509,6 +538,7 @@ defaultOptions =
       constructorLowerFirst = True,
       generateToMoatType = True,
       generateToMoatData = True,
+      generateDocComments = True,
       dataInterfaces = [],
       dataProtocols = [],
       dataAnnotations = [],

@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.7.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -28,6 +28,9 @@ library
       Moat
   other-modules:
       Moat.Class
+      Moat.Pretty.Doc.DocC
+      Moat.Pretty.Doc.KDoc
+      Moat.Pretty.Doc.Markdown
       Moat.Pretty.Kotlin
       Moat.Pretty.Swift
       Moat.Types
@@ -44,7 +47,9 @@ library
       base >=4.11 && <4.18
     , bytestring >=0.10 && <0.12
     , case-insensitive ==1.2.*
+    , cmark-gfm >=0.2.5 && <0.3.0
     , containers >=0.5.9 && <0.7
+    , haddock-library >=1.10 && <1.12
     , mtl ==2.2.*
     , primitive >=0.6.4 && <0.8
     , template-haskell >=2.11 && <2.20
@@ -66,6 +71,7 @@ test-suite spec
       AdvancedNewtypeSpec
       AdvancedNewtypeWithEnumFieldSpec
       AdvancedRecordSpec
+      BasicDocSpec
       BasicEnumSpec
       BasicEnumWithRawValueSpec
       BasicNewtypeSpec
@@ -73,8 +79,11 @@ test-suite spec
       BasicNewtypeWithEitherFieldSpec
       BasicRecordSpec
       Common
+      DuplicateRecordFieldSpec
+      EnumValueClassDocSpec
       EnumValueClassSpec
       MultipleTypeVariableSpec
+      SumOfProductDocSpec
       SumOfProductSpec
       SumOfProductWithLinkEnumInterfaceSpec
       SumOfProductWithTaggedObjectAndNonConcreteCasesSpec
@@ -83,6 +92,9 @@ test-suite spec
       TypeVariableSpec
       Moat
       Moat.Class
+      Moat.Pretty.Doc.DocC
+      Moat.Pretty.Doc.KDoc
+      Moat.Pretty.Doc.Markdown
       Moat.Pretty.Kotlin
       Moat.Pretty.Swift
       Moat.Types
@@ -98,14 +110,16 @@ test-suite spec
       ScopedTypeVariables
       TemplateHaskell
       TypeApplications
-  ghc-options: -Wall -Wno-unused-top-binds
+  ghc-options: -Wall -Wno-unused-top-binds -haddock
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
       base >=4.11 && <4.18
     , bytestring >=0.10 && <0.12
     , case-insensitive ==1.2.*
+    , cmark-gfm >=0.2.5 && <0.3.0
     , containers >=0.5.9 && <0.7
+    , haddock-library >=1.10 && <1.12
     , hspec
     , hspec-discover
     , hspec-golden

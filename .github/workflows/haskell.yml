@@ -12,20 +12,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cabal: ["3.6"]
+        cabal: ["3.8"]
         ghc: ["8.6.5", "8.8.4", "8.10.7", "9.0.2", "9.2.4", "9.4.2"]
     env:
       CONFIG: "--enable-tests"
     steps:
-      - uses: actions/checkout@v2
-      - uses: haskell/actions/setup@v1
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v2.3
         id: setup-haskell-cabal
         with:
           ghc-version: ${{ matrix.ghc }}
           cabal-version: ${{ matrix.cabal }}
       - run: cabal v2-update
       - run: cabal v2-freeze $CONFIG
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
@@ -38,4 +38,3 @@ jobs:
       - run: cabal v2-test --disable-optimization -j $CONFIG
       - run: cabal v2-haddock -j $CONFIG
       - run: cabal v2-sdist
-

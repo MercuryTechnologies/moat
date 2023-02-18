@@ -1,0 +1,20 @@
+/** Top-level enum documentation. */
+@Parcelize
+@Serializable
+@JvmInline
+value class EnumAsValueClass(val value: String) : Parcelable {
+    companion object {
+        /** [First] */
+        val First: EnumAsValueClass = EnumAsValueClass("first")
+        /** [Second] */
+        val Second: EnumAsValueClass = EnumAsValueClass("second")
+        /** [Third] */
+        val Third: EnumAsValueClass = EnumAsValueClass("third")
+
+        val entries: List<EnumAsValueClass> = listOf(
+            First,
+            Second,
+            Third,
+        )
+    }
+}

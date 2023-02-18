@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 module TypeVariableSpec where
 
 import Common
@@ -5,6 +6,7 @@ import Moat
 import Test.Hspec
 import Test.Hspec.Golden
 
+{-# HLINT ignore "Use newtype instead of data" #-}
 data Data a = Data { field0 :: a }
 
 mobileGenWith
