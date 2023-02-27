@@ -59,7 +59,7 @@ library
     , time >=1.8 && <1.13
     , unordered-containers ==0.2.*
     , uuid-types ==1.0.*
-    , vector ==0.12.*
+    , vector >=0.12 && <0.14
   default-language: Haskell2010
 
 test-suite spec
@@ -132,5 +132,5 @@ test-suite spec
     , time >=1.8 && <1.13
     , unordered-containers ==0.2.*
     , uuid-types ==1.0.*
-    , vector ==0.12.*
+    , vector >=0.12 && <0.14
   default-language: Haskell2010
