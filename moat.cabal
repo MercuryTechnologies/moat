@@ -44,22 +44,22 @@ library
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
-      base >=4.11 && <4.18
+      base >=4.11 && <4.19
     , bytestring >=0.10 && <0.12
     , case-insensitive ==1.2.*
     , cmark-gfm >=0.2.5 && <0.3.0
     , containers >=0.5.9 && <0.7
     , haddock-library >=1.10 && <1.12
-    , mtl ==2.2.*
-    , primitive >=0.6.4 && <0.8
-    , template-haskell >=2.11 && <2.20
+    , mtl >=2.2 && <2.4
+    , primitive >=0.6.4 && <0.9
+    , template-haskell >=2.11 && <2.21
     , text >=1.2 && <2.1
-    , th-abstraction >=0.3 && <0.5
+    , th-abstraction >=0.3 && <0.6
     , th-compat >=0.1.0 && <0.2
     , time >=1.8 && <1.13
     , unordered-containers ==0.2.*
     , uuid-types ==1.0.*
-    , vector ==0.12.*
+    , vector >=0.12 && <0.14
   default-language: Haskell2010
 
 test-suite spec
@@ -114,7 +114,7 @@ test-suite spec
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
-      base >=4.11 && <4.18
+      base >=4.11 && <4.19
     , bytestring >=0.10 && <0.12
     , case-insensitive ==1.2.*
     , cmark-gfm >=0.2.5 && <0.3.0
@@ -123,14 +123,14 @@ test-suite spec
     , hspec
     , hspec-discover
     , hspec-golden
-    , mtl ==2.2.*
-    , primitive >=0.6.4 && <0.8
-    , template-haskell >=2.11 && <2.20
+    , mtl >=2.2 && <2.4
+    , primitive >=0.6.4 && <0.9
+    , template-haskell >=2.11 && <2.21
     , text >=1.2 && <2.1
-    , th-abstraction >=0.3 && <0.5
+    , th-abstraction >=0.3 && <0.6
     , th-compat >=0.1.0 && <0.2
     , time >=1.8 && <1.13
     , unordered-containers ==0.2.*
     , uuid-types ==1.0.*
-    , vector ==0.12.*
+    , vector >=0.12 && <0.14
   default-language: Haskell2010

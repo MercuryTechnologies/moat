@@ -90,6 +90,8 @@ module Moat
   )
 where
 
+import Control.Monad
+import Control.Monad.Trans
 import Control.Monad.Except
 import Data.Bool (bool)
 import qualified Data.Char as Char
