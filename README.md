@@ -90,6 +90,12 @@ data class User(
     val age: Int,
 ) : Parcelable
 ```
+
+## Development
+
+We use [garnix][garnix] to cache development shells. You can get directions for
+pulling from that cache via [garnix-cache][their docs].
+
 ## FAQ
 
 ### Why Template Haskell
@@ -109,3 +115,6 @@ $(stringE . show =<< reifyDatatype ''A)
 
 `''A` takes a type constructor `A` and converts it to a `Name`.  We then bind
 from the `Q` monad to generate a string expression via `stringE` and `show` it
+
+[garnix]: https://garnix.io
+[garnix-cache]: https://garnix.io/docs/caching
