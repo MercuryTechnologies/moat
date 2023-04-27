@@ -1,4 +1,6 @@
 dist-newstyle/
 .golden/*/actual
-.envrc
 result
+
+.envrc
+.direnv/
