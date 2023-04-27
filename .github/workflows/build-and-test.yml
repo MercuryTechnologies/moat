@@ -1,5 +1,7 @@
 name: "Run nix build"
 on:
+  check_suite:
+    types: [completed]
   push:
     branches:
       - master
