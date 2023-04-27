@@ -1658,7 +1658,10 @@ suffixBase = \case
 giveBase :: Maybe MoatType -> [Protocol] -> MoatData -> MoatData
 giveBase r ps = \case
   s@MoatStruct {} -> s {structPrivateTypes = [giveProtos ps (suffixBase (stripFields s))]}
-  s@MoatEnum {} -> s {enumPrivateTypes = [giveProtos ps (suffixBase (stripFields s)) {enumRawValue = r}]}
+  s@MoatEnum {} ->
+    case giveProtos ps (suffixBase (stripFields s)) of
+      result@MoatEnum {} -> s {enumPrivateTypes = [result {enumRawValue = r}] }
+      _ -> s
   s -> s
 
 -- | Apply 'giveBase' to a 'MoatData'.
