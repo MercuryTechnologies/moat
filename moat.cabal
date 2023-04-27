@@ -74,6 +74,7 @@ test-suite spec
       BasicDocSpec
       BasicEnumSpec
       BasicEnumWithRawValueSpec
+      BasicNewtypeJoinOptionalsSpec
       BasicNewtypeSpec
       BasicNewtypeWithConcreteFieldSpec
       BasicNewtypeWithEitherFieldSpec
