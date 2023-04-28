@@ -1,5 +1,7 @@
 name: "Nix"
 on:
+  check_suite:
+    types: [completed]
   push:
     branches:
       - master
@@ -25,8 +27,8 @@ jobs:
         extra_nix_config: |
           extra-access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
           extra-experimental-features = nix-command flakes ca-derivations
-          extra-substituters = https://cache.nixos.org/
-          extra-trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+          extra-substituters = https://cache.nixos.org/ https://cache.garnix.io/
+          extra-trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g=
           require-sigs = true
           sandbox = true
           extra-system-features = nixos-test benchmark big-parallel kvm
