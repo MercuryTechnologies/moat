@@ -6,15 +6,15 @@ import Test.Hspec
 import Test.Hspec.Golden
 
 data Data = Data
-  { field0 :: Int,
-    field1 :: Maybe Int
+  { field0 :: Int
+  , field1 :: Maybe Int
   }
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize],
-        dataInterfaces = [Parcelable],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [Parcelize]
+      , dataInterfaces = [Parcelable]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Data

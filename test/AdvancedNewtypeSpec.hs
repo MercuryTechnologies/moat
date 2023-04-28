@@ -11,9 +11,9 @@ newtype Newtype = Newtype Text
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, JvmInline],
-        dataInterfaces = [Parcelable],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [Parcelize, JvmInline]
+      , dataInterfaces = [Parcelable]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Newtype

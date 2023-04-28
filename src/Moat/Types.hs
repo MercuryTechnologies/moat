@@ -89,29 +89,29 @@ data MoatType
     --   type variables. Will typically be generated
     --   by 'getMoat'.
     Concrete
-      { -- | the name of the type
-        concreteName :: String,
-        -- | the type's type variables
-        concreteTyVars :: [MoatType]
+      { concreteName :: String
+      -- ^ the name of the type
+      , concreteTyVars :: [MoatType]
+      -- ^ the type's type variables
       }
   | -- | A @Tagged@ typealias, for newtyping
     --   in a way that doesn't break Codable.
     --
     --   See 'getMoatWithTags' for examples.
     Tag
-      { -- | the name of the type
-        tagName :: String,
-        -- | the type constructor of the type
-        --   to which this alias belongs
-        tagParent :: String,
-        -- | the type that this represents
-        tagTyp :: MoatType,
-        -- | does the type need disambiguation?
-        --
-        --   This will happen if there are multiple
-        --   tags with the same type. This is needed
-        --   to maintain safety.
-        tagDisambiguate :: Bool
+      { tagName :: String
+      -- ^ the name of the type
+      , tagParent :: String
+      -- ^ the type constructor of the type
+      --   to which this alias belongs
+      , tagTyp :: MoatType
+      -- ^ the type that this represents
+      , tagDisambiguate :: Bool
+      -- ^ does the type need disambiguation?
+      --
+      --   This will happen if there are multiple
+      --   tags with the same type. This is needed
+      --   to maintain safety.
       }
   deriving stock (Eq, Show, Read)
   deriving stock (Generic)
@@ -125,109 +125,109 @@ data MoatType
 data MoatData
   = -- | A record, struct, or product type
     MoatStruct
-      { -- | The name of the struct
-        structName :: String,
-        -- | Haddock documentation for the struct.
-        structDoc :: Maybe String,
-        -- | The struct's type variables
-        structTyVars :: [String],
-        -- | The kotlin interfaces which the struct implements
-        structInterfaces :: [Interface],
-        -- | The swift protocols which the struct implements
-        structProtocols :: [Protocol],
-        -- | The kotlin annotations on the struct
-        structAnnotations :: [Annotation],
-        -- | The fields of the struct.
-        structFields :: [Field],
-        -- | Private types of the struct. Typically
-        --   populated by setting 'makeBase'.
-        --
-        --   Only used by the Swift backend.
-        structPrivateTypes :: [MoatData],
-        -- | The tags of the struct. See 'Tag'.
-        --
-        --   Only used by the Swift backend.
-        structTags :: [MoatType]
+      { structName :: String
+      -- ^ The name of the struct
+      , structDoc :: Maybe String
+      -- ^ Haddock documentation for the struct.
+      , structTyVars :: [String]
+      -- ^ The struct's type variables
+      , structInterfaces :: [Interface]
+      -- ^ The kotlin interfaces which the struct implements
+      , structProtocols :: [Protocol]
+      -- ^ The swift protocols which the struct implements
+      , structAnnotations :: [Annotation]
+      -- ^ The kotlin annotations on the struct
+      , structFields :: [Field]
+      -- ^ The fields of the struct.
+      , structPrivateTypes :: [MoatData]
+      -- ^ Private types of the struct. Typically
+      --   populated by setting 'makeBase'.
+      --
+      --   Only used by the Swift backend.
+      , structTags :: [MoatType]
+      -- ^ The tags of the struct. See 'Tag'.
+      --
+      --   Only used by the Swift backend.
       }
   | -- | An enum, sum, or coproduct type
     MoatEnum
-      { -- | The name of the enum
-        enumName :: String,
-        -- | Haddock documentation for the enum.
-        enumDoc :: Maybe String,
-        -- | The enum's type variables
-        enumTyVars :: [String],
-        -- | The interfaces (Kotlin) which the enum implements
-        enumInterfaces :: [Interface],
-        -- | The protocols (Swift) which the enum implements
-        enumProtocols :: [Protocol],
-        -- | The annotations (Kotlin) on the enum
-        enumAnnotations :: [Annotation],
-        -- | The cases of the enum.
-        enumCases :: [EnumCase],
-        -- | The rawValue of an enum. See
-        --   https://developer.apple.com/documentation/swift/rawrepresentable/1540698-rawvalue
-        --
-        --   Typically the 'Ty' will be
-        --   'I' or 'String'.
-        --
-        --   /Note/: Currently, nothing will prevent
-        --   you from putting something
-        --   nonsensical here.
-        --
-        --   Only used by the Swift backend.
-        enumRawValue :: Maybe MoatType,
-        -- | Private types of the enum. Typically
-        --   populated by setting 'makeBase'.
-        --
-        --   Only used by the Swift backend.
-        enumPrivateTypes :: [MoatData],
-        -- | The tags of the struct. See 'Tag'.
-        --
-        --   Only used by the Swift backend.
-        enumTags :: [MoatType],
-        enumSumOfProductEncodingOption :: SumOfProductEncodingOptions,
-        enumEnumEncodingStyle :: EnumEncodingStyle
+      { enumName :: String
+      -- ^ The name of the enum
+      , enumDoc :: Maybe String
+      -- ^ Haddock documentation for the enum.
+      , enumTyVars :: [String]
+      -- ^ The enum's type variables
+      , enumInterfaces :: [Interface]
+      -- ^ The interfaces (Kotlin) which the enum implements
+      , enumProtocols :: [Protocol]
+      -- ^ The protocols (Swift) which the enum implements
+      , enumAnnotations :: [Annotation]
+      -- ^ The annotations (Kotlin) on the enum
+      , enumCases :: [EnumCase]
+      -- ^ The cases of the enum.
+      , enumRawValue :: Maybe MoatType
+      -- ^ The rawValue of an enum. See
+      --   https://developer.apple.com/documentation/swift/rawrepresentable/1540698-rawvalue
+      --
+      --   Typically the 'Ty' will be
+      --   'I' or 'String'.
+      --
+      --   /Note/: Currently, nothing will prevent
+      --   you from putting something
+      --   nonsensical here.
+      --
+      --   Only used by the Swift backend.
+      , enumPrivateTypes :: [MoatData]
+      -- ^ Private types of the enum. Typically
+      --   populated by setting 'makeBase'.
+      --
+      --   Only used by the Swift backend.
+      , enumTags :: [MoatType]
+      -- ^ The tags of the struct. See 'Tag'.
+      --
+      --   Only used by the Swift backend.
+      , enumSumOfProductEncodingOption :: SumOfProductEncodingOptions
+      , enumEnumEncodingStyle :: EnumEncodingStyle
       }
   | -- | A newtype.
     --   Kotlin backend: becomes a value class.
     --   Swift backend: Becomes an empty enum with a tag.
     MoatNewtype
-      { newtypeName :: String,
-        -- | Haddock documentation for the newtype.
-        newtypeDoc :: Maybe String,
-        newtypeTyVars :: [String],
-        newtypeField :: Field,
-        newtypeInterfaces :: [Interface],
-        newtypeProtocols :: [Protocol], -- TODO: remove this?
-        newtypeAnnotations :: [Annotation]
+      { newtypeName :: String
+      , newtypeDoc :: Maybe String
+      -- ^ Haddock documentation for the newtype.
+      , newtypeTyVars :: [String]
+      , newtypeField :: Field
+      , newtypeInterfaces :: [Interface]
+      , newtypeProtocols :: [Protocol] -- TODO: remove this?
+      , newtypeAnnotations :: [Annotation]
       }
   | -- | A /top-level/ type alias
     MoatAlias
-      { -- | the name of the type alias
-        aliasName :: String,
-        -- | Haddock documentation for the alias.
-        aliasDoc :: Maybe String,
-        -- | the type variables of the type alias
-        aliasTyVars :: [String],
-        -- | the type this represents (RHS)
-        aliasTyp :: MoatType
+      { aliasName :: String
+      -- ^ the name of the type alias
+      , aliasDoc :: Maybe String
+      -- ^ Haddock documentation for the alias.
+      , aliasTyVars :: [String]
+      -- ^ the type variables of the type alias
+      , aliasTyp :: MoatType
+      -- ^ the type this represents (RHS)
       }
   deriving stock (Eq, Read, Show, Generic)
 
 -- | An enum case.
 data EnumCase = EnumCase
-  { enumCaseName :: String,
-    enumCaseDoc :: Maybe String,
-    enumCaseFields :: [Field]
+  { enumCaseName :: String
+  , enumCaseDoc :: Maybe String
+  , enumCaseFields :: [Field]
   }
   deriving stock (Eq, Read, Show)
 
 -- | A named field for enum cases and structs.
 data Field = Field
-  { fieldName :: String,
-    fieldType :: MoatType,
-    fieldDoc :: Maybe String
+  { fieldName :: String
+  , fieldType :: MoatType
+  , fieldDoc :: Maybe String
   }
   deriving stock (Eq, Read, Show)
 
@@ -440,42 +440,41 @@ data Options = Options
     --   Swift backend.
     makeBase :: (Bool, Maybe MoatType, [Protocol]),
     -- TODO: This could use some better documentation after implementing this functionality
-
-    -- | Whether or not to truncate Optional types.
-    --   Normally, an Optional ('Maybe') is encoded
-    --   as "A?", which is syntactic sugar for
-    --   "Optional\<A\>". The default value ('False')
-    --   will keep it as sugar. A value of 'True'
-    --   will expand it to be desugared.
-    optionalExpand :: Bool,
-    -- | Only applies for a sum in a sum of products. The options
-    -- determine the rendering style for the sum of products.
-    -- The user is responsible for choosing the right options
-    -- for the products in a SOP. See 'SumOfProductEncodingOptions'
-    sumOfProductEncodingOptions :: SumOfProductEncodingOptions,
-    -- | Enum encoding style.
-    --
-    --   Only applies for a "C-style" sum-of-products type, where
-    --   each sum constructor has zero type arguments. See
-    --   'EnumEncodingStyle'.
-    --
-    --   This option is only meaningful on the Kotlin backend.
-    enumEncodingStyle :: EnumEncodingStyle
+    optionalExpand :: Bool
+  -- ^ Whether or not to truncate Optional types.
+  --   Normally, an Optional ('Maybe') is encoded
+  --   as "A?", which is syntactic sugar for
+  --   "Optional\<A\>". The default value ('False')
+  --   will keep it as sugar. A value of 'True'
+  --   will expand it to be desugared.
+  , sumOfProductEncodingOptions :: SumOfProductEncodingOptions
+  -- ^ Only applies for a sum in a sum of products. The options
+  -- determine the rendering style for the sum of products.
+  -- The user is responsible for choosing the right options
+  -- for the products in a SOP. See 'SumOfProductEncodingOptions'
+  , enumEncodingStyle :: EnumEncodingStyle
+  -- ^ Enum encoding style.
+  --
+  --   Only applies for a "C-style" sum-of-products type, where
+  --   each sum constructor has zero type arguments. See
+  --   'EnumEncodingStyle'.
+  --
+  --   This option is only meaningful on the Kotlin backend.
   }
 
 data SumOfProductEncodingOptions = SumOfProductEncodingOptions
-  { -- | The encoding style for the sum of product, the library matches the options
-    -- available in aeson, see
-    -- https://hackage.haskell.org/package/aeson/docs/Data-Aeson-TH.html#t:SumEncoding
-    -- and 'EncodingStyle'
-    encodingStyle :: EncodingStyle,
-    -- | The annotations to add solely to sum in the sum of product, e.g.
-    -- in kotlinx.serialization we want to add '@JsonClassDiscriminator("tag")'
-    -- annotation to the sum type but not the products!
-    sumAnnotations :: [Annotation],
-    -- | The field name to use for the products, aeson uses "contents" for the TaggedObject
-    -- style. This is unused in the 'TaggedFlatObjectStyle'
-    contentsFieldName :: String
+  { encodingStyle :: EncodingStyle
+  -- ^ The encoding style for the sum of product, the library matches the options
+  -- available in aeson, see
+  -- https://hackage.haskell.org/package/aeson/docs/Data-Aeson-TH.html#t:SumEncoding
+  -- and 'EncodingStyle'
+  , sumAnnotations :: [Annotation]
+  -- ^ The annotations to add solely to sum in the sum of product, e.g.
+  -- in kotlinx.serialization we want to add '@JsonClassDiscriminator("tag")'
+  -- annotation to the sum type but not the products!
+  , contentsFieldName :: String
+  -- ^ The field name to use for the products, aeson uses "contents" for the TaggedObject
+  -- style. This is unused in the 'TaggedFlatObjectStyle'
   }
   deriving stock (Eq, Read, Show, Lift)
 
@@ -499,9 +498,9 @@ data EncodingStyle = TaggedObjectStyle | TaggedFlatObjectStyle
 defaultSumOfProductEncodingOptions :: SumOfProductEncodingOptions
 defaultSumOfProductEncodingOptions =
   SumOfProductEncodingOptions
-    { encodingStyle = TaggedFlatObjectStyle,
-      sumAnnotations = [],
-      contentsFieldName = "contents"
+    { encodingStyle = TaggedFlatObjectStyle
+    , sumAnnotations = []
+    , contentsFieldName = "contents"
     }
 
 -- | Enum encoding style.

@@ -6,8 +6,8 @@ import Test.Hspec
 import Test.Hspec.Golden
 
 data Data = Data
-  { field0 :: Int,
-    field1 :: Maybe Int
+  { field0 :: Int
+  , field1 :: Maybe Int
   }
 
 mobileGen

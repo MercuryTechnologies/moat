@@ -13,9 +13,9 @@ data Enum
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [Parcelable],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [Parcelable]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Enum

@@ -12,10 +12,10 @@ data Enum
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [Parcelable],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable],
-        dataRawValue = Just Str
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [Parcelable]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      , dataRawValue = Just Str
       }
   )
   ''Enum

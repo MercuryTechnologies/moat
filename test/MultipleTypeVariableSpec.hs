@@ -5,13 +5,13 @@ import Moat
 import Test.Hspec
 import Test.Hspec.Golden
 
-data Data a b = Data { field0 :: a, field1 :: b }
+data Data a b = Data {field0 :: a, field1 :: b}
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize],
-        dataInterfaces = [Parcelable],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [Parcelize]
+      , dataInterfaces = [Parcelable]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Data

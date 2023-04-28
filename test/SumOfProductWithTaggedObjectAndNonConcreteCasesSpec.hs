@@ -7,27 +7,27 @@ import Test.Hspec.Golden
 import Prelude hiding (Enum)
 
 data Record0 = Record0
-  { record0Field0 :: Int,
-    record0Field1 :: Int
+  { record0Field0 :: Int
+  , record0Field1 :: Int
   }
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [Parcelable]
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [Parcelable]
       }
   )
   ''Record0
 
 data Record1 = Record1
-  { record1Field0 :: Int,
-    record1Field1 :: Int
+  { record1Field0 :: Int
+  , record1Field1 :: Int
   }
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [Parcelable]
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [Parcelable]
       }
   )
   ''Record1
@@ -35,15 +35,16 @@ mobileGenWith
 data Enum
   = DataCons0 [Record0]
   | DataCons1 [Record1]
+
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable, SerialName],
-        dataInterfaces = [Parcelable],
-        sumOfProductEncodingOptions =
+      { dataAnnotations = [Parcelize, Serializable, SerialName]
+      , dataInterfaces = [Parcelable]
+      , sumOfProductEncodingOptions =
           SumOfProductEncodingOptions
-            { encodingStyle = TaggedObjectStyle,
-              sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"],
-              contentsFieldName = "contents"
+            { encodingStyle = TaggedObjectStyle
+            , sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"]
+            , contentsFieldName = "contents"
             }
       }
   )

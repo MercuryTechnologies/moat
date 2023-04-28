@@ -7,9 +7,9 @@ module Moat.Pretty.Doc.KDoc
   )
 where
 
-import CMarkGFM (nodeToCommonmark, Node (..))
+import CMarkGFM (Node (..), nodeToCommonmark)
 import Data.Char (isSpace)
-import Data.List (intercalate, dropWhileEnd)
+import Data.List (dropWhileEnd, intercalate)
 import qualified Data.Text as T
 import Moat.Pretty.Doc.Markdown
 import Moat.Types (Field (..))
@@ -17,10 +17,10 @@ import Moat.Types (Field (..))
 prettyDocComment :: Int -> String -> String -> String
 prettyDocComment wrap indents str =
   let ls = lines str
-  in case ls of
-  [] -> ""
-  [l] -> if length l + length indents < wrap then short l else long ls
-  _ -> long ls
+   in case ls of
+        [] -> ""
+        [l] -> if length l + length indents < wrap then short l else long ls
+        _ -> long ls
   where
     short :: String -> String
     short l = indents ++ "/** " ++ l ++ " */\n"
@@ -35,24 +35,22 @@ prettyDocComment wrap indents str =
 
 prettyDoc :: Int -> String -> String
 prettyDoc wrap haddock =
-  let
-    cmark = markdown text identifier (parseDoc haddock)
-    docstr = nodeToCommonmark [] (Just wrap) cmark
-  in T.unpack docstr
+  let cmark = markdown text identifier (parseDoc haddock)
+      docstr = nodeToCommonmark [] (Just wrap) cmark
+   in T.unpack docstr
 
 prettyFieldDoc :: Int -> [Field] -> Maybe String
 prettyFieldDoc wrap fields =
-  let
-    params = filter (/= []) (map fieldParam fields)
-    cmark = case params of
-      [] -> Nothing
-      _ -> Just $ para (intercalate [br] params)
-  in T.unpack . nodeToCommonmark [] (Just wrap) <$> cmark
+  let params = filter (/= []) (map fieldParam fields)
+      cmark = case params of
+        [] -> Nothing
+        _ -> Just $ para (intercalate [br] params)
+   in T.unpack . nodeToCommonmark [] (Just wrap) <$> cmark
 
 fieldParam :: Field -> [Node]
 fieldParam Field {fieldDoc = Nothing} = []
-fieldParam Field {fieldDoc = Just doc, ..}
-  = text ("@param " ++ fieldName ++ " ") : inlineContent (markdown text identifier (parseDoc doc))
+fieldParam Field {fieldDoc = Just doc, ..} =
+  text ("@param " ++ fieldName ++ " ") : inlineContent (markdown text identifier (parseDoc doc))
 
 identifier :: String -> Node
 identifier ident = inline "[" "]" [text ident]

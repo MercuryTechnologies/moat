@@ -7,14 +7,14 @@ import Test.Hspec.Golden
 import Prelude hiding (Enum)
 
 data Record0 = Record0
-  { record0Field0 :: Int,
-    record0Field1 :: Int
+  { record0Field0 :: Int
+  , record0Field1 :: Int
   }
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [Parcelable]
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [Parcelable]
       }
   )
   ''Record0
@@ -25,13 +25,13 @@ data Enum
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable, SerialName],
-        dataInterfaces = [Parcelable],
-        sumOfProductEncodingOptions =
+      { dataAnnotations = [Parcelize, Serializable, SerialName]
+      , dataInterfaces = [Parcelable]
+      , sumOfProductEncodingOptions =
           SumOfProductEncodingOptions
-            { encodingStyle = TaggedObjectStyle,
-              sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"],
-              contentsFieldName = "contents"
+            { encodingStyle = TaggedObjectStyle
+            , sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"]
+            , contentsFieldName = "contents"
             }
       }
   )

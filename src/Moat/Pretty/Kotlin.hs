@@ -6,7 +6,7 @@ where
 import qualified Data.Char as Char
 import Data.Functor ((<&>))
 import Data.List (intercalate)
-import Data.Maybe (mapMaybe, catMaybes)
+import Data.Maybe (catMaybes, mapMaybe)
 import Moat.Pretty.Doc.KDoc
 import Moat.Types
 
@@ -61,10 +61,9 @@ prettyKotlinData = \case
 
 prettyTypeDoc :: String -> Maybe String -> [Field] -> String
 prettyTypeDoc indents doc fields =
-  let
-    wrap = wrapColumn indents 100
-    kdoc = intercalate "\n" (catMaybes [prettyDoc wrap <$> doc, prettyFieldDoc wrap fields])
-  in prettyDocComment wrap indents kdoc
+  let wrap = wrapColumn indents 100
+      kdoc = intercalate "\n" (catMaybes [prettyDoc wrap <$> doc, prettyFieldDoc wrap fields])
+   in prettyDocComment wrap indents kdoc
 
 prettyStructFields :: String -> [Field] -> String
 prettyStructFields indents = go
@@ -111,9 +110,14 @@ prettyValueClassInstances indents typ cons enumCases = case enumCases of
     entriesField caseNames =
       indents
         ++ indents
-        ++ "val entries: List<" ++ typ ++ "> = listOf(\n" ++ concat (replicate 3 indents)
+        ++ "val entries: List<"
+        ++ typ
+        ++ "> = listOf(\n"
+        ++ concat (replicate 3 indents)
         ++ intercalate (concat (replicate 3 indents)) (map ((++ ",\n") . toUpperFirst) caseNames)
-        ++ indents ++ indents ++ ")\n"
+        ++ indents
+        ++ indents
+        ++ ")\n"
 
     instanceFields :: [EnumCase] -> String
     instanceFields [] = ""
@@ -304,25 +308,25 @@ prettyEnum doc anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..
             ++ newlineNonEmpty cases
             ++ "}"
   | otherwise =
-    case encodingStyle of
-      TaggedFlatObjectStyle ->
-        prettyTypeDoc noIndent doc []
-          ++ prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
-          ++ "sealed class "
-          ++ classTyp
-          ++ prettyInterfaces ifaces
-      TaggedObjectStyle ->
-        prettyTypeDoc noIndent doc []
-        ++ prettyAnnotations
-             Nothing
-             noIndent
-             (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
-          ++ "sealed class "
-          ++ classTyp
-          ++ prettyInterfaces ifaces
-          ++ " {\n"
-          ++ prettyTaggedObject name anns cases indents sop
-          ++ "\n}"
+      case encodingStyle of
+        TaggedFlatObjectStyle ->
+          prettyTypeDoc noIndent doc []
+            ++ prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
+            ++ "sealed class "
+            ++ classTyp
+            ++ prettyInterfaces ifaces
+        TaggedObjectStyle ->
+          prettyTypeDoc noIndent doc []
+            ++ prettyAnnotations
+              Nothing
+              noIndent
+              (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
+            ++ "sealed class "
+            ++ classTyp
+            ++ prettyInterfaces ifaces
+            ++ " {\n"
+            ++ prettyTaggedObject name anns cases indents sop
+            ++ "\n}"
   where
     isCEnum :: [EnumCase] -> Bool
     isCEnum = all ((== []) . enumCaseFields)

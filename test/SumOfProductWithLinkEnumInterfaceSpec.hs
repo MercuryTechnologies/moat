@@ -7,29 +7,29 @@ import Test.Hspec.Golden
 import Prelude hiding (Enum)
 
 data Record0 = Record0
-  { record0Field0 :: Int,
-    record0Field1 :: Int
+  { record0Field0 :: Int
+  , record0Field1 :: Int
   }
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [LinkEnumInterface "Enum"],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [LinkEnumInterface "Enum"]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Record0
 
 data Record1 = Record1
-  { record1Field0 :: Int,
-    record1Field1 :: Int
+  { record1Field0 :: Int
+  , record1Field1 :: Int
   }
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [LinkEnumInterface "Enum"],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [LinkEnumInterface "Enum"]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Record1
@@ -40,9 +40,9 @@ data Enum
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [RawAnnotation "Serializable(with = Enum1Serializer::class)"],
-        dataInterfaces = [Parcelable],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [RawAnnotation "Serializable(with = Enum1Serializer::class)"]
+      , dataInterfaces = [Parcelable]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Enum
