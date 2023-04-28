@@ -574,9 +574,9 @@ prettyMoatError = \case
     "Expected `ConstructorInfo` with single field, but got "
       ++ show conInfo
   MissingStrictFields missingFields ->
-    "Missing strict fields: " ++ L.unwords missingFields
+    "Removing these fields will break clients: " ++ L.unwords missingFields
   MissingStrictCases missingCases ->
-    "Missing strict constructors: " ++ L.unwords missingCases
+    "Removing these cases will break clients: " ++ L.unwords missingCases
 
 prettyTyVarBndrStr :: TyVarBndr -> String
 prettyTyVarBndrStr = \case
