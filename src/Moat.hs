@@ -741,12 +741,12 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
             _ -> do
               mkProd o parentName parentDoc instTys ts con
         _ -> do
-          -- cases which much exist
+          -- 'strictCases' are required to exist and are always included.
+          -- 'omitCases' will remove any remaining fields which are 'Discard'ed.
           let constructorNames = cons <&> \ConstructorInfo {..} -> nameStr constructorName
               missingConstructors = strictCases L.\\ constructorNames
           if null missingConstructors
             then do
-              -- omit the cases we don't want
               let cons' =
                     flip filter cons $
                         \ConstructorInfo {..} ->
@@ -1018,6 +1018,8 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
       fields <- zipFields o fieldNames constructorFields fieldDocs
       matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
 
+-- | 'strictFields' are required to exist in the record and are always included.
+-- 'omitFields' will remove any remaining fields if they are 'Discard'ed.
 zipFields :: Options -> [Name] -> [Type] -> [Maybe String] -> MoatM [Exp]
 zipFields o ns ts ds = do
   let fields = nameStr <$> ns
