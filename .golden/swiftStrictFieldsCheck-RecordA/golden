@@ -1,0 +1,3 @@
+struct RecordA {
+    let fieldA: String
+}
