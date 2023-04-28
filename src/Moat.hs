@@ -73,6 +73,8 @@ module Moat
     lowerFirstField,
     omitFields,
     omitCases,
+    strictFields,
+    strictCases,
     makeBase,
     sumOfProductEncodingOptions,
     enumEncodingStyle,
@@ -501,6 +503,9 @@ data MoatError
   | ImproperNewtypeConstructorInfo
       { _conInfo :: ConstructorInfo
       }
+  | MissingStrictFields
+      { _missingFields :: [String]
+      }
 
 prettyMoatError :: MoatError -> String
 prettyMoatError = \case
@@ -565,6 +570,8 @@ prettyMoatError = \case
   ImproperNewtypeConstructorInfo conInfo ->
     "Expected `ConstructorInfo` with single field, but got "
       ++ show conInfo
+  MissingStrictFields missingFields ->
+    "Missing strict fields: " ++ L.unwords missingFields
 
 prettyTyVarBndrStr :: TyVarBndr -> String
 prettyTyVarBndrStr = \case
@@ -992,16 +999,25 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
       ..
     } -> do
       fieldDocs <- lift $ mapM (getDocWith o) fieldNames
-      let fields = zipFields o fieldNames constructorFields fieldDocs
+      fields <- zipFields o fieldNames constructorFields fieldDocs
       matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
 
-zipFields :: Options -> [Name] -> [Type] -> [Maybe String] -> [Exp]
-zipFields o ns ts ds = catMaybes $ zipWith3 mkField ns ts ds
+zipFields :: Options -> [Name] -> [Type] -> [Maybe String] -> MoatM [Exp]
+zipFields o ns ts ds = do
+  let fields = nameStr <$> ns
+      missingFields = strictFields o L.\\ fields
+  if null missingFields
+    then pure $ catMaybes $ zipWith3 mkField ns ts ds
+    else throwError $ MissingStrictFields missingFields
   where
     mkField :: Name -> Type -> Maybe String -> Maybe Exp
-    mkField n t d = case omitFields o (nameStr n) of
-      Keep -> Just $ prettyField o n t d
-      Discard -> Nothing
+    mkField n t d =
+      let fieldStr = nameStr n
+      in
+        case (fieldStr `elem` strictFields o, omitFields o fieldStr) of
+          (True, _) -> Just $ prettyField o n t d
+          (False, Keep) -> Just $ prettyField o n t d
+          (False, Discard) -> Nothing
 
 -- turn a field name into a swift case name.
 -- examples:

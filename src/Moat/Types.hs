@@ -411,6 +411,10 @@ data Options = Options
     --
     --   The default (@const Keep@) will omit nothing.
     omitCases :: String -> KeepOrDiscard,
+    -- | These fields are relied upon, must exist, and are 'Keep'
+    strictFields :: [String],
+    -- | These cases are relied upon, must exist, and are 'Keep'
+    strictCases :: [String],
     -- | Whether or not to make a base type,
     --   its raw value, and its protocols.
     --
@@ -522,6 +526,8 @@ data EnumEncodingStyle = EnumClassStyle | ValueClassStyle
 --   , lowerFirstCase = True
 --   , omitFields = const Keep
 --   , omitCases = const Keep
+--   , strictFields = []
+--   , strictCases = []
 --   , makeBase = (False, Nothing, [])
 --   , optionalExpand = False
 --   , sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
@@ -549,6 +555,8 @@ defaultOptions =
       lowerFirstCase = True,
       omitFields = const Keep,
       omitCases = const Keep,
+      strictFields = [],
+      strictCases = [],
       makeBase = (False, Nothing, []),
       optionalExpand = False,
       sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions,
