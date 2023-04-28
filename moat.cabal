@@ -84,6 +84,7 @@ test-suite spec
       EnumValueClassDocSpec
       EnumValueClassSpec
       MultipleTypeVariableSpec
+      StrictEnumsSpec
       StrictFieldsSpec
       SumOfProductDocSpec
       SumOfProductSpec

@@ -506,6 +506,9 @@ data MoatError
   | MissingStrictFields
       { _missingFields :: [String]
       }
+  | MissingStrictCases
+      { _missingCases :: [String]
+      }
 
 prettyMoatError :: MoatError -> String
 prettyMoatError = \case
@@ -572,6 +575,8 @@ prettyMoatError = \case
       ++ show conInfo
   MissingStrictFields missingFields ->
     "Missing strict fields: " ++ L.unwords missingFields
+  MissingStrictCases missingCases ->
+    "Missing strict constructors: " ++ L.unwords missingCases
 
 prettyTyVarBndrStr :: TyVarBndr -> String
 prettyTyVarBndrStr = \case
@@ -736,13 +741,24 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
             _ -> do
               mkProd o parentName parentDoc instTys ts con
         _ -> do
-          -- omit the cases we don't want
-          let cons' = flip filter cons $ \ConstructorInfo {..} -> omitCases (nameStr constructorName) == Keep
-          cases <- forM cons' (mkCase o)
-          ourMatch <-
-            matchProxy
-              =<< lift (enumExp parentName parentDoc instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs sumOfProductEncodingOptions enumEncodingStyle)
-          pure [pure ourMatch]
+          -- cases which much exist
+          let constructorNames = cons <&> \ConstructorInfo {..} -> nameStr constructorName
+              missingConstructors = strictCases L.\\ constructorNames
+          if null missingConstructors
+            then do
+              -- omit the cases we don't want
+              let cons' =
+                    flip filter cons $
+                        \ConstructorInfo {..} ->
+                            let constructorStr = nameStr constructorName
+                            in constructorStr `elem` strictCases ||
+                               omitCases (nameStr constructorName) == Keep
+              cases <- forM cons' (mkCase o)
+              ourMatch <-
+                matchProxy
+                  =<< lift (enumExp parentName parentDoc instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs sumOfProductEncodingOptions enumEncodingStyle)
+              pure [pure ourMatch]
+            else throwError $ MissingStrictCases missingConstructors
 
 liftCons :: (Functor f, Applicative g) => f a -> f [g a]
 liftCons x = (: []) . pure <$> x
