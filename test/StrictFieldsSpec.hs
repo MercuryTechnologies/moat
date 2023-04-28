@@ -5,7 +5,6 @@ import Moat
 import Test.Hspec
 import Test.Hspec.Golden
 import Prelude hiding (Enum)
-import Moat.Types (Options(..))
 
 data Record = Record 
   { fieldA :: String
