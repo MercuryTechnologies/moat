@@ -1,3 +1,0 @@
-data class Record(
-    val fieldA: String,
-)
