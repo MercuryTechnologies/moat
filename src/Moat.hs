@@ -94,6 +94,7 @@ where
 
 import Control.Monad
 import Control.Monad.Except
+import Control.Monad.Trans
 import Data.Bool (bool)
 import qualified Data.Char as Char
 import Data.Foldable (foldl', foldlM, foldr')
