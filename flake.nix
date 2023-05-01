@@ -84,6 +84,7 @@
                 hsPkgs.hlint
                 hsPkgs.hpack
                 hsPkgs.fourmolu
+                pkgs.alejandra
               ];
             }
         );
