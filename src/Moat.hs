@@ -73,6 +73,8 @@ module Moat
     lowerFirstField,
     omitFields,
     omitCases,
+    strictFields,
+    strictCases,
     makeBase,
     sumOfProductEncodingOptions,
     enumEncodingStyle,
@@ -501,6 +503,12 @@ data MoatError
   | ImproperNewtypeConstructorInfo
       { _conInfo :: ConstructorInfo
       }
+  | MissingStrictFields
+      { _missingFields :: [String]
+      }
+  | MissingStrictCases
+      { _missingCases :: [String]
+      }
 
 prettyMoatError :: MoatError -> String
 prettyMoatError = \case
@@ -565,6 +573,10 @@ prettyMoatError = \case
   ImproperNewtypeConstructorInfo conInfo ->
     "Expected `ConstructorInfo` with single field, but got "
       ++ show conInfo
+  MissingStrictFields missingFields ->
+    "Removing these fields will break clients: " ++ L.unwords missingFields
+  MissingStrictCases missingCases ->
+    "Removing these cases will break clients: " ++ L.unwords missingCases
 
 prettyTyVarBndrStr :: TyVarBndr -> String
 prettyTyVarBndrStr = \case
@@ -729,13 +741,24 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
             _ -> do
               mkProd o parentName parentDoc instTys ts con
         _ -> do
-          -- omit the cases we don't want
-          let cons' = flip filter cons $ \ConstructorInfo {..} -> omitCases (nameStr constructorName) == Keep
-          cases <- forM cons' (mkCase o)
-          ourMatch <-
-            matchProxy
-              =<< lift (enumExp parentName parentDoc instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs sumOfProductEncodingOptions enumEncodingStyle)
-          pure [pure ourMatch]
+          -- 'strictCases' are required to exist and are always included.
+          -- 'omitCases' will remove any remaining fields which are 'Discard'ed.
+          let constructorNames = cons <&> \ConstructorInfo {..} -> nameStr constructorName
+              missingConstructors = strictCases L.\\ constructorNames
+          if null missingConstructors
+            then do
+              let cons' =
+                    flip filter cons $
+                        \ConstructorInfo {..} ->
+                            let constructorStr = nameStr constructorName
+                            in constructorStr `elem` strictCases ||
+                               omitCases (nameStr constructorName) == Keep
+              cases <- forM cons' (mkCase o)
+              ourMatch <-
+                matchProxy
+                  =<< lift (enumExp parentName parentDoc instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs sumOfProductEncodingOptions enumEncodingStyle)
+              pure [pure ourMatch]
+            else throwError $ MissingStrictCases missingConstructors
 
 liftCons :: (Functor f, Applicative g) => f a -> f [g a]
 liftCons x = (: []) . pure <$> x
@@ -992,16 +1015,27 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
       ..
     } -> do
       fieldDocs <- lift $ mapM (getDocWith o) fieldNames
-      let fields = zipFields o fieldNames constructorFields fieldDocs
+      fields <- zipFields o fieldNames constructorFields fieldDocs
       matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
 
-zipFields :: Options -> [Name] -> [Type] -> [Maybe String] -> [Exp]
-zipFields o ns ts ds = catMaybes $ zipWith3 mkField ns ts ds
+-- | 'strictFields' are required to exist in the record and are always included.
+-- 'omitFields' will remove any remaining fields if they are 'Discard'ed.
+zipFields :: Options -> [Name] -> [Type] -> [Maybe String] -> MoatM [Exp]
+zipFields o ns ts ds = do
+  let fields = nameStr <$> ns
+      missingFields = strictFields o L.\\ fields
+  if null missingFields
+    then pure $ catMaybes $ zipWith3 mkField ns ts ds
+    else throwError $ MissingStrictFields missingFields
   where
     mkField :: Name -> Type -> Maybe String -> Maybe Exp
-    mkField n t d = case omitFields o (nameStr n) of
-      Keep -> Just $ prettyField o n t d
-      Discard -> Nothing
+    mkField n t d =
+      let fieldStr = nameStr n
+      in
+        case (fieldStr `elem` strictFields o, omitFields o fieldStr) of
+          (True, _) -> Just $ prettyField o n t d
+          (False, Keep) -> Just $ prettyField o n t d
+          (False, Discard) -> Nothing
 
 -- turn a field name into a swift case name.
 -- examples:
