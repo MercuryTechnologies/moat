@@ -11,9 +11,9 @@ where
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import Data.CaseInsensitive (CI)
-import Data.List.NonEmpty (NonEmpty)
 import qualified Data.HashMap.Strict as HM
 import Data.Int (Int16, Int32, Int64, Int8)
+import Data.List.NonEmpty (NonEmpty)
 import qualified Data.Map as M
 import qualified Data.Primitive as Prim
 import Data.Proxy (Proxy (..))

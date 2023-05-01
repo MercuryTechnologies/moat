@@ -1,5 +1,6 @@
 {- HLINT ignore "Avoid restricted extensions" -}
 {-# LANGUAGE DuplicateRecordFields #-}
+
 module DuplicateRecordFieldSpec where
 
 import Common
@@ -10,14 +11,18 @@ import Test.Hspec.Golden
 
 -- | Record 0 with duplicate fields
 data Data0 = Data0
-  { field0 :: Int,      -- ^ duplicate field0
-    field1 :: Maybe Int -- ^ not a duplicate
+  { field0 :: Int
+  -- ^ duplicate field0
+  , field1 :: Maybe Int
+  -- ^ not a duplicate
   }
 
 -- | Record 1 with duplicate fields
 data Data1 = Data1
-  { field0 :: String,      -- ^ duplicate field0
-    field2 :: Maybe String -- ^ not a duplicate
+  { field0 :: String
+  -- ^ duplicate field0
+  , field2 :: Maybe String
+  -- ^ not a duplicate
   }
 
 mobileGen ''Data0

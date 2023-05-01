@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+
 module Moat.Pretty.Doc.Markdown
   ( block,
     br,
@@ -18,10 +19,10 @@ module Moat.Pretty.Doc.Markdown
 where
 
 import CMarkGFM
+import qualified Data.Text as T
 import Documentation.Haddock.Markup
 import Documentation.Haddock.Parser
 import Documentation.Haddock.Types
-import qualified Data.Text as T
 
 -- | Parse a Haddock comment.
 --
@@ -36,8 +37,8 @@ markdown ::
   -- | Function to format an identifier as a Markdown node.
   (String -> Node) ->
   -- | Incoming Haddock documentation.
-  DocH String String
-  -> Node
+  DocH String String ->
+  Node
 markdown m i doc = document (markdownBlocks m i doc)
 
 markdownBlocks ::
@@ -129,8 +130,8 @@ link m i url lbl = node (LINK (T.pack url) T.empty) (maybe [text url] (markdownI
 inlineContent :: Node -> [Node]
 inlineContent n@(Node _ typ xs) =
   if isBlock typ
-  then concatMap inlineContent xs
-  else [n]
+    then concatMap inlineContent xs
+    else [n]
 
 isBlock :: NodeType -> Bool
 isBlock = \case

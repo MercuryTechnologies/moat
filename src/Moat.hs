@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# language PatternSynonyms #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -7,6 +6,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -93,7 +93,6 @@ module Moat
 where
 
 import Control.Monad
-import Control.Monad.Trans
 import Control.Monad.Except
 import Data.Bool (bool)
 import qualified Data.Char as Char
@@ -108,17 +107,17 @@ import Data.Proxy (Proxy (..))
 import qualified Data.Text as TS
 import Data.Void (Void)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
+import Language.Haskell.TH hiding (TyVarBndr (..), newName, stringE, tupE)
 import qualified Language.Haskell.TH
-import Language.Haskell.TH hiding (stringE, tupE, TyVarBndr(..), newName)
 import Language.Haskell.TH.Datatype
 import qualified Language.Haskell.TH.Syntax as Syntax
+import Language.Haskell.TH.Syntax.Compat
 import Moat.Class
 import Moat.Pretty.Kotlin (prettyKotlinData)
 import Moat.Pretty.Swift (prettySwiftData)
 import Moat.Types hiding (newtypeName)
 import qualified Moat.Types
 import Prelude hiding (Enum (..))
-import Language.Haskell.TH.Syntax.Compat
 
 #if MIN_VERSION_template_haskell(2,17,0)
 type TyVarBndr = Language.Haskell.TH.TyVarBndr ()
@@ -207,16 +206,16 @@ mobileGenWith :: Options -> Name -> Q [Dec]
 mobileGenWith o = mobileGenWithTags o []
 
 data NewtypeInfo = NewtypeInfo
-  { -- | The type constructors name
-    newtypeName :: Name,
-    -- | Type constructor parameters, see 'TyVarBndr'
-    newtypeVars :: [TyVarBndr],
-    -- | Type constructor instance types, see 'Type'
-    newtypeInstTypes :: [Type],
-    -- | Whether or not the type is a newtype or newtype instance
-    newtypeVariant :: DatatypeVariant,
-    -- | The data constructor information
-    newtypeCon :: ConstructorInfo
+  { newtypeName :: Name
+  -- ^ The type constructors name
+  , newtypeVars :: [TyVarBndr]
+  -- ^ Type constructor parameters, see 'TyVarBndr'
+  , newtypeInstTypes :: [Type]
+  -- ^ Type constructor instance types, see 'Type'
+  , newtypeVariant :: DatatypeVariant
+  -- ^ Whether or not the type is a newtype or newtype instance
+  , newtypeCon :: ConstructorInfo
+  -- ^ The data constructor information
   }
 
 -- | Reify a newtype.
@@ -227,20 +226,20 @@ reifyNewtype n = do
     ([c], Newtype) -> do
       pure
         NewtypeInfo
-          { newtypeName = datatypeName,
-            newtypeVars = datatypeVars,
-            newtypeInstTypes = datatypeInstTypes,
-            newtypeVariant = datatypeVariant,
-            newtypeCon = c
+          { newtypeName = datatypeName
+          , newtypeVars = datatypeVars
+          , newtypeInstTypes = datatypeInstTypes
+          , newtypeVariant = datatypeVariant
+          , newtypeCon = c
           }
     ([c], NewtypeInstance) -> do
       pure
         NewtypeInfo
-          { newtypeName = datatypeName,
-            newtypeVars = datatypeVars,
-            newtypeInstTypes = datatypeInstTypes,
-            newtypeVariant = datatypeVariant,
-            newtypeCon = c
+          { newtypeName = datatypeName
+          , newtypeVars = datatypeVars
+          , newtypeInstTypes = datatypeInstTypes
+          , newtypeVariant = datatypeVariant
+          , newtypeCon = c
           }
     _ -> do
       throwError $ NotANewtype n
@@ -277,10 +276,10 @@ getTags parentName ts = do
         let tag =
               RecConE
                 'Tag
-                [ ('tagName, unqualName tyconName),
-                  ('tagParent, unqualName parentName),
-                  ('tagTyp, toMoatTypeEPoly typ),
-                  ('tagDisambiguate, unType disambiguate)
+                [ ('tagName, unqualName tyconName)
+                , ('tagParent, unqualName parentName)
+                , ('tagTyp, toMoatTypeEPoly typ)
+                , ('tagDisambiguate, unType disambiguate)
                 ]
 
         -- generate the instance
@@ -444,10 +443,10 @@ mobileGenWithTags o ts name = do
     ensureEnabled ScopedTypeVariables
     ensureEnabled DataKinds
     DatatypeInfo
-      { datatypeName = parentName,
-        datatypeInstTypes = instTys,
-        datatypeVariant = variant,
-        datatypeCons = cons
+      { datatypeName = parentName
+      , datatypeInstTypes = instTys
+      , datatypeVariant = variant
+      , datatypeCons = cons
       } <-
       lift $ reifyDatatype name
     noExistentials cons
@@ -482,23 +481,23 @@ data MoatError
       { _conName :: Name
       }
   | KindVariableCannotBeRealised
-      { _typName :: Name,
-        _kind :: Kind
+      { _typName :: Name
+      , _kind :: Kind
       }
   | ExtensionNotEnabled
       { _ext :: Extension
       }
   | ExistentialTypes
-      { _conName :: Name,
-        _types :: [TyVarBndr]
+      { _conName :: Name
+      , _types :: [TyVarBndr]
       }
   | ExpectedNewtypeInstance
   | NotANewtype
       { _typName :: Name
       }
   | EncounteredNonTypeVariable
-      { _funName :: String,
-        _type :: Type
+      { _funName :: String
+      , _type :: Type
       }
   | ImproperNewtypeConstructorInfo
       { _conInfo :: ConstructorInfo
@@ -646,8 +645,8 @@ typToMoatType newtypeTag parentName instTys = do
     matchProxy $
       RecConE
         'Concrete
-        [ ('concreteName, name),
-          ('concreteTyVars, ListE tyVars)
+        [ ('concreteName, name)
+        , ('concreteTyVars, ListE tyVars)
         ]
   let matches = [pure ourMatch]
   lift $ lamCaseE matches
@@ -733,11 +732,11 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
             Newtype -> do
               if
                   | newtypeTag -> do
-                    mkTypeTag o parentName instTys con
+                      mkTypeTag o parentName instTys con
                   | typeAlias -> do
-                    mkTypeAlias parentName parentDoc instTys con
+                      mkTypeAlias parentName parentDoc instTys con
                   | otherwise -> do
-                    mkNewtype o parentName parentDoc instTys con
+                      mkNewtype o parentName parentDoc instTys con
             _ -> do
               mkProd o parentName parentDoc instTys ts con
         _ -> do
@@ -749,10 +748,10 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
             then do
               let cons' =
                     flip filter cons $
-                        \ConstructorInfo {..} ->
-                            let constructorStr = nameStr constructorName
-                            in constructorStr `elem` strictCases ||
-                               omitCases (nameStr constructorName) == Keep
+                      \ConstructorInfo {..} ->
+                        let constructorStr = nameStr constructorName
+                         in constructorStr `elem` strictCases
+                              || omitCases (nameStr constructorName) == Keep
               cases <- forM cons' (mkCase o)
               ourMatch <-
                 matchProxy
@@ -768,10 +767,10 @@ mkCaseHelper :: Options -> Name -> Maybe String -> [Exp] -> Exp
 mkCaseHelper o name doc es =
   RecConE
     'EnumCase
-      [ ('enumCaseName, caseName o name),
-        ('enumCaseDoc, prettyDoc doc),
-        ('enumCaseFields, ListE es)
-      ]
+    [ ('enumCaseName, caseName o name)
+    , ('enumCaseDoc, prettyDoc doc)
+    , ('enumCaseFields, ListE es)
+    ]
 
 mkCase ::
   () =>
@@ -781,45 +780,47 @@ mkCase ::
 mkCase o = \case
   -- non-record
   ConstructorInfo
-    { constructorVariant = NormalConstructor,
-      constructorName = name,
-      constructorFields = fields
+    { constructorVariant = NormalConstructor
+    , constructorName = name
+    , constructorFields = fields
     } ->
-    do
-      doc <- lift $ getDocWith o name
-      pure $ mkCaseHelper o name doc $ fields
-        <&> ( \typ ->
-                RecConE
-                  'Field
-                    [ ('fieldName, stringE ""),
-                      ('fieldType, toMoatTypeEPoly typ),
-                      ('fieldDoc, ConE 'Nothing)
-                    ]
-            )
+      do
+        doc <- lift $ getDocWith o name
+        pure $
+          mkCaseHelper o name doc $
+            fields
+              <&> ( \typ ->
+                      RecConE
+                        'Field
+                        [ ('fieldName, stringE "")
+                        , ('fieldType, toMoatTypeEPoly typ)
+                        , ('fieldDoc, ConE 'Nothing)
+                        ]
+                  )
   ConstructorInfo
-    { constructorVariant = InfixConstructor,
-      constructorName = name
+    { constructorVariant = InfixConstructor
+    , constructorName = name
     } -> throwError (EncounteredInfixConstructor name)
   -- records
   -- we turn names into labels
   ConstructorInfo
-    { constructorVariant = RecordConstructor fieldNames,
-      constructorName = name,
-      constructorFields = fields
+    { constructorVariant = RecordConstructor fieldNames
+    , constructorName = name
+    , constructorFields = fields
     } ->
-    do
-      doc <- lift $ getDocWith o name
-      fieldDocs <- lift $ mapM (getDocWith o) fieldNames
-      let cases = zipWith3 (caseField o) fieldNames fields fieldDocs
-       in pure $ mkCaseHelper o name doc cases
+      do
+        doc <- lift $ getDocWith o name
+        fieldDocs <- lift $ mapM (getDocWith o) fieldNames
+        let cases = zipWith3 (caseField o) fieldNames fields fieldDocs
+         in pure $ mkCaseHelper o name doc cases
 
 caseField :: Options -> Name -> Type -> Maybe String -> Exp
 caseField o n typ doc =
   RecConE
     'Field
-      [ ('fieldName, mkLabel o n),
-        ('fieldType, toMoatTypeEPoly typ),
-        ('fieldDoc, prettyDoc doc)
+    [ ('fieldName, mkLabel o n)
+    , ('fieldType, toMoatTypeEPoly typ)
+    , ('fieldDoc, prettyDoc doc)
     ]
 
 onHeadWith :: Bool -> String -> String
@@ -854,8 +855,8 @@ mkNewtypeInstanceAlias ::
   MoatM Match
 mkNewtypeInstanceAlias doc (stripConT -> instTys) = \case
   ConstructorInfo
-    { constructorName = conName,
-      constructorFields = [field]
+    { constructorName = conName
+    , constructorFields = [field]
     } -> do
       lift $
         match
@@ -882,8 +883,8 @@ mkNewtypeInstance ::
   MoatM Match
 mkNewtypeInstance o@Options {..} doc (stripConT -> instTys) = \case
   ConstructorInfo
-    { constructorFields = [field],
-      ..
+    { constructorFields = [field]
+    , ..
     } -> do
       matchProxy =<< lift (newtypeExp constructorName doc instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field Nothing))
   _ -> throwError ExpectedNewtypeInstance
@@ -962,8 +963,8 @@ mkNewtype ::
   MoatM Match
 mkNewtype o@Options {..} typName doc instTys = \case
   ConstructorInfo
-    { constructorFields = [field],
-      constructorVariant = RecordConstructor [name]
+    { constructorFields = [field]
+    , constructorVariant = RecordConstructor [name]
     } -> do
       matchProxy =<< lift (newtypeExp typName doc instTys dataInterfaces dataProtocols dataAnnotations (prettyField o name field Nothing))
   ConstructorInfo
@@ -991,28 +992,28 @@ mkProd ::
 mkProd o@Options {..} typName parentDoc instTys ts = \case
   -- single constructor, no fields
   ConstructorInfo
-    { constructorVariant = NormalConstructor,
-      constructorFields = []
+    { constructorVariant = NormalConstructor
+    , constructorFields = []
     } -> do
       matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations [] ts makeBase)
   -- single constructor, non-record (Normal)
   ConstructorInfo
-    { constructorVariant = NormalConstructor,
-      constructorName = name
+    { constructorVariant = NormalConstructor
+    , constructorName = name
     } -> do
       -- TODO: replace with 'value', ignore non-records
       -- instead of erroring. Make this configurable
       throwError $ SingleConNonRecord name
   -- single constructor, non-record (Infix)
   ConstructorInfo
-    { constructorVariant = InfixConstructor,
-      constructorName = name
+    { constructorVariant = InfixConstructor
+    , constructorName = name
     } -> do
       throwError $ EncounteredInfixConstructor name
   -- single constructor, record
   ConstructorInfo
-    { constructorVariant = RecordConstructor fieldNames,
-      ..
+    { constructorVariant = RecordConstructor fieldNames
+    , ..
     } -> do
       fieldDocs <- lift $ mapM (getDocWith o) fieldNames
       fields <- zipFields o fieldNames constructorFields fieldDocs
@@ -1031,11 +1032,10 @@ zipFields o ns ts ds = do
     mkField :: Name -> Type -> Maybe String -> Maybe Exp
     mkField n t d =
       let fieldStr = nameStr n
-      in
-        case (fieldStr `elem` strictFields o, omitFields o fieldStr) of
-          (True, _) -> Just $ prettyField o n t d
-          (False, Keep) -> Just $ prettyField o n t d
-          (False, Discard) -> Nothing
+       in case (fieldStr `elem` strictFields o, omitFields o fieldStr) of
+            (True, _) -> Just $ prettyField o n t d
+            (False, Keep) -> Just $ prettyField o n t d
+            (False, Discard) -> Nothing
 
 -- turn a field name into a swift case name.
 -- examples:
@@ -1097,9 +1097,9 @@ prettyField :: Options -> Name -> Type -> Maybe String -> Exp
 prettyField Options {..} name ty doc =
   RecConE
     'Field
-    [ ('fieldName, stringE (onHeadWith lowerFirstField (fieldLabelModifier (nameStr name)))),
-      ('fieldType, toMoatTypeEPoly ty),
-      ('fieldDoc, prettyDoc doc)
+    [ ('fieldName, stringE (onHeadWith lowerFirstField (fieldLabelModifier (nameStr name))))
+    , ('fieldType, toMoatTypeEPoly ty)
+    , ('fieldDoc, prettyDoc doc)
     ]
 
 -- prettify doc string as an Exp
@@ -1119,10 +1119,10 @@ getDeclDoc _ = pure Nothing
 
 -- get doc string if enabled in options
 getDocWith :: Options -> Name -> Q (Maybe String)
-getDocWith Options{..} n =
+getDocWith Options {..} n =
   if generateDocComments
-  then getDeclDoc n
-  else pure Nothing
+    then getDeclDoc n
+    else pure Nothing
 
 -- build the instance head for a type
 buildTypeInstance ::
@@ -1518,10 +1518,10 @@ aliasExp ::
 aliasExp name doc tyVars field =
   RecConE
     'MoatAlias
-    [ ('aliasName, unqualName name),
-      ('aliasDoc, prettyDoc doc),
-      ('aliasTyVars, prettyTyVars tyVars),
-      ('aliasTyp, toMoatTypeECxt field)
+    [ ('aliasName, unqualName name)
+    , ('aliasDoc, prettyDoc doc)
+    , ('aliasTyVars, prettyTyVars tyVars)
+    , ('aliasTyp, toMoatTypeECxt field)
     ]
 
 -- | Construct a Tag.
@@ -1539,11 +1539,12 @@ tagExp ::
 tagExp tyconName parentName typ dis =
   RecConE
     'Tag
-    [ ('tagName, unqualName tyconName),
-      ('tagParent, unqualName parentName),
-      ('tagTyp, toMoatTypeECxt typ),
-      ( 'tagDisambiguate,
-        if dis then ConE 'True else ConE 'False
+    [ ('tagName, unqualName tyconName)
+    , ('tagParent, unqualName parentName)
+    , ('tagTyp, toMoatTypeECxt typ)
+    ,
+      ( 'tagDisambiguate
+      , if dis then ConE 'True else ConE 'False
       )
     ]
 
@@ -1583,18 +1584,18 @@ enumExp parentName parentDoc tyVars ifaces protos anns cases raw tags bs sop ees
     applyBase bs $
       RecConE
         'MoatEnum
-        [ ('enumName, unqualName parentName),
-          ('enumDoc, prettyDoc parentDoc),
-          ('enumTyVars, prettyTyVars tyVars),
-          ('enumInterfaces, enumInterfaces_),
-          ('enumProtocols, enumProtocols_),
-          ('enumAnnotations, enumAnnotations_),
-          ('enumCases, ListE cases),
-          ('enumRawValue, rawValueE raw),
-          ('enumPrivateTypes, ListE []),
-          ('enumTags, ListE tags),
-          ('enumSumOfProductEncodingOption, sumOfProductEncodingOptions_),
-          ('enumEnumEncodingStyle, enumEnumEncodingStyle_)
+        [ ('enumName, unqualName parentName)
+        , ('enumDoc, prettyDoc parentDoc)
+        , ('enumTyVars, prettyTyVars tyVars)
+        , ('enumInterfaces, enumInterfaces_)
+        , ('enumProtocols, enumProtocols_)
+        , ('enumAnnotations, enumAnnotations_)
+        , ('enumCases, ListE cases)
+        , ('enumRawValue, rawValueE raw)
+        , ('enumPrivateTypes, ListE [])
+        , ('enumTags, ListE tags)
+        , ('enumSumOfProductEncodingOption, sumOfProductEncodingOptions_)
+        , ('enumEnumEncodingStyle, enumEnumEncodingStyle_)
         ]
 
 newtypeExp ::
@@ -1610,13 +1611,13 @@ newtypeExp ::
 newtypeExp name doc tyVars ifaces protos anns field =
   [|
     MoatNewtype
-      { newtypeName = $(pure $ unqualName name),
-        newtypeDoc = $(pure $ prettyDoc doc),
-        newtypeTyVars = $(pure $ prettyTyVars tyVars),
-        newtypeField = $(pure field),
-        newtypeProtocols = $(Syntax.lift protos),
-        newtypeAnnotations = $(Syntax.lift anns),
-        newtypeInterfaces = $(Syntax.lift ifaces)
+      { newtypeName = $(pure $ unqualName name)
+      , newtypeDoc = $(pure $ prettyDoc doc)
+      , newtypeTyVars = $(pure $ prettyTyVars tyVars)
+      , newtypeField = $(pure field)
+      , newtypeProtocols = $(Syntax.lift protos)
+      , newtypeAnnotations = $(Syntax.lift anns)
+      , newtypeInterfaces = $(Syntax.lift ifaces)
       }
     |]
 
@@ -1649,15 +1650,15 @@ structExp name doc tyVars ifaces protos anns fields tags bs = do
   applyBase bs $
     RecConE
       'MoatStruct
-      [ ('structName, unqualName name),
-        ('structDoc, prettyDoc doc),
-        ('structTyVars, prettyTyVars tyVars),
-        ('structInterfaces, structInterfaces_),
-        ('structProtocols, structProtocols_),
-        ('structAnnotations, structAnnotations_),
-        ('structFields, ListE fields),
-        ('structPrivateTypes, ListE []),
-        ('structTags, ListE tags)
+      [ ('structName, unqualName name)
+      , ('structDoc, prettyDoc doc)
+      , ('structTyVars, prettyTyVars tyVars)
+      , ('structInterfaces, structInterfaces_)
+      , ('structProtocols, structProtocols_)
+      , ('structAnnotations, structAnnotations_)
+      , ('structFields, ListE fields)
+      , ('structPrivateTypes, ListE [])
+      , ('structTags, ListE tags)
       ]
 
 matchProxy :: Exp -> MoatM Match
@@ -1694,7 +1695,7 @@ giveBase r ps = \case
   s@MoatStruct {} -> s {structPrivateTypes = [giveProtos ps (suffixBase (stripFields s))]}
   s@MoatEnum {} ->
     case giveProtos ps (suffixBase (stripFields s)) of
-      result@MoatEnum {} -> s {enumPrivateTypes = [result {enumRawValue = r}] }
+      result@MoatEnum {} -> s {enumPrivateTypes = [result {enumRawValue = r}]}
       _ -> s
   s -> s
 
@@ -1718,13 +1719,13 @@ applyBase (b, r, ps) (ParensE -> s) = do
 aliasToNewtype :: MoatData -> MoatData
 aliasToNewtype MoatAlias {..} =
   MoatNewtype
-    { newtypeName = aliasName,
-      newtypeTyVars = aliasTyVars,
-      newtypeField = Field {fieldName = "value", fieldType = aliasTyp, fieldDoc = Nothing},
-      newtypeInterfaces = [],
-      newtypeProtocols = [],
-      newtypeAnnotations = [],
-      newtypeDoc = aliasDoc
+    { newtypeName = aliasName
+    , newtypeTyVars = aliasTyVars
+    , newtypeField = Field {fieldName = "value", fieldType = aliasTyp, fieldDoc = Nothing}
+    , newtypeInterfaces = []
+    , newtypeProtocols = []
+    , newtypeAnnotations = []
+    , newtypeDoc = aliasDoc
     }
 aliasToNewtype m = m
 
@@ -1732,9 +1733,9 @@ aliasToNewtype m = m
 newtypeToAlias :: MoatData -> MoatData
 newtypeToAlias MoatNewtype {..} =
   MoatAlias
-    { aliasName = newtypeName,
-      aliasTyVars = newtypeTyVars,
-      aliasTyp = fieldType newtypeField,
-      aliasDoc = newtypeDoc
+    { aliasName = newtypeName
+    , aliasTyVars = newtypeTyVars
+    , aliasTyp = fieldType newtypeField
+    , aliasDoc = newtypeDoc
     }
 newtypeToAlias m = m

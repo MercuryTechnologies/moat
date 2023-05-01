@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+
 module Common where
 
 import Data.Proxy (Proxy (..))

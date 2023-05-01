@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
 module TypeVariableSpec where
 
 import Common
@@ -7,13 +8,13 @@ import Test.Hspec
 import Test.Hspec.Golden
 
 {-# HLINT ignore "Use newtype instead of data" #-}
-data Data a = Data { field0 :: a }
+data Data a = Data {field0 :: a}
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize],
-        dataInterfaces = [Parcelable],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [Parcelize]
+      , dataInterfaces = [Parcelable]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Data

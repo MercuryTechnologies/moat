@@ -37,10 +37,10 @@ import Test.Hspec.Golden
 -- >     return fibonacci(n - 1) + fibonacci(n - 2)
 -- > }
 data Data = Data
-  { -- | First field, it's an Int
-    first :: Int,
-    -- | Second field, it's maybe an Int
-    second :: Maybe Int
+  { first :: Int
+  -- ^ First field, it's an Int
+  , second :: Maybe Int
+  -- ^ Second field, it's maybe an Int
   }
 
 mobileGen

@@ -9,34 +9,34 @@ import Prelude hiding (Enum)
 
 -- | Documentation for 'Record0'.
 data Record0 = Record0
-  { record0Field0 :: Int,
-    -- ^ The zeroth field of record 0
-    record0Field1 :: Int
-    -- ^ The first field of record 0
+  { record0Field0 :: Int
+  -- ^ The zeroth field of record 0
+  , record0Field1 :: Int
+  -- ^ The first field of record 0
   }
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [LinkEnumInterface "Enum"],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [LinkEnumInterface "Enum"]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Record0
 
 -- | Documentation for 'Record1'.
 data Record1 = Record1
-  { -- | The zeroth field of record 1
-    record1Field0 :: Int,
-    -- | The first field of record 1
-    record1Field1 :: Int
+  { record1Field0 :: Int
+  -- ^ The zeroth field of record 1
+  , record1Field1 :: Int
+  -- ^ The first field of record 1
   }
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [LinkEnumInterface "Enum"],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [LinkEnumInterface "Enum"]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
       }
   )
   ''Record1
@@ -50,14 +50,14 @@ data Enum
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable, SerialName],
-        dataInterfaces = [Parcelable],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable],
-        sumOfProductEncodingOptions =
+      { dataAnnotations = [Parcelize, Serializable, SerialName]
+      , dataInterfaces = [Parcelable]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      , sumOfProductEncodingOptions =
           SumOfProductEncodingOptions
-            { encodingStyle = TaggedObjectStyle,
-              sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"],
-              contentsFieldName = "contents"
+            { encodingStyle = TaggedObjectStyle
+            , sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"]
+            , contentsFieldName = "contents"
             }
       }
   )

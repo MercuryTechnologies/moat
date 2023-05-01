@@ -13,10 +13,10 @@ data EnumAsValueClass
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable],
-        dataInterfaces = [Parcelable],
-        dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable],
-        enumEncodingStyle = ValueClassStyle
+      { dataAnnotations = [Parcelize, Serializable]
+      , dataInterfaces = [Parcelable]
+      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      , enumEncodingStyle = ValueClassStyle
       }
   )
   ''EnumAsValueClass

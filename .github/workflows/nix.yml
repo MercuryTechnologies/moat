@@ -32,5 +32,6 @@ jobs:
           require-sigs = true
           sandbox = true
           extra-system-features = nixos-test benchmark big-parallel kvm
+    - run: nix develop --command make check-format
     - run: nix develop '.#${{ matrix.ghc }}' --command true
     - run: nix build '.#moat-${{ matrix.ghc }}'

@@ -4,9 +4,9 @@ module Moat.Pretty.Swift
 where
 
 import Data.List (intercalate)
+import Data.Maybe (catMaybes)
 import Moat.Pretty.Doc.DocC
 import Moat.Types
-import Data.Maybe (catMaybes)
 
 -- | Convert a 'MoatData' into a canonical representation in Swift
 --
@@ -95,10 +95,9 @@ prettySwiftDataWith indent = \case
 
 prettyTypeDoc :: String -> Maybe String -> [Field] -> String
 prettyTypeDoc indents doc fields =
-  let
-    wrap = 100 - length indents - 4 -- "/// " doc comment prefix
-    docC = intercalate "\n" (catMaybes [prettyDoc wrap <$> doc, prettyFieldDoc wrap fields])
-  in prettyDocComment indents docC
+  let wrap = 100 - length indents - 4 -- "/// " doc comment prefix
+      docC = intercalate "\n" (catMaybes [prettyDoc wrap <$> doc, prettyFieldDoc wrap fields])
+   in prettyDocComment indents docC
 
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
@@ -247,7 +246,13 @@ prettyStructFields indents = go
     go [] = ""
     go (Field {..} : fs) =
       prettyTypeDoc indents fieldDoc []
-        ++ indents ++ "let " ++ fieldName ++ ": " ++ prettyMoatType fieldType ++ "\n" ++ go fs
+        ++ indents
+        ++ "let "
+        ++ fieldName
+        ++ ": "
+        ++ prettyMoatType fieldType
+        ++ "\n"
+        ++ go fs
 
 prettyNewtypeField :: String -> Field -> String -> String
 prettyNewtypeField indents (Field alias _ _) fieldName = indents ++ "let " ++ alias ++ ": " ++ fieldName ++ "Tag" ++ "\n"
