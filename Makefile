@@ -24,7 +24,7 @@ format:
 	fourmolu -i src/ test/
 
 check-format:
-	fourmolu -m check src/ test/
+	fourmolu -m check src/ test/ && alejandra --check .
 
 hlint:
 	hlint .
