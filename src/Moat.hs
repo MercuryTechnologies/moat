@@ -749,10 +749,10 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
             then do
               let cons' =
                     flip filter cons $
-                        \ConstructorInfo {..} ->
-                            let constructorStr = nameStr constructorName
-                            in constructorStr `elem` strictCases ||
-                               omitCases (nameStr constructorName) == Keep
+                      \ConstructorInfo {..} ->
+                        let constructorStr = nameStr constructorName
+                         in constructorStr `elem` strictCases
+                              || omitCases (nameStr constructorName) == Keep
               cases <- forM cons' (mkCase o)
               ourMatch <-
                 matchProxy
@@ -1033,11 +1033,10 @@ zipFields o ns ts ds = do
     mkField :: Name -> Type -> Maybe String -> Maybe Exp
     mkField n t d =
       let fieldStr = nameStr n
-      in
-        case (fieldStr `elem` strictFields o, omitFields o fieldStr) of
-          (True, _) -> Just $ prettyField o n t d
-          (False, Keep) -> Just $ prettyField o n t d
-          (False, Discard) -> Nothing
+       in case (fieldStr `elem` strictFields o, omitFields o fieldStr) of
+            (True, _) -> Just $ prettyField o n t d
+            (False, Keep) -> Just $ prettyField o n t d
+            (False, Discard) -> Nothing
 
 -- turn a field name into a swift case name.
 -- examples:

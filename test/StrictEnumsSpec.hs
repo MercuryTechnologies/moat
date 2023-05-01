@@ -1,11 +1,11 @@
 module StrictEnumsSpec where
 
 import Common
+import Data.List (stripPrefix)
 import Moat
 import Test.Hspec
 import Test.Hspec.Golden
 import Prelude hiding (Enum)
-import Data.List (stripPrefix)
 
 data EnumA
   = EnumFirst
@@ -30,8 +30,8 @@ mobileGenWith
       { strictCases = ["EnumFourth"]
       , omitCases = const Discard
       , constructorModifier = \case
-        xs | Just rest <- stripPrefix "Enum" xs -> rest
-        xs -> xs
+          xs | Just rest <- stripPrefix "Enum" xs -> rest
+          xs -> xs
       }
   )
   ''EnumB

@@ -20,7 +20,11 @@ ghcid-test: hpack
 	ghcid -c cabal repl test:spec
 
 format:
-	find src/ test/ -name "*.hs" -exec fourmolu -i {} --ghc-opt -XTypeApplications \;
+	alejandra --quiet .
+	fourmolu -i src/ test/
+
+check-format:
+	fourmolu -m check src/ test/
 
 hlint:
 	hlint .
@@ -31,4 +35,4 @@ clean:
 haddock:
 	cabal haddock
 
-.PHONY: build test hpack repl repl-test ghcid ghcid-test format hlint clean haddock
+.PHONY: build test hpack repl repl-test ghcid ghcid-test format check-format hlint clean haddock

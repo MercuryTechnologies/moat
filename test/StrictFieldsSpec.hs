@@ -1,11 +1,11 @@
 module StrictFieldsSpec where
 
 import Common
+import Data.List (stripPrefix)
 import Moat
 import Test.Hspec
 import Test.Hspec.Golden
 import Prelude hiding (Enum)
-import Data.List (stripPrefix)
 
 data RecordA = RecordA
   { fieldA :: String
@@ -52,4 +52,3 @@ spec = do
       defaultGolden ("swift" <> moduleName) (showSwift @RecordB)
     it "kotlin" $
       defaultGolden ("kotlin" <> moduleName) (showKotlin @RecordB)
-

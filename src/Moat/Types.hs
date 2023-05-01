@@ -296,150 +296,150 @@ data Protocol
 --   Options can be set using record update syntax on 'defaultOptions' with the
 --   fields below.
 data Options = Options
-  { -- | A function to apply to type constructor names.
-    --   The default makes no changes
-    typeConstructorModifier :: String -> String,
-    -- | A function to apply to field labels.  Handy for removing common record
-    -- prefixes, for example. The default makes no changes
-    fieldLabelModifier :: String -> String,
-    -- | Whether or not to lowercase the first letters of fields. Applied before
-    -- 'fieldLabelModifier'.
-    fieldLabelLowerFirst :: Bool,
-    -- | A function to apply to data constructor names. The default makes no
-    -- changes.
-    constructorModifier :: String -> String,
-    -- | Whether or not to lowercase the first letters of constructors. Applied
-    -- after 'constructorModifier'.
-    constructorLowerFirst :: Bool,
-    -- | Whether or not to generate a 'ToMoatType' instance. Sometimes this can
-    -- be desirable if you want to define the instance by hand, or the instance
-    -- exists elsewhere.  The default is 'True', i.e., to generate the
-    -- instance.
-    generateToMoatType :: Bool,
-    -- | Whether or not to generate a 'ToMoatData' instance. Sometimes this can
-    -- be desirable if you want to define the instance by hand, or the instance
-    -- exists elsewhere.  The default is 'True', i.e., to generate the
-    -- instance.
-    generateToMoatData :: Bool,
-    -- | Whether or not to generate documentation comments. This works by
-    -- translating Haddock documentation annotations to the target language's
-    -- documentation comment syntax. The default  is 'True', i.e. to generate
-    -- documentation comments.
-    generateDocComments :: Bool,
-    -- | Kotlin interfaces to add to a type.
-    --   The default (@[]@) will add none.
-    dataInterfaces :: [Interface],
-    -- | Swift protocols to add to a type.
-    --   The default (@[]@) will add none.
-    dataProtocols :: [Protocol],
-    -- | Kotlin annotations to add to a type.
-    --   The default (@[]@) will add none.
-    dataAnnotations :: [Annotation],
-    -- | The rawValue of an enum. See
-    --   https://developer.apple.com/documentation/swift/rawrepresentable/1540698-rawvalue
-    --
-    --   The default ('Nothing') will not
-    --   include any rawValue.
-    --
-    --   Typically, if the type does have
-    --   a 'rawValue', the 'Ty' will be
-    --   'I' or 'Str'.
-    --
-    --   /Note/: Currently, nothing will prevent
-    --   you from putting something
-    --   nonsensical here.
-    --
-    --   This is only meaningful on the Swift
-    --   backend.
-    dataRawValue :: Maybe MoatType,
-    -- | Whether or not to generate a newtype as
-    --   a type alias. Consider if you want this
-    --   or to use 'getMoatWithTags' instead.
-    --
-    --   The default ('False') will generate newtypes
-    --   as their own structs.
-    typeAlias :: Bool,
-    -- | Whether or not to generate a newtype as an
-    --   empty enum with a tag. This is for type
-    --   safety reasons, but with retaining the
-    --   ability to have Codable conformance.
-    --
-    --   The default ('False') will not do this.
-    --
-    --   /Note/: This takes priority over 'typeAlias'.
-    --
-    --   /Note/: This option is not currently
-    --   supported for newtype instances.
-    --
-    --   This is only meaningful on the Swift
-    --   backend.
-    --
-    -- === __Examples__
-    --
-    -- > newtype NonEmptyText = MkNonEmptyText String
-    -- > $(getMoatWith (defaultOptions { newtypeTag = True }) ''NonEmpyText)
-    --
-    -- @
-    -- enum NonEmptyTextTag {
-    --     typealias NonEmptyText = Tagged\<NonEmptyTextTag, String\>
-    -- }
-    -- @
-    newtypeTag :: Bool,
-    -- | Whether or not to lower-case the first
-    --   character of a field after applying all
-    --   modifiers to it.
-    --
-    --   The default ('True') will do so.
-    lowerFirstField :: Bool,
-    -- | Whether or not to lower-case the first
-    --   character of a case after applying all
-    --   modifiers to it.
-    --
-    --   The default ('True') will do so.
-    lowerFirstCase :: Bool,
-    -- | A function to apply to fields and choose whether, or not, to keep them
-    --
-    -- e.g.
-    --
-    -- > \case
-    -- >   "discardThisField" -> Discard
-    -- >   "keepThisField" -> Keep
-    --
-    --   The default (@const Keep@) will not discard fields
-    omitFields :: String -> KeepOrDiscard,
-    -- | A function to apply to enum cases and choose whether, or not, to keep them
-    --
-    --   The default (@const Keep@) will omit nothing.
-    omitCases :: String -> KeepOrDiscard,
-    -- | These fields are relied upon and must exist in the record.
-    --
-    -- The default @[]@ will not require any fields to exist.
-    --
-    -- This can be used with @omitFields = const Discard@ to ensure fields are
-    -- retained for client compatibility.
-    strictFields :: [String],
-    -- | These enum cases are relied upon and must exist in the sum type.
-    --
-    -- The default @[]@ will not require any cases to exist.
-    --
-    -- This is likely less useful than 'strictFields' but may be useful if you
-    -- only send certain enum cases to clients.
-    strictCases :: [String],
-    -- | Whether or not to make a base type,
-    --   its raw value, and its protocols.
-    --
-    --   Here, "base type" refers to a
-    --   version of the type without any fields.
-    --   This can be useful for doing Codable
-    --   conversions.
-    --
-    --   The default ('False', 'Nothing', @[]@)
-    --   will not create the base type.
-    --
-    --   This option is only meaningful on the
-    --   Swift backend.
-    makeBase :: (Bool, Maybe MoatType, [Protocol]),
-    -- TODO: This could use some better documentation after implementing this functionality
+  { typeConstructorModifier :: String -> String
+  -- ^ A function to apply to type constructor names.
+  --   The default makes no changes
+  , fieldLabelModifier :: String -> String
+  -- ^ A function to apply to field labels.  Handy for removing common record
+  -- prefixes, for example. The default makes no changes
+  , fieldLabelLowerFirst :: Bool
+  -- ^ Whether or not to lowercase the first letters of fields. Applied before
+  -- 'fieldLabelModifier'.
+  , constructorModifier :: String -> String
+  -- ^ A function to apply to data constructor names. The default makes no
+  -- changes.
+  , constructorLowerFirst :: Bool
+  -- ^ Whether or not to lowercase the first letters of constructors. Applied
+  -- after 'constructorModifier'.
+  , generateToMoatType :: Bool
+  -- ^ Whether or not to generate a 'ToMoatType' instance. Sometimes this can
+  -- be desirable if you want to define the instance by hand, or the instance
+  -- exists elsewhere.  The default is 'True', i.e., to generate the
+  -- instance.
+  , generateToMoatData :: Bool
+  -- ^ Whether or not to generate a 'ToMoatData' instance. Sometimes this can
+  -- be desirable if you want to define the instance by hand, or the instance
+  -- exists elsewhere.  The default is 'True', i.e., to generate the
+  -- instance.
+  , generateDocComments :: Bool
+  -- ^ Whether or not to generate documentation comments. This works by
+  -- translating Haddock documentation annotations to the target language's
+  -- documentation comment syntax. The default  is 'True', i.e. to generate
+  -- documentation comments.
+  , dataInterfaces :: [Interface]
+  -- ^ Kotlin interfaces to add to a type.
+  --   The default (@[]@) will add none.
+  , dataProtocols :: [Protocol]
+  -- ^ Swift protocols to add to a type.
+  --   The default (@[]@) will add none.
+  , dataAnnotations :: [Annotation]
+  -- ^ Kotlin annotations to add to a type.
+  --   The default (@[]@) will add none.
+  , dataRawValue :: Maybe MoatType
+  -- ^ The rawValue of an enum. See
+  --   https://developer.apple.com/documentation/swift/rawrepresentable/1540698-rawvalue
+  --
+  --   The default ('Nothing') will not
+  --   include any rawValue.
+  --
+  --   Typically, if the type does have
+  --   a 'rawValue', the 'Ty' will be
+  --   'I' or 'Str'.
+  --
+  --   /Note/: Currently, nothing will prevent
+  --   you from putting something
+  --   nonsensical here.
+  --
+  --   This is only meaningful on the Swift
+  --   backend.
+  , typeAlias :: Bool
+  -- ^ Whether or not to generate a newtype as
+  --   a type alias. Consider if you want this
+  --   or to use 'getMoatWithTags' instead.
+  --
+  --   The default ('False') will generate newtypes
+  --   as their own structs.
+  , newtypeTag :: Bool
+  -- ^ Whether or not to generate a newtype as an
+  --   empty enum with a tag. This is for type
+  --   safety reasons, but with retaining the
+  --   ability to have Codable conformance.
+  --
+  --   The default ('False') will not do this.
+  --
+  --   /Note/: This takes priority over 'typeAlias'.
+  --
+  --   /Note/: This option is not currently
+  --   supported for newtype instances.
+  --
+  --   This is only meaningful on the Swift
+  --   backend.
+  --
+  -- === __Examples__
+  --
+  -- > newtype NonEmptyText = MkNonEmptyText String
+  -- > $(getMoatWith (defaultOptions { newtypeTag = True }) ''NonEmpyText)
+  --
+  -- @
+  -- enum NonEmptyTextTag {
+  --     typealias NonEmptyText = Tagged\<NonEmptyTextTag, String\>
+  -- }
+  -- @
+  , lowerFirstField :: Bool
+  -- ^ Whether or not to lower-case the first
+  --   character of a field after applying all
+  --   modifiers to it.
+  --
+  --   The default ('True') will do so.
+  , lowerFirstCase :: Bool
+  -- ^ Whether or not to lower-case the first
+  --   character of a case after applying all
+  --   modifiers to it.
+  --
+  --   The default ('True') will do so.
+  , omitFields :: String -> KeepOrDiscard
+  -- ^ A function to apply to fields and choose whether, or not, to keep them
+  --
+  -- e.g.
+  --
+  -- > \case
+  -- >   "discardThisField" -> Discard
+  -- >   "keepThisField" -> Keep
+  --
+  --   The default (@const Keep@) will not discard fields
+  , omitCases :: String -> KeepOrDiscard
+  -- ^ A function to apply to enum cases and choose whether, or not, to keep them
+  --
+  --   The default (@const Keep@) will omit nothing.
+  , strictFields :: [String]
+  -- ^ These fields are relied upon and must exist in the record.
+  --
+  -- The default @[]@ will not require any fields to exist.
+  --
+  -- This can be used with @omitFields = const Discard@ to ensure fields are
+  -- retained for client compatibility.
+  , strictCases :: [String]
+  -- ^ These enum cases are relied upon and must exist in the sum type.
+  --
+  -- The default @[]@ will not require any cases to exist.
+  --
+  -- This is likely less useful than 'strictFields' but may be useful if you
+  -- only send certain enum cases to clients.
+  , makeBase :: (Bool, Maybe MoatType, [Protocol])
+  -- ^ Whether or not to make a base type,
+  --   its raw value, and its protocols.
+  --
+  --   Here, "base type" refers to a
+  --   version of the type without any fields.
+  --   This can be useful for doing Codable
+  --   conversions.
+  --
+  --   The default ('False', 'Nothing', @[]@)
+  --   will not create the base type.
+  --
+  --   This option is only meaningful on the
+  --   Swift backend.
+  , -- TODO: This could use some better documentation after implementing this functionality
     optionalExpand :: Bool
   -- ^ Whether or not to truncate Optional types.
   --   Normally, an Optional ('Maybe') is encoded
@@ -546,30 +546,30 @@ data EnumEncodingStyle = EnumClassStyle | ValueClassStyle
 defaultOptions :: Options
 defaultOptions =
   Options
-    { typeConstructorModifier = id,
-      fieldLabelModifier = id,
-      fieldLabelLowerFirst = True,
-      constructorModifier = id,
-      constructorLowerFirst = True,
-      generateToMoatType = True,
-      generateToMoatData = True,
-      generateDocComments = True,
-      dataInterfaces = [],
-      dataProtocols = [],
-      dataAnnotations = [],
-      dataRawValue = Nothing,
-      typeAlias = False,
-      newtypeTag = False,
-      lowerFirstField = True,
-      lowerFirstCase = True,
-      omitFields = const Keep,
-      omitCases = const Keep,
-      strictFields = [],
-      strictCases = [],
-      makeBase = (False, Nothing, []),
-      optionalExpand = False,
-      sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions,
-      enumEncodingStyle = EnumClassStyle
+    { typeConstructorModifier = id
+    , fieldLabelModifier = id
+    , fieldLabelLowerFirst = True
+    , constructorModifier = id
+    , constructorLowerFirst = True
+    , generateToMoatType = True
+    , generateToMoatData = True
+    , generateDocComments = True
+    , dataInterfaces = []
+    , dataProtocols = []
+    , dataAnnotations = []
+    , dataRawValue = Nothing
+    , typeAlias = False
+    , newtypeTag = False
+    , lowerFirstField = True
+    , lowerFirstCase = True
+    , omitFields = const Keep
+    , omitCases = const Keep
+    , strictFields = []
+    , strictCases = []
+    , makeBase = (False, Nothing, [])
+    , optionalExpand = False
+    , sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
+    , enumEncodingStyle = EnumClassStyle
     }
 
 data KeepOrDiscard = Keep | Discard

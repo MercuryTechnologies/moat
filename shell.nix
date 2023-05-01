@@ -3,4 +3,4 @@ let
     src = ./.;
   };
 in
-flake-compat.shellNix
+  flake-compat.shellNix
