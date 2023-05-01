@@ -94,7 +94,7 @@ data class User(
 ## Development
 
 We use [garnix][garnix] to cache development shells. You can get directions for
-pulling from that cache via [garnix-cache][their docs].
+pulling from that cache via [their docs][garnix-cache].
 
 ## FAQ
 
