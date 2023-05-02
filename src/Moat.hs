@@ -94,6 +94,9 @@ where
 
 import Control.Monad
 import Control.Monad.Except
+#if MIN_VERSION_mtl(2,3,0)
+import Control.Monad.Trans
+#endif
 import Data.Bool (bool)
 import qualified Data.Char as Char
 import Data.Foldable (foldl', foldlM, foldr')
