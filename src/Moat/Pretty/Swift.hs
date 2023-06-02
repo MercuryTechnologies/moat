@@ -247,7 +247,7 @@ prettyStructFields indents = go
     go (Field {..} : fs) =
       prettyTypeDoc indents fieldDoc []
         ++ indents
-        ++ "let "
+        ++ "var "
         ++ fieldName
         ++ ": "
         ++ prettyMoatType fieldType

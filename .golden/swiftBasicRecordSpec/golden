@@ -1,4 +1,4 @@
 struct Data {
-    let field0: Int
-    let field1: Int?
+    var field0: Int
+    var field1: Int?
 }

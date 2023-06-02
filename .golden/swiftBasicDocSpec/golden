@@ -29,7 +29,7 @@
 ///     }
 struct Data {
     /// First field, it's an Int
-    let first: Int
+    var first: Int
     /// Second field, it's maybe an Int
-    let second: Int?
+    var second: Int?
 }

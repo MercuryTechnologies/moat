@@ -1,4 +1,4 @@
 struct Data<A, B>: CaseIterable, Hashable, Codable {
-    let field0: A
-    let field1: B
+    var field0: A
+    var field1: B
 }
