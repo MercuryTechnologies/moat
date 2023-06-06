@@ -320,7 +320,9 @@ prettyEnum doc anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..
             ++ prettyAnnotations
               Nothing
               noIndent
-              (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
+              ( dontAddParcelizeToSealedClasses
+                  (tagToSumAnnotation tagFieldName : sumAnnotations ++ anns)
+              )
             ++ "sealed class "
             ++ classTyp
             ++ prettyInterfaces ifaces
@@ -346,6 +348,9 @@ prettyEnum doc anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..
     ensureJvmInlineForValueClasses as
       | JvmInline `elem` as = as
       | otherwise = as ++ [JvmInline]
+
+    tagToSumAnnotation :: String -> Annotation
+    tagToSumAnnotation tag = RawAnnotation $ "JsonClassDiscriminator(\"" ++ tag ++ "\")"
 
 newlineNonEmpty :: [a] -> String
 newlineNonEmpty [] = ""

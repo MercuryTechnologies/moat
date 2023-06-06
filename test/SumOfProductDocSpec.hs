@@ -56,7 +56,7 @@ mobileGenWith
       , sumOfProductEncodingOptions =
           SumOfProductEncodingOptions
             { encodingStyle = TaggedObjectStyle
-            , sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"]
+            , sumAnnotations = []
             , contentsFieldName = "contents"
             , tagFieldName = "tag"
             }
