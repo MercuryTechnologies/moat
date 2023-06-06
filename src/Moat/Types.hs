@@ -476,6 +476,8 @@ data SumOfProductEncodingOptions = SumOfProductEncodingOptions
   -- ^ The field name to use for the products, aeson uses "contents" for the TaggedObject
   -- style. This is unused in the 'TaggedFlatObjectStyle'
   , tagFieldName :: String
+  -- ^ The field name to use for the sum, aeson uses "tag" for the TaggedObject
+  -- style. This is unused in the 'TaggedFlatObjectStyle'
   }
   deriving stock (Eq, Read, Show, Lift)
 
