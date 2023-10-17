@@ -11,7 +11,7 @@
   }: let
     systems = ["aarch64-darwin" "x86_64-darwin" "x86_64-linux"];
 
-    haskells = ["ghc902" "ghc924" "ghc942"];
+    haskells = ["ghc90" "ghc92" "ghc94" "ghc96"];
 
     eachSystem = nixpkgs.lib.genAttrs systems;
 
@@ -20,16 +20,35 @@
     latestHaskell = nixpkgs.lib.last haskells;
 
     pkgsBySystem = eachSystem (system: nixpkgs.legacyPackages.${system});
+
+    haskellPackages = eachSystem (
+      system: let
+        pkgs = pkgsBySystem.${system};
+        inherit (pkgs.haskell.lib) appendPatch;
+      in
+        eachHaskell (
+          haskell:
+            pkgs.haskell.packages.${haskell}.override (prev: {
+              overrides = _: hprev: {
+                # Wants bytestring <0.12
+                cmark-gfm = appendPatch hprev.cmark-gfm ./nix/cmark-gfm-cabal.patch;
+              };
+            })
+        )
+    );
   in {
     packages = eachSystem (
       system: let
-        pkgs = pkgsBySystem.${system};
-
-        moats = builtins.listToAttrs (map (haskell: {
-            name = "moat-${haskell}";
-            value = pkgs.haskell.packages.${haskell}.callPackage ./moat.nix {};
+        moats =
+          nixpkgs.lib.mapAttrs'
+          (n: v: {
+            name = "moat-${n}";
+            value = v;
           })
-          haskells);
+          (eachHaskell (
+            haskell:
+              haskellPackages.${system}.${haskell}.callPackage ./moat.nix {}
+          ));
       in
         moats // {default = moats."moat-${latestHaskell}";}
     );
@@ -37,40 +56,10 @@
     devShells = eachSystem (
       system: let
         pkgs = pkgsBySystem.${system};
-        inherit
-          (pkgs.haskell.lib)
-          dontCheck
-          overrideCabal
-          ;
-
-        enableSeparateBinOutput = drv:
-          if (pkgs.stdenv.hostPlatform.isDarwin && pkgs.stdenv.hostPlatform.isAarch64)
-          then overrideCabal drv (_: {enableSeparateBinOutput = false;})
-          else drv;
-
-        haskellOverlays = {
-          ghc902 = hself: hsuper: {
-            # Wants cabal == 3.6
-            fourmolu = hsuper.fourmolu.overrideScope (lself: lsuper: {
-              Cabal = lself.Cabal_3_6_3_0;
-            });
-          };
-          ghc924 = hself: hsuper: {
-            # https://github.com/NixOS/nixpkgs/issues/140774
-            ghcid = enableSeparateBinOutput hsuper.ghcid;
-            hls-fourmolu-plugin = dontCheck hsuper.hls-fourmolu-plugin;
-          };
-          ghc942 = hself: hsuper: {
-            # https://github.com/NixOS/nixpkgs/issues/140774
-            ghcid = dontCheck (enableSeparateBinOutput hsuper.ghcid);
-          };
-        };
 
         shells = eachHaskell (
           haskell: let
-            hsPkgs = pkgs.haskell.packages.${haskell}.override (prev: {
-              overrides = haskellOverlays.${haskell};
-            });
+            hsPkgs = haskellPackages.${system}.${haskell};
           in
             pkgs.mkShell {
               name = "moat-${haskell}-shell";

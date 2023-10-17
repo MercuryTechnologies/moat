@@ -734,12 +734,12 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
                 else mkNewtypeInstance o parentDoc instTys con
             Newtype -> do
               if
-                  | newtypeTag -> do
-                      mkTypeTag o parentName instTys con
-                  | typeAlias -> do
-                      mkTypeAlias parentName parentDoc instTys con
-                  | otherwise -> do
-                      mkNewtype o parentName parentDoc instTys con
+                | newtypeTag -> do
+                    mkTypeTag o parentName instTys con
+                | typeAlias -> do
+                    mkTypeAlias parentName parentDoc instTys con
+                | otherwise -> do
+                    mkNewtype o parentName parentDoc instTys con
             _ -> do
               mkProd o parentName parentDoc instTys ts con
         _ -> do

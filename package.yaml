@@ -26,7 +26,7 @@ dependencies:
   - primitive >= 0.6.4 && < 0.9
   - template-haskell >= 2.11 && < 2.21
   - text >= 1.2 && < 2.1
-  - th-abstraction >= 0.3 && < 0.6
+  - th-abstraction >= 0.3 && < 0.7
   - th-compat >= 0.1.0 && < 0.2
   - time >= 1.8 && < 1.13
   - unordered-containers >= 0.2 && < 0.3
