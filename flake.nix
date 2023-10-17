@@ -11,7 +11,7 @@
   }: let
     systems = ["aarch64-darwin" "x86_64-darwin" "x86_64-linux"];
 
-    haskells = ["ghc902" "ghc924" "ghc942" "ghc962"];
+    haskells = ["ghc90" "ghc92" "ghc94" "ghc96"];
 
     eachSystem = nixpkgs.lib.genAttrs systems;
 
