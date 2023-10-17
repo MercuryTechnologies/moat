@@ -250,7 +250,7 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
           prettyTypeDoc indents caseDoc []
             ++ prettyAnnotations (Just caseNm) indents anns
             ++ indents
-            ++ "object "
+            ++ "data object "
             ++ toUpperFirst caseNm
             ++ " : "
             ++ parentName

@@ -9,5 +9,5 @@ sealed class Enum : Parcelable {
     @Parcelize
     @Serializable
     @SerialName("dataCons1")
-    object DataCons1 : Enum()
+    data object DataCons1 : Enum()
 }
