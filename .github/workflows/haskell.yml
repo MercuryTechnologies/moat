@@ -16,6 +16,9 @@ jobs:
       matrix:
         cabal: ["3.10"]
         ghc: ["8.8.4", "8.10.7", "9.0.2", "9.2.8", "9.4.6", "9.6.3"]
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.cabal }}-${{matrix.ghc}}
+      cancel-in-progress: true
     env:
       CONFIG: "--enable-tests"
     steps:
