@@ -14,20 +14,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cabal: ["3.10"]
-        ghc: ["8.8.4", "8.10.7", "9.0.2", "9.2.8", "9.4.6", "9.6.3"]
+        ghc: ["8.8", "8.10", "9.0", "9.2", "9.4", "9.6"]
     concurrency:
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.cabal }}-${{matrix.ghc}}
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{matrix.ghc}}
       cancel-in-progress: true
     env:
       CONFIG: "--enable-tests"
     steps:
       - uses: actions/checkout@v3
-      - uses: haskell/actions/setup@v2.3
+      - uses: haskell-actions/setup@v2.5.1
         id: setup-haskell-cabal
         with:
           ghc-version: ${{ matrix.ghc }}
-          cabal-version: ${{ matrix.cabal }}
+          cabal-update: false
       - run: cabal v2-update
       - run: cabal v2-freeze $CONFIG
       - uses: actions/cache@v3
