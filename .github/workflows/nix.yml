@@ -19,6 +19,7 @@ jobs:
           - ghc902
           - ghc924
           - ghc942
+          - ghc962
     steps:
     - uses: actions/checkout@v3
     - uses: cachix/install-nix-action@v19
