@@ -1,4 +1,4 @@
-struct Data<A, B>: CaseIterable, Hashable, Codable {
+struct Data<A: Codable, B: Codable>: CaseIterable, Hashable, Codable {
     var field0: A
     var field1: B
 }

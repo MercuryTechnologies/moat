@@ -28,7 +28,7 @@ prettySwiftDataWith indent = \case
   MoatEnum {..} ->
     prettyTypeDoc "" enumDoc []
       ++ "enum "
-      ++ prettyMoatTypeHeader enumName enumTyVars
+      ++ prettyMoatTypeHeader enumName (addTyVarBounds enumTyVars enumProtocols)
       ++ prettyRawValueAndProtocols enumRawValue enumProtocols
       ++ " {"
       ++ newlineNonEmpty enumCases
@@ -41,7 +41,7 @@ prettySwiftDataWith indent = \case
   MoatStruct {..} ->
     prettyTypeDoc "" structDoc []
       ++ "struct "
-      ++ prettyMoatTypeHeader structName structTyVars
+      ++ prettyMoatTypeHeader structName (addTyVarBounds structTyVars structProtocols)
       ++ prettyRawValueAndProtocols Nothing structProtocols
       ++ " {"
       ++ newlineNonEmpty structFields
@@ -54,13 +54,13 @@ prettySwiftDataWith indent = \case
   MoatAlias {..} ->
     prettyTypeDoc "" aliasDoc []
       ++ "typealias "
-      ++ prettyMoatTypeHeader aliasName aliasTyVars
+      ++ prettyMoatTypeHeader aliasName (addTyVarBounds aliasTyVars [])
       ++ " = "
       ++ prettyMoatType aliasTyp
   MoatNewtype {..} ->
     prettyTypeDoc "" newtypeDoc []
       ++ "struct "
-      ++ prettyMoatTypeHeader newtypeName newtypeTyVars
+      ++ prettyMoatTypeHeader newtypeName (addTyVarBounds newtypeTyVars newtypeProtocols)
       ++ prettyRawValueAndProtocols Nothing newtypeProtocols
       ++ " {\n"
       ++ indents
@@ -268,3 +268,8 @@ prettyPrivateTypes indents = go
 onLast :: (a -> a) -> [a] -> [a]
 onLast _ [] = []
 onLast f (x : xs) = x : map f xs
+
+addTyVarBounds :: [String] -> [Protocol] -> [String]
+addTyVarBounds tyVars protos
+  | Codable `elem` protos = map (++ ": Codable") tyVars
+  | otherwise = tyVars
