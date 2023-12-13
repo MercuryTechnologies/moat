@@ -79,7 +79,9 @@ prettySwiftDataWith indent = \case
             ++ " = Tagged<"
             ++ newtypeName
             ++ ", "
-            ++ prettyMoatType (fieldType newtypeField)
+            ++ case (fieldType newtypeField) of
+              Optional t -> prettyMoatType t
+              t -> prettyMoatType t
             ++ ">\n"
             ++ prettyNewtypeField indents newtypeField newtypeName
             ++ "}"
@@ -256,7 +258,17 @@ prettyStructFields indents = go
         ++ go fs
 
 prettyNewtypeField :: String -> Field -> String -> String
-prettyNewtypeField indents (Field alias _ _) fieldName = indents ++ "let " ++ alias ++ ": " ++ fieldName ++ "Tag" ++ "\n"
+prettyNewtypeField indents (Field alias fieldType _) fieldName =
+  indents
+    ++ "let "
+    ++ alias
+    ++ ": "
+    ++ fieldName
+    ++ "Tag"
+    ++ case fieldType of
+      Optional _ -> "?"
+      _ -> ""
+    ++ "\n"
 
 prettyPrivateTypes :: String -> [MoatData] -> String
 prettyPrivateTypes indents = go
