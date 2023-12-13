@@ -1,5 +1,6 @@
 module Moat.Pretty.Swift
-  ( prettySwiftData,
+  ( prettySwiftData
+  , prettyMoatType
   )
 where
 
