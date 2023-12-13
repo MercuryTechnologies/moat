@@ -84,6 +84,7 @@ module Moat
     -- ** Functions
     prettyKotlinData,
     prettySwiftData,
+    prettyMoatType,
 
     -- * Utility
     aliasToNewtype,
