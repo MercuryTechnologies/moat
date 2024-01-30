@@ -109,17 +109,17 @@ prettyRawValueAndProtocols Nothing ps = ": " ++ prettyProtocols ps
 prettyRawValueAndProtocols (Just ty) [] = ": " ++ prettyMoatType ty
 prettyRawValueAndProtocols (Just ty) ps = ": " ++ prettyMoatType ty ++ ", " ++ prettyProtocols ps
 
+prettyProtocol :: Protocol -> String
+prettyProtocol = \case
+  Hashable -> "Hashable"
+  Codable -> "Codable"
+  Equatable -> "Equatable"
+  OtherProtocol s -> s
+
 prettyProtocols :: [Protocol] -> String
 prettyProtocols = \case
   [] -> ""
   ps -> intercalate ", " (prettyProtocol <$> ps)
-    where
-      prettyProtocol :: Protocol -> String
-      prettyProtocol = \case
-        Hashable -> "Hashable"
-        Codable -> "Codable"
-        Equatable -> "Equatable"
-        OtherProtocol s -> s
 
 -- TODO: Need a plan to avoid @error@ in these pure functions
 {-# ANN prettyTags "HLint: ignore" #-}
@@ -269,7 +269,27 @@ onLast :: (a -> a) -> [a] -> [a]
 onLast _ [] = []
 onLast f (x : xs) = x : map f xs
 
+-- | Copy protocols from the parent type to upper bounds of generic type
+--   parameters.
+--
+--   This is needed for protocols with compiler-synthesized implementations
+--   (similar to 'deriving stock'), of which there are currently three:
+--
+--   - 'Equatable'
+--   - 'Hashable'
+--   - 'Codable'
+--
+--   See the [Swift documentation](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/protocols#Adopting-a-Protocol-Using-a-Synthesized-Implementation).
 addTyVarBounds :: [String] -> [Protocol] -> [String]
-addTyVarBounds tyVars protos
-  | Codable `elem` protos = map (++ ": Codable") tyVars
-  | otherwise = tyVars
+addTyVarBounds tyVars protos =
+  let isSynthesized :: Protocol -> Bool
+      isSynthesized = \case
+        Hashable -> True
+        Codable -> True
+        Equatable -> True
+        OtherProtocol _ -> False
+      synthesizedProtos = filter isSynthesized protos
+      bounds = ": " ++ intercalate " & " (map prettyProtocol synthesizedProtos)
+   in case synthesizedProtos of
+        [] -> tyVars
+        _ -> map (++ bounds) tyVars

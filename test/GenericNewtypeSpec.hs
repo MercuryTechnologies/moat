@@ -16,7 +16,7 @@ mobileGenWith
   ( defaultOptions
       { dataAnnotations = [Parcelize, Serializable]
       , dataInterfaces = [Parcelable]
-      , dataProtocols = [OtherProtocol "CaseIterable", Hashable, Codable]
+      , dataProtocols = [Hashable, Codable]
       , dataRawValue = Just Str
       , generateDocComments = False
       }

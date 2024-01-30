@@ -1,4 +1,4 @@
-struct LTree<A: Codable>: CaseIterable, Hashable, Codable {
+struct LTree<A: Hashable & Codable>: Hashable, Codable {
     typealias LTreeTag = Tagged<LTree, [A]>
     let value: LTreeTag
 }
