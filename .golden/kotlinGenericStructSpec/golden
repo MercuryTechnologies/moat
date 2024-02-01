@@ -1,0 +1,4 @@
+data class Tree<A : Parcelable>(
+    val rootLabel: A,
+    val subForest: List<Tree<A>>,
+) : Parcelable

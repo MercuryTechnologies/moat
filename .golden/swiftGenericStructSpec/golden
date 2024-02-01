@@ -1,0 +1,4 @@
+struct Tree<A: Hashable & Codable>: Hashable, Codable {
+    var rootLabel: A
+    var subForest: [Tree<A>]
+}

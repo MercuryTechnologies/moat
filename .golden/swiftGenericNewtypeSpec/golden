@@ -1,0 +1,4 @@
+struct LTree<A: Hashable & Codable>: Hashable, Codable {
+    typealias LTreeTag = Tagged<LTree, [A]>
+    let value: LTreeTag
+}

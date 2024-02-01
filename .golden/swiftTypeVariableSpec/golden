@@ -1,3 +1,3 @@
-struct Data<A>: CaseIterable, Hashable, Codable {
+struct Data<A: Hashable & Codable>: CaseIterable, Hashable, Codable {
     var field0: A
 }

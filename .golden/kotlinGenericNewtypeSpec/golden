@@ -1,0 +1,3 @@
+@Parcelize
+@Serializable
+value class LTree<A : Parcelable>(val value: List<A>) : Parcelable
