@@ -1,0 +1,4 @@
+enum CursorInput<A: Hashable & Codable>: CaseIterable, Hashable, Codable {
+    case nextPage(A?)
+    case previousPage(A)
+}
