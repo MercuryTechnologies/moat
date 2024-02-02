@@ -94,6 +94,7 @@ test-suite spec
       SumOfProductWithTaggedObjectAndNonConcreteCasesSpec
       SumOfProductWithTaggedObjectAndSingleNullarySpec
       SumOfProductWithTaggedObjectStyleSpec
+      SumOfProductWithTypeParameterSpec
       TypeVariableSpec
       Moat
       Moat.Class

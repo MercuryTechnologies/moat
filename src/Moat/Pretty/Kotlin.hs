@@ -224,12 +224,14 @@ prettyApp t1 t2 =
 -- error is restricted
 prettyTaggedObject ::
   String ->
+  [String] ->
   [Annotation] ->
+  [Interface] ->
   [EnumCase] ->
   String ->
   SumOfProductEncodingOptions ->
   String
-prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..} =
+prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncodingOptions {..} =
   intercalate
     "\n\n"
     ( cases <&> \case
@@ -238,22 +240,22 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
             ++ prettyAnnotations (Just caseNm) indents anns
             ++ indents
             ++ "data class "
-            ++ toUpperFirst caseNm
+            ++ caseTypeHeader caseNm
             ++ "(val "
             ++ contentsFieldName
             ++ ": "
             ++ prettyMoatType caseTy
             ++ ") : "
-            ++ parentName
+            ++ parentTypeHeader
             ++ "()"
         EnumCase caseNm caseDoc [] ->
           prettyTypeDoc indents caseDoc []
             ++ prettyAnnotations (Just caseNm) indents anns
             ++ indents
             ++ "data object "
-            ++ toUpperFirst caseNm
+            ++ caseTypeHeader caseNm
             ++ " : "
-            ++ parentName
+            ++ parentTypeHeader
             ++ "()"
         EnumCase caseNm _ _ ->
           error $
@@ -261,6 +263,12 @@ prettyTaggedObject parentName anns cases indents SumOfProductEncodingOptions {..
               <> caseNm
               <> " can have zero or one concrete type constructor!"
     )
+  where
+    caseTypeHeader :: String -> String
+    caseTypeHeader name = prettyMoatTypeHeader (toUpperFirst name) (addTyVarBounds tyVars ifaces)
+
+    parentTypeHeader :: String
+    parentTypeHeader = prettyMoatTypeHeader parentName tyVars
 
 prettyEnum ::
   () =>
@@ -325,7 +333,7 @@ prettyEnum doc anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..
             ++ classTyp
             ++ prettyInterfaces ifaces
             ++ " {\n"
-            ++ prettyTaggedObject name anns cases indents sop
+            ++ prettyTaggedObject name tyVars anns ifaces cases indents sop
             ++ "\n}"
   where
     isCEnum :: [EnumCase] -> Bool
