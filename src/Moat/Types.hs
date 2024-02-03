@@ -188,6 +188,12 @@ data MoatData
       --   Only used by the Swift backend.
       , enumSumOfProductEncodingOption :: SumOfProductEncodingOptions
       , enumEnumEncodingStyle :: EnumEncodingStyle
+      , enumEnumUnknownCase :: Maybe String
+      -- ^ Add an enum case to represent values added to this enum in the future.
+      --
+      --   Only used by the Swift backend. Generated 'decode' functions for
+      --   sum-of-product types will fall back to this case, but clients
+      --   have to implement fallback logic for simple enums.
       }
   | -- | A newtype.
     --   Kotlin backend: becomes a value class.
@@ -460,6 +466,10 @@ data Options = Options
   --   'EnumEncodingStyle'.
   --
   --   This option is only meaningful on the Kotlin backend.
+  , enumUnknownCase :: Maybe String
+  -- ^ Add an enum case to represent values added to this enum in the future.
+  --
+  --   On the Kotlin backend, this is ignored when using [ValueClassStyle].
   }
 
 data SumOfProductEncodingOptions = SumOfProductEncodingOptions
@@ -477,7 +487,7 @@ data SumOfProductEncodingOptions = SumOfProductEncodingOptions
   -- style. This is unused in the 'TaggedFlatObjectStyle'
   , tagFieldName :: String
   -- ^ The field name to use for the sum, aeson uses "tag" for the TaggedObject
-  -- style. This is unused in the 'TaggedFlatObjectStyle'
+  -- style.
   }
   deriving stock (Eq, Read, Show, Lift)
 
@@ -545,6 +555,7 @@ data EnumEncodingStyle = EnumClassStyle | ValueClassStyle
 --   , optionalExpand = False
 --   , sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
 --   , enumEncodingStyle = EnumClassStyle
+--   , enumUnknownCase = Nothing
 --   }
 -- @
 defaultOptions :: Options
@@ -574,6 +585,7 @@ defaultOptions =
     , optionalExpand = False
     , sumOfProductEncodingOptions = defaultSumOfProductEncodingOptions
     , enumEncodingStyle = EnumClassStyle
+    , enumUnknownCase = Nothing
     }
 
 data KeepOrDiscard = Keep | Discard

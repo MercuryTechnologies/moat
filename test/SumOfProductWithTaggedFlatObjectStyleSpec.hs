@@ -1,4 +1,4 @@
-module SumOfProductWithTaggedObjectStyleSpec where
+module SumOfProductWithTaggedFlatObjectStyleSpec where
 
 import Common
 import Moat
@@ -46,11 +46,12 @@ mobileGenWith
       , dataProtocols = [Codable]
       , sumOfProductEncodingOptions =
           SumOfProductEncodingOptions
-            { encodingStyle = TaggedObjectStyle
+            { encodingStyle = TaggedFlatObjectStyle
             , sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"]
-            , contentsFieldName = "contents"
             , tagFieldName = "tag"
+            , contentsFieldName = "contents"
             }
+      , enumUnknownCase = Just "_unknown"
       }
   )
   ''Enum
@@ -58,7 +59,7 @@ mobileGenWith
 spec :: Spec
 spec =
   describe "stays golden" $ do
-    let moduleName = "SumOfProductWithTaggedObjectStyleSpec"
+    let moduleName = "SumOfProductWithTaggedFlatObjectStyleSpec"
     it "kotlin" $
       defaultGolden ("kotlinRecord0" <> moduleName) (showKotlin @Record0)
     it "kotlin" $

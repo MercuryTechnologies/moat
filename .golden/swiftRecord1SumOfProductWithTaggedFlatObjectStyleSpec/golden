@@ -1,0 +1,4 @@
+struct Record1: Codable {
+    var record1Field0: Int
+    var record1Field1: Int
+}

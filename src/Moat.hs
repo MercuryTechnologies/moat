@@ -78,6 +78,7 @@ module Moat
     makeBase,
     sumOfProductEncodingOptions,
     enumEncodingStyle,
+    enumUnknownCase,
 
     -- * Pretty-printing
 
@@ -759,7 +760,7 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
               cases <- forM cons' (mkCase o)
               ourMatch <-
                 matchProxy
-                  =<< lift (enumExp parentName parentDoc instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs sumOfProductEncodingOptions enumEncodingStyle)
+                  =<< lift (enumExp parentName parentDoc instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs sumOfProductEncodingOptions enumEncodingStyle enumUnknownCase)
               pure [pure ourMatch]
             else throwError $ MissingStrictCases missingConstructors
 
@@ -914,7 +915,7 @@ mkTypeTag Options {..} typName instTys = \case
             mkName
               (nameStr typName ++ "Tag")
       let tag = tagExp typName parentName field False
-      matchProxy =<< lift (enumExp parentName Nothing instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []) sumOfProductEncodingOptions enumEncodingStyle)
+      matchProxy =<< lift (enumExp parentName Nothing instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []) sumOfProductEncodingOptions enumEncodingStyle enumUnknownCase)
   _ -> throwError $ NotANewtype typName
 
 -- make a newtype into a type alias
@@ -955,7 +956,7 @@ mkVoid ::
   MoatM Match
 mkVoid Options {..} typName instTys ts =
   matchProxy
-    =<< lift (enumExp typName Nothing instTys [] [] [] [] Nothing ts (False, Nothing, []) sumOfProductEncodingOptions enumEncodingStyle)
+    =<< lift (enumExp typName Nothing instTys [] [] [] [] Nothing ts (False, Nothing, []) sumOfProductEncodingOptions enumEncodingStyle enumUnknownCase)
 
 mkNewtype ::
   () =>
@@ -1577,14 +1578,16 @@ enumExp ::
   (Bool, Maybe MoatType, [Protocol]) ->
   SumOfProductEncodingOptions ->
   EnumEncodingStyle ->
+  Maybe String ->
   Q Exp
-enumExp parentName parentDoc tyVars ifaces protos anns cases raw tags bs sop ees =
+enumExp parentName parentDoc tyVars ifaces protos anns cases raw tags bs sop ees euc =
   do
     enumInterfaces_ <- Syntax.lift ifaces
     enumAnnotations_ <- Syntax.lift anns
     enumProtocols_ <- Syntax.lift protos
     sumOfProductEncodingOptions_ <- Syntax.lift sop
     enumEnumEncodingStyle_ <- Syntax.lift ees
+    enumEnumUnknownCase_ <- Syntax.lift euc
     applyBase bs $
       RecConE
         'MoatEnum
@@ -1600,6 +1603,7 @@ enumExp parentName parentDoc tyVars ifaces protos anns cases raw tags bs sop ees
         , ('enumTags, ListE tags)
         , ('enumSumOfProductEncodingOption, sumOfProductEncodingOptions_)
         , ('enumEnumEncodingStyle, enumEnumEncodingStyle_)
+        , ('enumEnumUnknownCase, enumEnumUnknownCase_)
         ]
 
 newtypeExp ::

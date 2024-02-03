@@ -1,4 +1,48 @@
-enum Enum: CaseIterable, Hashable, Codable {
+enum Enum: Hashable, Codable {
     case dataCons0(_ enumField0: Int, _ enumField1: Int)
     case dataCons1(_ enumField2: String, _ enumField3: String)
+
+    enum CodingKeys: String, CodingKey {
+        case tag
+        case enumField0
+        case enumField1
+        case enumField2
+        case enumField3
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let discriminator = try container.decode(String.self, forKey: .tag)
+        switch discriminator {
+            case "dataCons0":
+                self = .dataCons0(
+                    try container.decode(Int.self, forKey: .enumField0),
+                    try container.decode(Int.self, forKey: .enumField1)
+                )
+            case "dataCons1":
+                self = .dataCons1(
+                    try container.decode(String.self, forKey: .enumField2),
+                    try container.decode(String.self, forKey: .enumField3)
+                )
+            default:
+                throw DecodingError.typeMismatch(
+                    CodingKeys.self,
+                    .init(codingPath: decoder.codingPath, debugDescription: "Can't decode unknown tag: Enum.\(discriminator)")
+                )
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch (self) {
+            case let .dataCons0:
+                try container.encode("dataCons0", forKey: .tag)
+                try container.encode(enumField0, forKey: .enumField0)
+                try container.encode(enumField1, forKey: .enumField1)
+            case let .dataCons1:
+                try container.encode("dataCons1", forKey: .tag)
+                try container.encode(enumField2, forKey: .enumField2)
+                try container.encode(enumField3, forKey: .enumField3)
+        }
+    }
 }

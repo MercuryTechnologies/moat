@@ -4,4 +4,37 @@ enum Enum: CaseIterable, Hashable, Codable {
     case dataCons0(Record0)
     /// Another constructor.
     case dataCons1(Record1)
+
+    enum CodingKeys: String, CodingKey {
+        case tag
+        case contents
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let discriminator = try container.decode(String.self, forKey: .tag)
+        switch discriminator {
+            case "dataCons0":
+                self = .dataCons0(try container.decode(Record0.self, forKey: .contents))
+            case "dataCons1":
+                self = .dataCons1(try container.decode(Record1.self, forKey: .contents))
+            default:
+                throw DecodingError.typeMismatch(
+                    CodingKeys.self,
+                    .init(codingPath: decoder.codingPath, debugDescription: "Can't decode unknown tag: Enum.\(discriminator)")
+                )
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch (self) {
+            case let .dataCons0(contents):
+                try container.encode("dataCons0", forKey: .tag)
+                try container.encode(contents, forKey: .contents)
+            case let .dataCons1(contents):
+                try container.encode("dataCons1", forKey: .tag)
+                try container.encode(contents, forKey: .contents)
+        }
+    }
 }

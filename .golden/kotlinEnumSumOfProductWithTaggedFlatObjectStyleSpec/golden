@@ -1,0 +1,2 @@
+@Serializable
+sealed class Enum : Parcelable

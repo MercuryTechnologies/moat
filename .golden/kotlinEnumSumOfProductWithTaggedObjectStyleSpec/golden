@@ -10,4 +10,9 @@ sealed class Enum : Parcelable {
     @Serializable
     @SerialName("dataCons1")
     data class DataCons1(val contents: Record1) : Enum()
+
+    @Parcelize
+    @Serializable
+    @SerialName("dataCons2")
+    data object DataCons2 : Enum()
 }
