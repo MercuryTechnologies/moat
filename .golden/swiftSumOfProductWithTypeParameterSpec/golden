@@ -1,4 +1,37 @@
 enum CursorInput<A: Hashable & Codable>: CaseIterable, Hashable, Codable {
     case nextPage(A?)
     case previousPage(A)
+
+    enum CodingKeys: String, CodingKey {
+        case direction
+        case key
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let discriminator = try container.decode(String.self, forKey: .direction)
+        switch discriminator {
+            case "nextPage":
+                self = .nextPage(try container.decode(A?.self, forKey: .key))
+            case "previousPage":
+                self = .previousPage(try container.decode(A.self, forKey: .key))
+            default:
+                throw DecodingError.typeMismatch(
+                    CodingKeys.self,
+                    .init(codingPath: decoder.codingPath, debugDescription: "Can't decode unknown direction: CursorInput.\(discriminator)")
+                )
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch (self) {
+            case let .nextPage(key):
+                try container.encode("nextPage", forKey: .direction)
+                try container.encode(key, forKey: .key)
+            case let .previousPage(key):
+                try container.encode("previousPage", forKey: .direction)
+                try container.encode(key, forKey: .key)
+        }
+    }
 }

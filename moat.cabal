@@ -91,6 +91,7 @@ test-suite spec
       SumOfProductDocSpec
       SumOfProductSpec
       SumOfProductWithLinkEnumInterfaceSpec
+      SumOfProductWithTaggedFlatObjectStyleSpec
       SumOfProductWithTaggedObjectAndNonConcreteCasesSpec
       SumOfProductWithTaggedObjectAndSingleNullarySpec
       SumOfProductWithTaggedObjectStyleSpec

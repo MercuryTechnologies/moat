@@ -1,10 +1,15 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Avoid restricted function" #-}
+-- nub, error
 module Moat.Pretty.Swift
   ( prettySwiftData,
     prettyMoatType,
   )
 where
 
-import Data.List (intercalate)
+import Data.Functor ((<&>))
+import Data.List (intercalate, nub)
 import Data.Maybe (catMaybes)
 import Moat.Pretty.Doc.DocC
 import Moat.Types
@@ -33,11 +38,12 @@ prettySwiftDataWith indent = \case
       ++ prettyRawValueAndProtocols enumRawValue enumProtocols
       ++ " {"
       ++ newlineNonEmpty enumCases
-      ++ prettyEnumCases indents enumCases
+      ++ prettyEnumCases indents enumEnumUnknownCase enumCases
       ++ newlineNonEmpty enumPrivateTypes
       ++ prettyPrivateTypes indents enumPrivateTypes
       ++ prettyTags indents enumTags
       ++ newlineNonEmpty enumTags
+      ++ prettyEnumCoding indents enumName enumCases enumEnumUnknownCase enumSumOfProductEncodingOption
       ++ "}"
   MoatStruct {..} ->
     prettyTypeDoc "" structDoc []
@@ -79,7 +85,7 @@ prettySwiftDataWith indent = \case
             ++ " = Tagged<"
             ++ newtypeName
             ++ ", "
-            ++ case (fieldType newtypeField) of
+            ++ case fieldType newtypeField of
               Optional t -> prettyMoatType t
               t -> prettyMoatType t
             ++ ">\n"
@@ -87,9 +93,6 @@ prettySwiftDataWith indent = \case
             ++ "}"
   where
     indents = replicate indent ' '
-
-    newlineNonEmpty [] = ""
-    newlineNonEmpty _ = "\n"
 
     isConcrete :: Field -> Bool
     isConcrete = \case
@@ -221,8 +224,8 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
-prettyEnumCases :: String -> [EnumCase] -> String
-prettyEnumCases indents = go
+prettyEnumCases :: String -> Maybe String -> [EnumCase] -> String
+prettyEnumCases indents unknown cases = go cases ++ unknownCase
   where
     go = \case
       [] -> ""
@@ -242,6 +245,10 @@ prettyEnumCases indents = go
           ++ intercalate ", " (map labelCase cs)
           ++ ")\n"
           ++ go xs
+
+    unknownCase = case unknown of
+      Just caseNm -> indents ++ "case " ++ caseNm ++ "\n"
+      Nothing -> ""
 
 prettyStructFields :: String -> [Field] -> String
 prettyStructFields indents = go
@@ -276,6 +283,301 @@ prettyPrivateTypes indents = go
     go [] = ""
     go (s : ss) = indents ++ "private " ++ unlines (onLast (indents ++) (lines (prettySwiftData s))) ++ go ss
 
+prettyEnumCoding ::
+  String ->
+  String ->
+  [EnumCase] ->
+  Maybe String ->
+  SumOfProductEncodingOptions ->
+  String
+prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOptions {..}
+  | isCEnum cases = "" -- TODO Perhaps add Codable implementation for these
+  | otherwise =
+      indent $
+        prettyCodingKeys
+          ++ "\n\n"
+          ++ prettyInit
+          ++ "\n\n"
+          ++ prettyEncode
+  where
+    indent :: String -> String
+    indent = indentBy indents
+
+    prettyCodingKeys :: String
+    prettyCodingKeys =
+      "enum CodingKeys: String, CodingKey {"
+        ++ indent
+          ( case encodingStyle of
+              TaggedObjectStyle -> prettyTaggedCodingKeys
+              TaggedFlatObjectStyle -> prettyFlatCodingKeys
+          )
+        ++ "}"
+
+    prettyTaggedCodingKeys :: String
+    prettyTaggedCodingKeys =
+      "case "
+        ++ tagFieldName
+        ++ "\n"
+        ++ "case "
+        ++ contentsFieldName
+
+    -- We need all possible keys in the payload
+    prettyFlatCodingKeys =
+      let names = nub $ filter (not . null) (cases >>= enumCaseFields <&> fieldName)
+       in "case "
+            ++ tagFieldName
+            ++ "\n"
+            ++ intercalate "\n" (map ("case " ++) names)
+
+    prettyInit :: String
+    prettyInit =
+      "init(from decoder: any Decoder) throws {"
+        ++ indent
+          ( "let container = try decoder.container(keyedBy: CodingKeys.self)\n"
+              ++ "let discriminator = try container.decode(String.self, forKey: ."
+              ++ tagFieldName
+              ++ ")\n"
+              ++ "switch discriminator {"
+              ++ indent
+                ( case encodingStyle of
+                    TaggedObjectStyle -> prettyTaggedInitCases
+                    TaggedFlatObjectStyle -> prettyFlatInitCases
+                    ++ prettyInitUnknownCase
+                )
+              ++ "}"
+          )
+        ++ "}"
+
+    -- TaggedObjectStyle payloads have a single tag and contents field.
+    prettyTaggedInitCases :: String
+    prettyTaggedInitCases =
+      concatMap
+        ( \case
+            EnumCase caseNm _ [Field _ caseTy _] ->
+              "case \""
+                ++ caseNm
+                ++ "\":"
+                ++ indent
+                  ( "self = ."
+                      ++ caseNm
+                      ++ "(try container.decode("
+                      ++ prettyMoatType caseTy
+                      ++ ".self, forKey: ."
+                      ++ contentsFieldName
+                      ++ "))"
+                  )
+            EnumCase caseNm _ [] ->
+              "case \""
+                ++ caseNm
+                ++ "\":"
+                ++ indent
+                  ( "self = ."
+                      ++ caseNm
+                  )
+            EnumCase caseNm _ _ ->
+              error $
+                "prettyTaggedEnumCoding: The data constructor "
+                  <> caseNm
+                  <> " can have zero or one concrete type constructor when using TaggedObjectStyle!"
+        )
+        cases
+
+    -- TaggedFlatObjectStyle payloads have a tag field and 0 or more additional fields
+    -- that are decoded directly into the case type.
+    prettyFlatInitCases :: String
+    prettyFlatInitCases =
+      concatMap
+        ( \case
+            EnumCase caseNm _ [] ->
+              "case \""
+                ++ caseNm
+                ++ "\":"
+                ++ indent
+                  ( "self = ."
+                      ++ caseNm
+                  )
+            EnumCase caseNm _ [Field "" caseTy _] ->
+              "case \""
+                ++ caseNm
+                ++ "\":"
+                ++ indent
+                  ( "self = ."
+                      ++ caseNm
+                      ++ "(try "
+                      ++ prettyMoatType caseTy
+                      ++ ".init(from: decoder))"
+                  )
+            EnumCase caseNm _ fields ->
+              "case \""
+                ++ caseNm
+                ++ "\":"
+                ++ indent
+                  ( "self = ."
+                      ++ caseNm
+                      ++ "("
+                      ++ indent
+                        ( intercalate
+                            ",\n"
+                            ( fields <&> \(Field {..}) ->
+                                "try container.decode("
+                                  ++ prettyMoatType fieldType
+                                  ++ ".self, forKey: ."
+                                  ++ fieldName
+                                  ++ ")"
+                            )
+                        )
+                      ++ ")"
+                  )
+        )
+        cases
+
+    prettyInitUnknownCase :: String
+    prettyInitUnknownCase = case unknownCase of
+      Just caseNm ->
+        "default:"
+          ++ indent ("self = ." ++ caseNm)
+      Nothing ->
+        "default:"
+          ++ indent
+            ( "throw DecodingError.typeMismatch("
+                ++ indent
+                  ( "CodingKeys.self,\n"
+                      ++ ".init(codingPath: decoder.codingPath, debugDescription: \"Can't decode unknown "
+                      ++ tagFieldName
+                      ++ ": "
+                      ++ parentName
+                      ++ ".\\(discriminator)\")"
+                  )
+                ++ ")"
+            )
+
+    prettyEncode :: String
+    prettyEncode =
+      "func encode(to encoder: any Encoder) throws {"
+        ++ indent
+          ( "var container = encoder.container(keyedBy: CodingKeys.self)\n"
+              ++ "switch (self) {"
+              ++ indent
+                ( case encodingStyle of
+                    TaggedObjectStyle -> prettyEncodeTaggedCases
+                    TaggedFlatObjectStyle -> prettyEncodeFlatCases
+                    ++ prettyEncodeUnknownCase
+                )
+              ++ "}\n"
+          )
+        ++ "}"
+
+    prettyEncodeTaggedCases :: String
+    prettyEncodeTaggedCases =
+      concatMap
+        ( \(EnumCase {..}) ->
+            case enumCaseFields of
+              [] ->
+                "case ."
+                  ++ enumCaseName
+                  ++ ":"
+                  ++ indent
+                    ( "try container.encode(\""
+                        ++ enumCaseName
+                        ++ "\", forKey: ."
+                        ++ tagFieldName
+                        ++ ")"
+                    )
+              [Field "" _ _] ->
+                "case let ."
+                  ++ enumCaseName
+                  ++ "("
+                  ++ contentsFieldName
+                  ++ "):"
+                  ++ indent
+                    ( "try container.encode(\""
+                        ++ enumCaseName
+                        ++ "\", forKey: ."
+                        ++ tagFieldName
+                        ++ ")\ntry container.encode("
+                        ++ contentsFieldName
+                        ++ ", forKey: ."
+                        ++ contentsFieldName
+                        ++ ")"
+                    )
+              _ ->
+                error $
+                  "prettyTaggedEnumCoding: The data constructor "
+                    <> enumCaseName
+                    <> " can have zero or one concrete type constructor when using TaggedObjectStyle!"
+        )
+        cases
+
+    prettyEncodeFlatCases :: String
+    prettyEncodeFlatCases =
+      concatMap
+        ( \(EnumCase {..}) ->
+            case enumCaseFields of
+              [] ->
+                "case ."
+                  ++ enumCaseName
+                  ++ ":"
+                  ++ indent
+                    ( "try container.encode(\""
+                        ++ enumCaseName
+                        ++ "\", forKey: ."
+                        ++ tagFieldName
+                        ++ ")"
+                    )
+              [Field "" _ _] ->
+                "case let ."
+                  ++ enumCaseName
+                  ++ "(value):"
+                  ++ indent
+                    ( "try container.encode(\""
+                        ++ enumCaseName
+                        ++ "\", forKey: ."
+                        ++ tagFieldName
+                        ++ ")\n"
+                        ++ "try value.encode(to: encoder)"
+                    )
+              _ ->
+                "case let ."
+                  ++ enumCaseName
+                  ++ ":"
+                  ++ indent
+                    ( "try container.encode(\""
+                        ++ enumCaseName
+                        ++ "\", forKey: ."
+                        ++ tagFieldName
+                        ++ ")\n"
+                        ++ intercalate
+                          "\n"
+                          ( enumCaseFields <&> \(Field {..}) ->
+                              "try container.encode("
+                                ++ fieldName
+                                ++ ", forKey: ."
+                                ++ fieldName
+                                ++ ")"
+                          )
+                    )
+        )
+        cases
+
+    prettyEncodeUnknownCase :: String
+    prettyEncodeUnknownCase = case unknownCase of
+      Just caseNm ->
+        "case ."
+          ++ caseNm
+          ++ ":"
+          ++ indent
+            ( "throw EncodingError.invalidValue("
+                ++ indent
+                  ( "self,\n.init(codingPath: encoder.codingPath, debugDescription: \"Can't encode value: "
+                      ++ parentName
+                      ++ "."
+                      ++ caseNm
+                      ++ "\")"
+                  )
+                ++ ")"
+            )
+      Nothing -> ""
+
 -- map a function over everything but the
 -- first element.
 onLast :: (a -> a) -> [a] -> [a]
@@ -306,3 +608,17 @@ addTyVarBounds tyVars protos =
    in case synthesizedProtos of
         [] -> tyVars
         _ -> map (++ bounds) tyVars
+
+newlineNonEmpty :: [a] -> String
+newlineNonEmpty [] = ""
+newlineNonEmpty _ = "\n"
+
+indentBy :: String -> String -> String
+indentBy indents str = "\n" ++ unlines (map indentLine $ lines str)
+  where
+    indentLine :: String -> String
+    indentLine "" = ""
+    indentLine ln = indents ++ ln
+
+isCEnum :: [EnumCase] -> Bool
+isCEnum = all ((== []) . enumCaseFields)

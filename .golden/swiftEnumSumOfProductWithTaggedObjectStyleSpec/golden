@@ -1,9 +1,11 @@
-enum Enum: CaseIterable, Hashable, Codable {
+enum Enum: Codable {
     case dataCons0(Record0)
     case dataCons1(Record1)
+    case dataCons2
 
     enum CodingKeys: String, CodingKey {
         case tag
+        case contents
     }
 
     init(from decoder: any Decoder) throws {
@@ -11,9 +13,11 @@ enum Enum: CaseIterable, Hashable, Codable {
         let discriminator = try container.decode(String.self, forKey: .tag)
         switch discriminator {
             case "dataCons0":
-                self = .dataCons0(try Record0.init(from: decoder))
+                self = .dataCons0(try container.decode(Record0.self, forKey: .contents))
             case "dataCons1":
-                self = .dataCons1(try Record1.init(from: decoder))
+                self = .dataCons1(try container.decode(Record1.self, forKey: .contents))
+            case "dataCons2":
+                self = .dataCons2
             default:
                 throw DecodingError.typeMismatch(
                     CodingKeys.self,
@@ -25,12 +29,14 @@ enum Enum: CaseIterable, Hashable, Codable {
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch (self) {
-            case let .dataCons0(value):
+            case let .dataCons0(contents):
                 try container.encode("dataCons0", forKey: .tag)
-                try value.encode(to: encoder)
-            case let .dataCons1(value):
+                try container.encode(contents, forKey: .contents)
+            case let .dataCons1(contents):
                 try container.encode("dataCons1", forKey: .tag)
-                try value.encode(to: encoder)
+                try container.encode(contents, forKey: .contents)
+            case .dataCons2:
+                try container.encode("dataCons2", forKey: .tag)
         }
     }
 }

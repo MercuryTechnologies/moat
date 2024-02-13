@@ -1,6 +1,8 @@
-enum Enum: CaseIterable, Hashable, Codable {
+enum Enum: Codable {
     case dataCons0(Record0)
     case dataCons1(Record1)
+    case dataCons2
+    case _unknown
 
     enum CodingKeys: String, CodingKey {
         case tag
@@ -14,11 +16,10 @@ enum Enum: CaseIterable, Hashable, Codable {
                 self = .dataCons0(try Record0.init(from: decoder))
             case "dataCons1":
                 self = .dataCons1(try Record1.init(from: decoder))
+            case "dataCons2":
+                self = .dataCons2
             default:
-                throw DecodingError.typeMismatch(
-                    CodingKeys.self,
-                    .init(codingPath: decoder.codingPath, debugDescription: "Can't decode unknown tag: Enum.\(discriminator)")
-                )
+                self = ._unknown
         }
     }
 
@@ -31,6 +32,13 @@ enum Enum: CaseIterable, Hashable, Codable {
             case let .dataCons1(value):
                 try container.encode("dataCons1", forKey: .tag)
                 try value.encode(to: encoder)
+            case .dataCons2:
+                try container.encode("dataCons2", forKey: .tag)
+            case ._unknown:
+                throw EncodingError.invalidValue(
+                    self,
+                    .init(codingPath: encoder.codingPath, debugDescription: "Can't encode value: Enum._unknown")
+                )
         }
     }
 }
