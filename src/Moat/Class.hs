@@ -17,6 +17,7 @@ import Data.List.NonEmpty (NonEmpty)
 import qualified Data.Map as M
 import qualified Data.Primitive as Prim
 import Data.Proxy (Proxy (..))
+import Data.Set (Set)
 import qualified Data.Text as TS
 import qualified Data.Text.Lazy as TL
 import Data.Time (UTCTime)
@@ -116,6 +117,9 @@ instance {-# OVERLAPPABLE #-} forall a. ToMoatType a => ToMoatType [a] where
   toMoatType _ = Array (toMoatType (Proxy @a))
 
 instance {-# OVERLAPPING #-} ToMoatType [Char] where toMoatType _ = Str
+
+instance forall a. ToMoatType a => ToMoatType (Set a) where
+  toMoatType _ = Set (toMoatType (Proxy @a))
 
 instance ToMoatType TL.Text where toMoatType _ = Str
 
