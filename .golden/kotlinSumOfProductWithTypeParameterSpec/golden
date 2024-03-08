@@ -8,4 +8,8 @@ sealed class CursorInput<A> {
     @Serializable
     @SerialName("previousPage")
     data class PreviousPage<A>(val key: A) : CursorInput<A>()
+
+    @Serializable
+    @SerialName("unknown")
+    data object Unknown : CursorInput<Nothing>()
 }

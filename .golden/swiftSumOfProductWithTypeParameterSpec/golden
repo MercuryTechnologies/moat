@@ -1,6 +1,7 @@
 enum CursorInput<A: Hashable & Codable>: CaseIterable, Hashable, Codable {
     case nextPage(A?)
     case previousPage(A)
+    case unknown
 
     enum CodingKeys: String, CodingKey {
         case direction
@@ -15,6 +16,8 @@ enum CursorInput<A: Hashable & Codable>: CaseIterable, Hashable, Codable {
                 self = .nextPage(try container.decode(A?.self, forKey: .key))
             case "previousPage":
                 self = .previousPage(try container.decode(A.self, forKey: .key))
+            case "unknown":
+                self = .unknown
             default:
                 throw DecodingError.typeMismatch(
                     CodingKeys.self,
@@ -32,6 +35,8 @@ enum CursorInput<A: Hashable & Codable>: CaseIterable, Hashable, Codable {
             case let .previousPage(key):
                 try container.encode("previousPage", forKey: .direction)
                 try container.encode(key, forKey: .key)
+            case .unknown:
+                try container.encode("unknown", forKey: .direction)
         }
     }
 }

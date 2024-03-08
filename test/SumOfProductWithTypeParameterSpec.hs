@@ -11,6 +11,7 @@ import Prelude hiding (Enum)
 data CursorInput a
   = CursorInputNextPage (Maybe a)
   | CursorInputPreviousPage a
+  | CursorInputUnknown
 
 mobileGenWith
   ( defaultOptions
