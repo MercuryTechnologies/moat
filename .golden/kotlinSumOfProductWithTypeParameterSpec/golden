@@ -11,5 +11,5 @@ sealed class CursorInput<A> {
 
     @Serializable
     @SerialName("unknown")
-    data object Unknown<A> : CursorInput<A>()
+    data object Unknown : CursorInput<Nothing>()
 }

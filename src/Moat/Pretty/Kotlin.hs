@@ -253,9 +253,9 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
             ++ prettyAnnotations (Just caseNm) indents anns
             ++ indents
             ++ "data object "
-            ++ caseTypeHeader caseNm
+            ++ objectCaseTypeHeader caseNm
             ++ " : "
-            ++ parentTypeHeader
+            ++ objectParentTypeHeader
             ++ "()"
         EnumCase caseNm _ _ ->
           error $
@@ -269,6 +269,12 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
 
     parentTypeHeader :: String
     parentTypeHeader = prettyMoatTypeHeader parentName tyVars
+
+    objectCaseTypeHeader :: String -> String
+    objectCaseTypeHeader name = prettyMoatTypeHeader (toUpperFirst name) []
+
+    objectParentTypeHeader :: String
+    objectParentTypeHeader = prettyMoatTypeHeader parentName (replicate (length tyVars) "Nothing")
 
 prettyEnum ::
   () =>
