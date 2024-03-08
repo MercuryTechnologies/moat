@@ -1,2 +1,2 @@
 @Serializable(with = Enum1Serializer::class)
-sealed class Enum : Parcelable
+sealed interface Enum : Parcelable
