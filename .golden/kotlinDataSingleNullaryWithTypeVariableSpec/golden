@@ -1,0 +1,3 @@
+@Parcelize
+@Serializable
+class Data<A : Parcelable> : Parcelable

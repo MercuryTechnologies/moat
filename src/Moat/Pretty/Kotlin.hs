@@ -18,15 +18,14 @@ import Moat.Types
 prettyKotlinData :: MoatData -> String
 prettyKotlinData = \case
   MoatStruct {..} ->
-    prettyTypeDoc noIndent structDoc structFields
-      ++ prettyAnnotations Nothing noIndent structAnnotations
-      ++ "data class "
-      ++ prettyMoatTypeHeader structName (addTyVarBounds structTyVars structInterfaces)
-      ++ "("
-      ++ newlineNonEmpty structFields
-      ++ prettyStructFields indents structFields
-      ++ ")"
-      ++ prettyInterfaces structInterfaces
+    prettyStruct
+      structName
+      structDoc
+      structTyVars
+      structInterfaces
+      structAnnotations
+      structFields
+      indents
   MoatEnum {..} ->
     prettyEnum
       enumDoc
@@ -273,6 +272,42 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
 
     objectParentTypeHeader :: String
     objectParentTypeHeader = prettyMoatTypeHeader parentName (replicate (length tyVars) "Nothing")
+
+prettyStruct ::
+  () =>
+  -- | name
+  String ->
+  -- | doc
+  Maybe String ->
+  -- | ty vars
+  [String] ->
+  -- | interfaces
+  [Interface] ->
+  -- | annotations
+  [Annotation] ->
+  -- | fields
+  [Field] ->
+  -- | indents
+  String ->
+  String
+prettyStruct name doc tyVars ifaces anns fields indents =
+  prettyTypeDoc noIndent doc fields
+    ++ prettyAnnotations Nothing noIndent anns
+    ++ body
+    ++ prettyInterfaces ifaces
+  where
+    body :: String
+    body =
+      case fields of
+        [] -> case tyVars of
+          [] -> "data object " ++ prettyMoatTypeHeader name []
+          _ -> "class " ++ prettyMoatTypeHeader name (addTyVarBounds tyVars ifaces)
+        _ ->
+          "data class "
+            ++ prettyMoatTypeHeader name (addTyVarBounds tyVars ifaces)
+            ++ "(\n"
+            ++ prettyStructFields indents fields
+            ++ ")"
 
 prettyEnum ::
   () =>

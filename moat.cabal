@@ -86,6 +86,8 @@ test-suite spec
       GenericNewtypeSpec
       GenericStructSpec
       MultipleTypeVariableSpec
+      SingleNullarySpec
+      SingleNullaryWithTypeVariableSpec
       StrictEnumsSpec
       StrictFieldsSpec
       SumOfProductDocSpec
