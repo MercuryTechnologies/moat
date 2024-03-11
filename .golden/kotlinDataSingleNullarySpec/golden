@@ -1,1 +1,3 @@
-data class Data()
+@Parcelize
+@Serializable
+data object Data : Parcelable
