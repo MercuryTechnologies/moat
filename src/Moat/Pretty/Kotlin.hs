@@ -247,7 +247,6 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
             ++ prettyMoatType caseTy
             ++ ") : "
             ++ parentTypeHeader
-            ++ "()"
         EnumCase caseNm caseDoc [] ->
           prettyTypeDoc indents caseDoc []
             ++ prettyAnnotations (Just caseNm) indents anns
@@ -256,7 +255,6 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
             ++ objectCaseTypeHeader caseNm
             ++ " : "
             ++ objectParentTypeHeader
-            ++ "()"
         EnumCase caseNm _ _ ->
           error $
             "prettyTaggedObject: The data constructor "
@@ -326,7 +324,7 @@ prettyEnum doc anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..
         TaggedFlatObjectStyle ->
           prettyTypeDoc noIndent doc []
             ++ prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
-            ++ "sealed class "
+            ++ "sealed interface "
             ++ classTyp
             ++ prettyInterfaces ifaces
         TaggedObjectStyle ->
@@ -335,7 +333,7 @@ prettyEnum doc anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..
               Nothing
               noIndent
               (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
-            ++ "sealed class "
+            ++ "sealed interface "
             ++ classTyp
             ++ prettyInterfaces ifaces
             ++ " {\n"

@@ -1,2 +1,2 @@
 @Serializable
-sealed class Enum : Parcelable
+sealed interface Enum : Parcelable

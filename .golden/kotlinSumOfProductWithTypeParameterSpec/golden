@@ -1,15 +1,15 @@
 @JsonClassDiscriminator("direction")
 @Serializable
-sealed class CursorInput<A> {
+sealed interface CursorInput<A> {
     @Serializable
     @SerialName("nextPage")
-    data class NextPage<A>(val key: A?) : CursorInput<A>()
+    data class NextPage<A>(val key: A?) : CursorInput<A>
 
     @Serializable
     @SerialName("previousPage")
-    data class PreviousPage<A>(val key: A) : CursorInput<A>()
+    data class PreviousPage<A>(val key: A) : CursorInput<A>
 
     @Serializable
     @SerialName("unknown")
-    data object Unknown : CursorInput<Nothing>()
+    data object Unknown : CursorInput<Nothing>
 }
