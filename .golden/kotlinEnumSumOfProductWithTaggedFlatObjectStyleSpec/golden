@@ -1,2 +1,20 @@
+@JsonClassDiscriminator("tag")
 @Serializable
-sealed interface Enum : Parcelable
+sealed interface Enum : Parcelable {
+    @Parcelize
+    @Serializable
+    @SerialName("dataCons0")
+    @JvmInline
+    value class DataCons0(val contents: Record0) : Enum
+
+    @Parcelize
+    @Serializable
+    @SerialName("dataCons1")
+    @JvmInline
+    value class DataCons1(val contents: Record1) : Enum
+
+    @Parcelize
+    @Serializable
+    @SerialName("dataCons2")
+    data object DataCons2 : Enum
+}

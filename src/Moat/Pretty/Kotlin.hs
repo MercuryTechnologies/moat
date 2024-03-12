@@ -163,7 +163,6 @@ prettyInterfaces ps = " : " ++ intercalate ", " (prettyInterface <$> ps)
     prettyInterface = \case
       Parcelable -> "Parcelable"
       RawInterface s -> s
-      LinkEnumInterface s -> s ++ "()"
 
 -- | Pretty-print a 'Ty'.
 prettyMoatType :: MoatType -> String
@@ -234,18 +233,38 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
   intercalate
     "\n\n"
     ( cases <&> \case
-        EnumCase caseNm caseDoc fields@[Field _ caseTy _] ->
-          prettyTypeDoc indents caseDoc fields
-            ++ prettyAnnotations (Just caseNm) indents anns
-            ++ indents
-            ++ "data class "
-            ++ caseTypeHeader caseNm
-            ++ "(val "
-            ++ contentsFieldName
-            ++ ": "
-            ++ prettyMoatType caseTy
-            ++ ") : "
-            ++ parentTypeHeader
+        -- Single unnamed field: external contents field type
+        EnumCase caseNm caseDoc fields@[Field "" caseTy _] ->
+          case encodingStyle of
+            TaggedObjectStyle ->
+              prettyTypeDoc indents caseDoc fields
+                ++ prettyAnnotations (Just caseNm) indents anns
+                ++ indents
+                ++ "data class "
+                ++ caseTypeHeader caseNm
+                ++ "(val "
+                ++ contentsFieldName
+                ++ ": "
+                ++ prettyMoatType caseTy
+                ++ ") : "
+                ++ parentTypeHeader
+            -- Flat objects get their contents decoded inline.
+            -- "value class" makes this work for kotlinx.serialization, but
+            -- inlining a record's fields here would require extra work done
+            -- in the Moat frontend.
+            TaggedFlatObjectStyle ->
+              prettyTypeDoc indents caseDoc fields
+                ++ prettyAnnotations (Just caseNm) indents (ensureJvmInlineForValueClasses anns)
+                ++ indents
+                ++ "value class "
+                ++ caseTypeHeader caseNm
+                ++ "(val "
+                ++ contentsFieldName
+                ++ ": "
+                ++ prettyMoatType caseTy
+                ++ ") : "
+                ++ parentTypeHeader
+        -- No fields: content-less object
         EnumCase caseNm caseDoc [] ->
           prettyTypeDoc indents caseDoc []
             ++ prettyAnnotations (Just caseNm) indents anns
@@ -254,13 +273,41 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
             ++ objectCaseTypeHeader caseNm
             ++ " : "
             ++ objectParentTypeHeader
-        EnumCase caseNm _ _ ->
-          error $
-            "prettyTaggedObject: The data constructor "
-              <> caseNm
-              <> " can have zero or one concrete type constructor!"
+        -- Named field(s):
+        -- - Case is a record if fields are named
+        -- - Otherwise, this is an error
+        EnumCase caseNm caseDoc fields ->
+          let unnamedCases = takeWhile (\f -> fieldName f == "") fields
+           in case unnamedCases of
+                [] -> case encodingStyle of
+                  -- Tagged objects need an additional type generated for the contents field.
+                  -- We don't support this on the Swift backend yet, so just throw.
+                  TaggedObjectStyle ->
+                    error $
+                      "prettyTaggedObject: The data constructor "
+                        <> caseNm
+                        <> " can have zero or one concrete type constructor when using TaggedObjectStyle!"
+                  -- Flat objects include their fields inline.
+                  TaggedFlatObjectStyle ->
+                    prettyAnnotations (Just caseNm) indents anns
+                      ++ indents
+                      ++ "data class "
+                      ++ caseTypeHeader caseNm
+                      ++ "(\n"
+                      ++ prettyStructFields doubleIndents fields
+                      ++ indents
+                      ++ ") : "
+                      ++ parentTypeHeader
+                _ ->
+                  error $
+                    "prettyTaggedObject: The data constructor "
+                      <> caseNm
+                      <> " can have zero or one concrete type constructor!"
     )
   where
+    doubleIndents :: String
+    doubleIndents = indents ++ indents
+
     caseTypeHeader :: String -> String
     caseTypeHeader name = prettyMoatTypeHeader (toUpperFirst name) (addTyVarBounds tyVars ifaces)
 
@@ -355,25 +402,17 @@ prettyEnum doc anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..
             ++ newlineNonEmpty cases
             ++ "}"
   | otherwise =
-      case encodingStyle of
-        TaggedFlatObjectStyle ->
-          prettyTypeDoc noIndent doc []
-            ++ prettyAnnotations Nothing noIndent (dontAddParcelizeToSealedClasses anns)
-            ++ "sealed interface "
-            ++ classTyp
-            ++ prettyInterfaces ifaces
-        TaggedObjectStyle ->
-          prettyTypeDoc noIndent doc []
-            ++ prettyAnnotations
-              Nothing
-              noIndent
-              (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
-            ++ "sealed interface "
-            ++ classTyp
-            ++ prettyInterfaces ifaces
-            ++ " {\n"
-            ++ prettyTaggedObject name tyVars anns ifaces cases indents sop
-            ++ "\n}"
+      prettyTypeDoc noIndent doc []
+        ++ prettyAnnotations
+          Nothing
+          noIndent
+          (dontAddParcelizeToSealedClasses (sumAnnotations ++ anns))
+        ++ "sealed interface "
+        ++ classTyp
+        ++ prettyInterfaces ifaces
+        ++ " {\n"
+        ++ prettyTaggedObject name tyVars anns ifaces cases indents sop
+        ++ "\n}"
   where
     isCEnum :: [EnumCase] -> Bool
     isCEnum = all ((== []) . enumCaseFields)
@@ -389,10 +428,10 @@ prettyEnum doc anns ifaces name tyVars cases sop@SumOfProductEncodingOptions {..
     dontAddParcelizeToSealedClasses :: [Annotation] -> [Annotation]
     dontAddParcelizeToSealedClasses = filter (/= Parcelize)
 
-    ensureJvmInlineForValueClasses :: [Annotation] -> [Annotation]
-    ensureJvmInlineForValueClasses as
-      | JvmInline `elem` as = as
-      | otherwise = as ++ [JvmInline]
+ensureJvmInlineForValueClasses :: [Annotation] -> [Annotation]
+ensureJvmInlineForValueClasses as
+  | JvmInline `elem` as = as
+  | otherwise = as ++ [JvmInline]
 
 newlineNonEmpty :: [a] -> String
 newlineNonEmpty [] = ""
