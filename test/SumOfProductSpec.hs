@@ -13,9 +13,16 @@ data Enum
 
 mobileGenWith
   ( defaultOptions
-      { dataAnnotations = [Parcelize, Serializable]
+      { dataAnnotations = [Parcelize, Serializable, SerialName]
       , dataInterfaces = [Parcelable]
       , dataProtocols = [Hashable, Codable]
+      , sumOfProductEncodingOptions =
+          SumOfProductEncodingOptions
+            { encodingStyle = TaggedFlatObjectStyle
+            , sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"]
+            , tagFieldName = "tag"
+            , contentsFieldName = "contents"
+            }
       }
   )
   ''Enum

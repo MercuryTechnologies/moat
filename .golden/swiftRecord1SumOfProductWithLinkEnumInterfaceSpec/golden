@@ -1,4 +1,0 @@
-struct Record1: CaseIterable, Hashable, Codable {
-    var record1Field0: Int
-    var record1Field1: Int
-}

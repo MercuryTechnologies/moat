@@ -1,2 +1,0 @@
-@Serializable(with = Enum1Serializer::class)
-sealed interface Enum : Parcelable

@@ -255,12 +255,6 @@ data Interface
     -- >     ...
     -- >   ) : {String}
     RawInterface String
-  | -- | /escape hatch/ Use an arbitrary linked interface
-    --
-    -- >   data class A(
-    -- >     ...
-    -- >   ) : {String}()
-    LinkEnumInterface String
   deriving stock (Eq, Read, Show)
   deriving stock (Lift)
 

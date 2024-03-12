@@ -92,7 +92,6 @@ test-suite spec
       StrictFieldsSpec
       SumOfProductDocSpec
       SumOfProductSpec
-      SumOfProductWithLinkEnumInterfaceSpec
       SumOfProductWithTaggedFlatObjectStyleSpec
       SumOfProductWithTaggedObjectAndNonConcreteCasesSpec
       SumOfProductWithTaggedObjectAndSingleNullarySpec
