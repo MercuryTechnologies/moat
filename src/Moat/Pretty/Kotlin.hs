@@ -289,7 +289,8 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
                         <> " can have zero or one concrete type constructor when using TaggedObjectStyle!"
                   -- Flat objects include their fields inline.
                   TaggedFlatObjectStyle ->
-                    prettyAnnotations (Just caseNm) indents anns
+                    prettyTypeDoc indents caseDoc fields
+                      ++ prettyAnnotations (Just caseNm) indents anns
                       ++ indents
                       ++ "data class "
                       ++ caseTypeHeader caseNm

@@ -1,0 +1,42 @@
+enum Enum: Codable {
+    case record0(Record0)
+    case record1(Record1)
+    case record2
+
+    enum CodingKeys: String, CodingKey {
+        case tag
+        case contents
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let discriminator = try container.decode(String.self, forKey: .tag)
+        switch discriminator {
+            case "record0":
+                self = .record0(try container.decode(Record0.self, forKey: .contents))
+            case "record1":
+                self = .record1(try container.decode(Record1.self, forKey: .contents))
+            case "record2":
+                self = .record2
+            default:
+                throw DecodingError.typeMismatch(
+                    CodingKeys.self,
+                    .init(codingPath: decoder.codingPath, debugDescription: "Can't decode unknown tag: Enum.\(discriminator)")
+                )
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch (self) {
+            case let .record0(contents):
+                try container.encode("record0", forKey: .tag)
+                try container.encode(contents, forKey: .contents)
+            case let .record1(contents):
+                try container.encode("record1", forKey: .tag)
+                try container.encode(contents, forKey: .contents)
+            case .record2:
+                try container.encode("record2", forKey: .tag)
+        }
+    }
+}
