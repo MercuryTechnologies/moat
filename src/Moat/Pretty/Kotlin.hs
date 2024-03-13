@@ -168,11 +168,11 @@ prettyInterfaces ps = " : " ++ intercalate ", " (prettyInterface <$> ps)
 prettyMoatType :: MoatType -> String
 prettyMoatType = \case
   Str -> "String"
-  Unit -> "()"
+  Unit -> "Unit"
   Bool -> "Boolean"
   Character -> "Char"
-  Tuple2 e1 e2 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ")"
-  Tuple3 e1 e2 e3 -> "(" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e3 ++ ")"
+  Tuple2 e1 e2 -> "Pair<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
+  Tuple3 e1 e2 e3 -> "Triple<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ", " ++ prettyMoatType e3 ++ ">"
   Optional o@(Optional _) -> prettyMoatType o
   Optional e -> prettyMoatType e ++ "?"
   Result e1 e2 -> "Either<" ++ prettyMoatType e1 ++ ", " ++ prettyMoatType e2 ++ ">"
@@ -241,7 +241,7 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
                 ++ prettyAnnotations (Just caseNm) indents anns
                 ++ indents
                 ++ "data class "
-                ++ caseTypeHeader caseNm
+                ++ nonColliding caseTy (caseTypeHeader caseNm)
                 ++ "(val "
                 ++ contentsFieldName
                 ++ ": "
@@ -257,7 +257,7 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
                 ++ prettyAnnotations (Just caseNm) indents (ensureJvmInlineForValueClasses anns)
                 ++ indents
                 ++ "value class "
-                ++ caseTypeHeader caseNm
+                ++ nonColliding caseTy (caseTypeHeader caseNm)
                 ++ "(val "
                 ++ contentsFieldName
                 ++ ": "
@@ -320,6 +320,20 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
 
     objectParentTypeHeader :: String
     objectParentTypeHeader = prettyMoatTypeHeader parentName (replicate (length tyVars) "Nothing")
+
+    -- Field types can't have the same name as the case type, so disambiguate
+    -- by appending underscores ('_').
+    nonColliding :: MoatType -> String -> String
+    nonColliding ty name =
+      let tyBase = takeWhile (/= '<') (prettyMoatType ty)
+          (nameBase, nameVars) = span (/= '<') name
+          nameUnique = go tyBase nameBase
+       in nameUnique ++ nameVars
+      where
+        go :: String -> String -> String
+        go ty' name'
+          | ty' == name' = go ty' $ name' ++ "_"
+          | otherwise = name'
 
 prettyStruct ::
   () =>
