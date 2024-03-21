@@ -73,7 +73,7 @@ module Moat
     lowerFirstField,
     omitFields,
     omitCases,
-    strictFields,
+    fieldsRequiredByClients,
     strictCases,
     makeBase,
     sumOfProductEncodingOptions,
@@ -507,7 +507,7 @@ data MoatError
   | ImproperNewtypeConstructorInfo
       { _conInfo :: ConstructorInfo
       }
-  | MissingStrictFields
+  | MissingRequiredFields
       { _missingFields :: [String]
       }
   | MissingStrictCases
@@ -577,8 +577,8 @@ prettyMoatError = \case
   ImproperNewtypeConstructorInfo conInfo ->
     "Expected `ConstructorInfo` with single field, but got "
       ++ show conInfo
-  MissingStrictFields missingFields ->
-    "Removing these fields will break clients: " ++ L.unwords missingFields
+  MissingRequiredFields missingFields ->
+    "These fields are required by clients: " ++ L.unwords missingFields
   MissingStrictCases missingCases ->
     "Removing these cases will break clients: " ++ L.unwords missingCases
 
@@ -1029,15 +1029,15 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
 zipFields :: Options -> [Name] -> [Type] -> [Maybe String] -> MoatM [Exp]
 zipFields o ns ts ds = do
   let fields = nameStr <$> ns
-      missingFields = strictFields o L.\\ fields
+      missingFields = fieldsRequiredByClients o L.\\ fields
   if null missingFields
     then pure $ catMaybes $ zipWith3 mkField ns ts ds
-    else throwError $ MissingStrictFields missingFields
+    else throwError $ MissingRequiredFields missingFields
   where
     mkField :: Name -> Type -> Maybe String -> Maybe Exp
     mkField n t d =
       let fieldStr = nameStr n
-       in case (fieldStr `elem` strictFields o, omitFields o fieldStr) of
+       in case (fieldStr `elem` fieldsRequiredByClients o, omitFields o fieldStr) of
             (True, _) -> Just $ prettyField o n t d
             (False, Keep) -> Just $ prettyField o n t d
             (False, Discard) -> Nothing
