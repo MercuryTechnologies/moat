@@ -411,8 +411,8 @@ data Options = Options
   -- ^ A function to apply to enum cases and choose whether, or not, to keep them
   --
   --   The default (@const Keep@) will omit nothing.
-  , strictFields :: [String]
-  -- ^ These fields are relied upon and must exist in the record.
+  , fieldsRequiredByClients :: [String]
+  -- ^ These fields are relied upon by clients.
   --
   -- The default @[]@ will not require any fields to exist.
   --
@@ -573,7 +573,7 @@ defaultOptions =
     , lowerFirstCase = True
     , omitFields = const Keep
     , omitCases = const Keep
-    , strictFields = []
+    , fieldsRequiredByClients = []
     , strictCases = []
     , makeBase = (False, Nothing, [])
     , optionalExpand = False

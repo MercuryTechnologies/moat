@@ -15,7 +15,7 @@ data RecordA = RecordA
 -- | Note: you can't discard a strict field
 mobileGenWith
   ( defaultOptions
-      { strictFields = ["fieldA"]
+      { fieldsRequiredByClients = ["fieldA"]
       , omitFields = const Discard
       }
   )
@@ -32,7 +32,7 @@ mobileGenWith
       { fieldLabelModifier = \case
           xs | Just rest <- stripPrefix "field" xs -> rest
           xs -> xs
-      , strictFields = ["fieldC"]
+      , fieldsRequiredByClients = ["fieldC"]
       , omitFields = const Discard
       }
   )
