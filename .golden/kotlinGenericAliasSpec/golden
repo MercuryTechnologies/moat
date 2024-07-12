@@ -1,1 +1,1 @@
-typealias TreeResponse<a> = Tree<a>
+typealias TreeResponse<A> = Tree<A>
