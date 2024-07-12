@@ -83,6 +83,7 @@ test-suite spec
       DuplicateRecordFieldSpec
       EnumValueClassDocSpec
       EnumValueClassSpec
+      GenericAliasSpec
       GenericNewtypeSpec
       GenericStructSpec
       MultipleTypeVariableSpec
