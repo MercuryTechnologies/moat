@@ -1,0 +1,1 @@
+typealias TreeResponse<A> = Tree<A>

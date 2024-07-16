@@ -137,7 +137,7 @@ prettyValueClassInstances indents typ cons enumCases = case enumCases of
 
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
-prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
+prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " (map toUpperFirst tyVars) ++ ">"
 
 -- | This function will take a name and the indentation level and render
 -- annotations in the style '@{string}\n...'. The name parameter is only used
@@ -196,7 +196,7 @@ prettyMoatType = \case
   F64 -> "Double"
   Decimal -> "Decimal"
   BigInt -> "BigInteger"
-  Poly ty -> ty
+  Poly ty -> toUpperFirst ty
   Concrete ty [] -> ty
   Concrete ty tys ->
     ty

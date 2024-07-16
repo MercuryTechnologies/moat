@@ -61,9 +61,10 @@ prettySwiftDataWith indent = \case
   MoatAlias {..} ->
     prettyTypeDoc "" aliasDoc []
       ++ "typealias "
-      ++ prettyMoatTypeHeader aliasName (addTyVarBounds aliasTyVars [])
+      -- Swift aliases should not declare type parameters
+      ++ prettyMoatTypeHeader aliasName []
       ++ " = "
-      ++ prettyMoatType aliasTyp
+      ++ prettyMoatTypeBase aliasTyp
   MoatNewtype {..} ->
     prettyTypeDoc "" newtypeDoc []
       ++ "struct "
@@ -210,6 +211,15 @@ prettyMoatType = \case
       ++ intercalate ", " (map prettyMoatType tys)
       ++ ">"
   Tag {..} -> tagParent ++ "." ++ tagName
+
+-- | Pretty-print a 'MoatType', omitting type parameters.
+prettyMoatTypeBase :: MoatType -> String
+prettyMoatTypeBase = \case
+  Result _ _ -> "Result"
+  Set _ -> "Set"
+  Dictionary _ _ -> "Dictionary"
+  Concrete ty _ -> ty
+  ty -> prettyMoatType ty
 
 prettyApp :: MoatType -> MoatType -> String
 prettyApp t1 t2 =
