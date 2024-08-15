@@ -741,7 +741,7 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
                 | typeAlias -> do
                     mkTypeAlias parentName parentDoc instTys con
                 | otherwise -> do
-                    mkNewtype o parentName parentDoc instTys con
+                    mkNewtype o parentName parentDoc instTys ts con
             _ -> do
               mkProd o parentName parentDoc instTys ts con
         _ -> do
@@ -964,14 +964,18 @@ mkNewtype ::
   Name ->
   Maybe String ->
   [Type] ->
+  [Exp] ->
   ConstructorInfo ->
   MoatM Match
-mkNewtype o@Options {..} typName doc instTys = \case
+mkNewtype o@Options {..} typName doc instTys ts = \case
+  -- newtypes wrapping records should produce MoatStruct
   ConstructorInfo
-    { constructorFields = [field]
-    , constructorVariant = RecordConstructor [name]
+    { constructorVariant = RecordConstructor fieldNames
+    , ..
     } -> do
-      matchProxy =<< lift (newtypeExp typName doc instTys dataInterfaces dataProtocols dataAnnotations (prettyField o name field Nothing))
+      fieldDocs <- lift $ mapM (getDocWith o) fieldNames
+      fields <- zipFields o fieldNames constructorFields fieldDocs
+      matchProxy =<< lift (structExp typName doc instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
   ConstructorInfo
     { constructorFields = [field]
     } -> do

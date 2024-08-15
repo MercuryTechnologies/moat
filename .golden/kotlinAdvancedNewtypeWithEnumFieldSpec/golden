@@ -1,1 +1,3 @@
-value class Newtype(val newtypeField: Enum)
+data class Newtype(
+    val newtypeField: Enum,
+)
