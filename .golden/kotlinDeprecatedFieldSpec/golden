@@ -1,0 +1,5 @@
+data class Data(
+    val field0: Int,
+// Deprecated since build 500
+//    val field1: Int? = null,
+)
