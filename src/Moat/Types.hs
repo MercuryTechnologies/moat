@@ -144,6 +144,7 @@ data MoatData
       --   populated by setting 'makeBase'.
       --
       --   Only used by the Swift backend.
+      , structDeprecatedFields :: [(String, Maybe String)]
       , structTags :: [MoatType]
       -- ^ The tags of the struct. See 'Tag'.
       --
@@ -418,6 +419,13 @@ data Options = Options
   --
   -- This can be used with @omitFields = const Discard@ to ensure fields are
   -- retained for client compatibility.
+  , deprecatedFields :: [(String, Maybe String)]
+  -- ^ These fields are deprecated for clients and a comment with details about the deprecation
+  -- deprecated fields are also required in Haskell
+  --
+  -- This field will generate a mobile type as a comment instead of actual code
+  -- and add the specified comment to the resulting type
+  -- The purpose of this field is to allow fields to be no longer generated
   , strictCases :: [String]
   -- ^ These enum cases are relied upon and must exist in the sum type.
   --
@@ -574,6 +582,7 @@ defaultOptions =
     , omitFields = const Keep
     , omitCases = const Keep
     , fieldsRequiredByClients = []
+    , deprecatedFields = []
     , strictCases = []
     , makeBase = (False, Nothing, [])
     , optionalExpand = False

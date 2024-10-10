@@ -74,6 +74,7 @@ module Moat
     omitFields,
     omitCases,
     fieldsRequiredByClients,
+    deprecatedFields,
     strictCases,
     makeBase,
     sumOfProductEncodingOptions,
@@ -509,6 +510,10 @@ data MoatError
       }
   | MissingRequiredFields
       { _missingFields :: [String]
+      , _missingDeprecatedFields :: [String]
+      }
+  | MissingDeprecatedRequiredFields
+      { _missingDeprecatedRequiredFields :: [String]
       }
   | MissingStrictCases
       { _missingCases :: [String]
@@ -577,8 +582,10 @@ prettyMoatError = \case
   ImproperNewtypeConstructorInfo conInfo ->
     "Expected `ConstructorInfo` with single field, but got "
       ++ show conInfo
-  MissingRequiredFields missingFields ->
-    "These fields are required by clients: " ++ L.unwords missingFields
+  MissingRequiredFields missingFields missingDeprecatedFields ->
+    "These fields are required by clients: " ++ L.unwords missingFields ++ " " ++ L.unwords missingDeprecatedFields
+  MissingDeprecatedRequiredFields missingDeprecatedFields ->
+    "These fields need to be added to the required field list due to being necessary on older clients: " ++ L.unwords missingDeprecatedFields
   MissingStrictCases missingCases ->
     "Removing these cases will break clients: " ++ L.unwords missingCases
 
@@ -975,7 +982,8 @@ mkNewtype o@Options {..} typName doc instTys ts = \case
     } -> do
       fieldDocs <- lift $ mapM (getDocWith o) fieldNames
       fields <- zipFields o fieldNames constructorFields fieldDocs
-      matchProxy =<< lift (structExp typName doc instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
+      deprecatedFieldExps <- lift [e|deprecatedFields|]
+      matchProxy =<< lift (structExp typName doc instTys dataInterfaces dataProtocols dataAnnotations fields deprecatedFieldExps ts makeBase)
   ConstructorInfo
     { constructorFields = [field]
     } -> do
@@ -1004,7 +1012,8 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
     { constructorVariant = NormalConstructor
     , constructorFields = []
     } -> do
-      matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations [] ts makeBase)
+      emptyDeprecatedFieldsExp <- lift [e|[]|]
+      matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations [] emptyDeprecatedFieldsExp ts makeBase)
   -- single constructor, non-record (Normal)
   ConstructorInfo
     { constructorVariant = NormalConstructor
@@ -1026,17 +1035,30 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
     } -> do
       fieldDocs <- lift $ mapM (getDocWith o) fieldNames
       fields <- zipFields o fieldNames constructorFields fieldDocs
-      matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields ts makeBase)
+      deprecatedFieldExp <- lift [e|deprecatedFields|]
+      matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields deprecatedFieldExp ts makeBase)
 
 -- | 'strictFields' are required to exist in the record and are always included.
 -- 'omitFields' will remove any remaining fields if they are 'Discard'ed.
 zipFields :: Options -> [Name] -> [Type] -> [Maybe String] -> MoatM [Exp]
 zipFields o ns ts ds = do
   let fields = nameStr <$> ns
-      missingFields = fieldsRequiredByClients o L.\\ fields
-  if null missingFields
-    then pure $ catMaybes $ zipWith3 mkField ns ts ds
-    else throwError $ MissingRequiredFields missingFields
+      requiredFieldNames = fieldsRequiredByClients o
+      deprecatedFieldNames = fst <$> deprecatedFields o
+      missingFields = requiredFieldNames L.\\ fields
+      missingDeprecatedFields = deprecatedFieldNames L.\\ fields
+      deprecatedNonRequiredFields = deprecatedFieldNames L.\\ requiredFieldNames
+      checkMissingFields =
+        if null missingFields
+          then pure $ catMaybes $ zipWith3 mkField ns ts ds
+          else throwError $ MissingRequiredFields missingFields missingDeprecatedFields
+  case requiredFieldNames of
+    [] -> checkMissingFields
+    _requiredFields ->
+      -- Throw an error if required fields are available but a deprecated field is not included in them
+      case deprecatedNonRequiredFields of
+        [] -> checkMissingFields
+        _xs -> throwError $ MissingDeprecatedRequiredFields deprecatedNonRequiredFields
   where
     mkField :: Name -> Type -> Maybe String -> Maybe Exp
     mkField n t d =
@@ -1650,12 +1672,14 @@ structExp ::
   [Annotation] ->
   -- | fields
   [Exp] ->
+  -- | deprecated fields
+  Exp ->
   -- | tags
   [Exp] ->
   -- | Make base?
   (Bool, Maybe MoatType, [Protocol]) ->
   Q Exp
-structExp name doc tyVars ifaces protos anns fields tags bs = do
+structExp name doc tyVars ifaces protos anns fields deprecatedFields tags bs = do
   structInterfaces_ <- Syntax.lift ifaces
   structAnnotations_ <- Syntax.lift anns
   structProtocols_ <- Syntax.lift protos
@@ -1669,6 +1693,7 @@ structExp name doc tyVars ifaces protos anns fields tags bs = do
       , ('structProtocols, structProtocols_)
       , ('structAnnotations, structAnnotations_)
       , ('structFields, ListE fields)
+      , ('structDeprecatedFields, deprecatedFields)
       , ('structPrivateTypes, ListE [])
       , ('structTags, ListE tags)
       ]

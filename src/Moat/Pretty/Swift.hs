@@ -10,6 +10,7 @@ where
 
 import Data.Functor ((<&>))
 import Data.List (intercalate, nub)
+import qualified Data.Map as Map
 import Data.Maybe (catMaybes)
 import Moat.Pretty.Doc.DocC
 import Moat.Types
@@ -52,7 +53,7 @@ prettySwiftDataWith indent = \case
       ++ prettyRawValueAndProtocols Nothing structProtocols
       ++ " {"
       ++ newlineNonEmpty structFields
-      ++ prettyStructFields indents structFields
+      ++ prettyStructFields indents structFields structDeprecatedFields
       ++ newlineNonEmpty structPrivateTypes
       ++ prettyPrivateTypes indents structPrivateTypes
       ++ prettyTags indents structTags
@@ -260,19 +261,29 @@ prettyEnumCases indents unknown cases = go cases ++ unknownCase
       Just caseNm -> indents ++ "case " ++ caseNm ++ "\n"
       Nothing -> ""
 
-prettyStructFields :: String -> [Field] -> String
-prettyStructFields indents = go
+prettyStructFields :: String -> [Field] -> [(String, Maybe String)] -> String
+prettyStructFields indents fields deprecatedFields = go fields
   where
-    go [] = ""
-    go (Field {..} : fs) =
-      prettyTypeDoc indents fieldDoc []
-        ++ indents
+    deprecatedFieldsMap = Map.fromList deprecatedFields
+    prettyField (Field fieldName fieldType _fieldDoc) =
+      indents
         ++ "var "
         ++ fieldName
         ++ ": "
         ++ prettyMoatType fieldType
         ++ "\n"
-        ++ go fs
+    go [] = ""
+    go (field@(Field fieldName _ fieldDoc) : fs) =
+      case Map.lookup fieldName deprecatedFieldsMap of
+        Just mComment ->
+          maybe "" (\comment -> "// " ++ comment ++ "\n") mComment
+            ++ "//"
+            ++ prettyField field
+            ++ go fs
+        Nothing ->
+          prettyTypeDoc indents fieldDoc []
+            ++ prettyField field
+            ++ go fs
 
 prettyNewtypeField :: String -> Field -> String -> String
 prettyNewtypeField indents (Field alias fieldType _) fieldName =
