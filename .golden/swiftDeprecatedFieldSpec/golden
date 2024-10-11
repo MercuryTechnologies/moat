@@ -1,0 +1,5 @@
+struct Data {
+    var field0: Int
+// Deprecated since build 500
+//    var field1: Int?
+}

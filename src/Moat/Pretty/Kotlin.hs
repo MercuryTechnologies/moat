@@ -6,7 +6,9 @@ where
 import qualified Data.Char as Char
 import Data.Functor ((<&>))
 import Data.List (intercalate)
+import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
+import Debug.Trace
 import Moat.Pretty.Doc.KDoc
 import Moat.Types
 
@@ -25,6 +27,7 @@ prettyKotlinData = \case
       structInterfaces
       structAnnotations
       structFields
+      structDeprecatedFields
       indents
   MoatEnum {..} ->
     prettyEnum
@@ -64,11 +67,11 @@ prettyTypeDoc indents doc fields =
       kdoc = intercalate "\n" (catMaybes [prettyDoc wrap <$> doc, prettyFieldDoc wrap fields])
    in prettyDocComment wrap indents kdoc
 
-prettyStructFields :: String -> [Field] -> String
-prettyStructFields indents = go
+prettyStructFields :: String -> [Field] -> [(String, Maybe String)] -> String
+prettyStructFields indents fields deprecatedFields = go fields
   where
-    go [] = ""
-    go (Field fieldName ty _ : fs) =
+    deprecatedFieldsMap = Map.fromList deprecatedFields
+    prettyField (Field fieldName ty _) =
       indents
         ++ "val "
         ++ fieldName
@@ -78,7 +81,20 @@ prettyStructFields indents = go
           Optional _ -> " = null"
           _ -> ""
         ++ ",\n"
-        ++ go fs
+    go [] = ""
+    go (field@(Field fieldName _ _) : fs) =
+      traceShow deprecatedFieldsMap $
+        traceShow fieldName $
+          traceShow fields $
+            traceShow fs $
+              case Map.lookup fieldName deprecatedFieldsMap of
+                Just mComment ->
+                  traceShow "test" $
+                    maybe "" (\comment -> "// " ++ comment ++ "\n") mComment
+                      ++ "//"
+                      ++ prettyField field
+                      ++ go fs
+                Nothing -> prettyField field ++ go fs
 
 prettyEnumCases :: String -> [EnumCase] -> String
 prettyEnumCases indents = go
@@ -295,7 +311,7 @@ prettyTaggedObject parentName tyVars anns ifaces cases indents SumOfProductEncod
                       ++ "data class "
                       ++ caseTypeHeader caseNm
                       ++ "(\n"
-                      ++ prettyStructFields doubleIndents fields
+                      ++ prettyStructFields doubleIndents fields []
                       ++ indents
                       ++ ") : "
                       ++ parentTypeHeader
@@ -350,9 +366,10 @@ prettyStruct ::
   -- | fields
   [Field] ->
   -- | indents
+  [(String, Maybe String)] ->
   String ->
   String
-prettyStruct name doc tyVars ifaces anns fields indents =
+prettyStruct name doc tyVars ifaces anns fields deprecatedFields indents =
   prettyTypeDoc noIndent doc fields
     ++ prettyAnnotations Nothing noIndent anns
     ++ body
@@ -368,7 +385,7 @@ prettyStruct name doc tyVars ifaces anns fields indents =
           "data class "
             ++ prettyMoatTypeHeader name (addTyVarBounds tyVars ifaces)
             ++ "(\n"
-            ++ prettyStructFields indents fields
+            ++ prettyStructFields indents fields deprecatedFields
             ++ ")"
 
 prettyEnum ::
