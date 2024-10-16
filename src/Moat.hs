@@ -100,6 +100,7 @@ import Control.Monad.Except
 #if MIN_VERSION_mtl(2,3,0)
 import Control.Monad.Trans
 #endif
+import qualified Data.Bifunctor as Bifunctor
 import Data.Bool (bool)
 import qualified Data.Char as Char
 import Data.Foldable (foldl', foldlM, foldr')
@@ -982,8 +983,8 @@ mkNewtype o@Options {..} typName doc instTys ts = \case
     } -> do
       fieldDocs <- lift $ mapM (getDocWith o) fieldNames
       fields <- zipFields o fieldNames constructorFields fieldDocs
-      deprecatedFieldExps <- lift [e|deprecatedFields|]
-      matchProxy =<< lift (structExp typName doc instTys dataInterfaces dataProtocols dataAnnotations fields deprecatedFieldExps ts makeBase)
+      deprecatedFieldExp <- lift $ mkDeprecatedField o deprecatedFields
+      matchProxy =<< lift (structExp typName doc instTys dataInterfaces dataProtocols dataAnnotations fields deprecatedFieldExp ts makeBase)
   ConstructorInfo
     { constructorFields = [field]
     } -> do
@@ -1035,8 +1036,12 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
     } -> do
       fieldDocs <- lift $ mapM (getDocWith o) fieldNames
       fields <- zipFields o fieldNames constructorFields fieldDocs
-      deprecatedFieldExp <- lift [e|deprecatedFields|]
+      deprecatedFieldExp <- lift $ mkDeprecatedField o deprecatedFields
       matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields deprecatedFieldExp ts makeBase)
+
+mkDeprecatedField :: Options -> [(String, Maybe String)] -> Q Exp
+mkDeprecatedField options deprecatedFields =
+  let modifiedFields = Bifunctor.first (modifyFieldName options) <$> deprecatedFields in [e|modifiedFields|]
 
 -- | 'strictFields' are required to exist in the record and are always included.
 -- 'omitFields' will remove any remaining fields if they are 'Discard'ed.
@@ -1123,12 +1128,15 @@ getFreeTyVar = \case
   SigT (VarT name) _kind -> Just name
   _ -> Nothing
 
+modifyFieldName :: Options -> String -> String
+modifyFieldName options = onHeadWith (lowerFirstField options) . fieldLabelModifier options
+
 -- make a struct field pretty
 prettyField :: Options -> Name -> Type -> Maybe String -> Exp
-prettyField Options {..} name ty doc =
+prettyField options name ty doc =
   RecConE
     'Field
-    [ ('fieldName, stringE (onHeadWith lowerFirstField (fieldLabelModifier (nameStr name))))
+    [ ('fieldName, stringE (modifyFieldName options (nameStr name)))
     , ('fieldType, toMoatTypeEPoly ty)
     , ('fieldDoc, prettyDoc doc)
     ]

@@ -1,20 +1,23 @@
 module DeprecatedFieldSpec where
 
 import Common
+import Data.List (stripPrefix)
+import Data.Maybe
 import Moat
 import Test.Hspec
 import Test.Hspec.Golden
 
 data Data = Data
-  { field0 :: Int
-  , field1 :: Maybe Int
+  { testField0 :: Int
+  , testField1 :: Maybe Int
   }
 
 mobileGenWith
   ( defaultOptions
-      { fieldsRequiredByClients = ["field0", "field1"]
+      { fieldsRequiredByClients = ["testField0", "testField1"]
       , omitFields = const Discard
-      , deprecatedFields = [("field1", Just "Deprecated since build 500")]
+      , deprecatedFields = [("testField1", Just "Deprecated since build 500")]
+      , fieldLabelModifier = \s -> fromMaybe s (stripPrefix "test" s)
       }
   )
   ''Data
