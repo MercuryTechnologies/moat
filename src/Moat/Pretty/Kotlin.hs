@@ -8,7 +8,6 @@ import Data.Functor ((<&>))
 import Data.List (intercalate)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
-import Debug.Trace
 import Moat.Pretty.Doc.KDoc
 import Moat.Types
 
@@ -83,13 +82,8 @@ prettyStructFields indents fields deprecatedFields = go fields
         ++ ",\n"
     go [] = ""
     go (field@(Field fieldName _ _) : fs) =
-      traceShow deprecatedFieldsMap $
-        traceShow fieldName $
-          traceShow fields $
-            traceShow fs $
               case Map.lookup fieldName deprecatedFieldsMap of
                 Just mComment ->
-                  traceShow "test" $
                     maybe "" (\comment -> "// " ++ comment ++ "\n") mComment
                       ++ "//"
                       ++ prettyField field
