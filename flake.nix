@@ -22,18 +22,10 @@
     pkgsBySystem = eachSystem (system: nixpkgs.legacyPackages.${system});
 
     haskellPackages = eachSystem (
-      system: let
-        pkgs = pkgsBySystem.${system};
-        inherit (pkgs.haskell.lib) appendPatch;
-      in
+      system:
         eachHaskell (
           haskell:
-            pkgs.haskell.packages.${haskell}.override (prev: {
-              overrides = _: hprev: {
-                # Wants bytestring <0.12
-                cmark-gfm = appendPatch hprev.cmark-gfm ./nix/cmark-gfm-cabal.patch;
-              };
-            })
+            pkgsBySystem.${system}.haskell.packages.${haskell}
         )
     );
   in {

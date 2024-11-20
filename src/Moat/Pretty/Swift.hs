@@ -34,7 +34,7 @@ prettySwiftDataWith ::
 prettySwiftDataWith indent = \case
   MoatEnum {..} ->
     prettyTypeDoc "" enumDoc []
-      ++ "enum "
+      ++ "public enum "
       ++ prettyMoatTypeHeader enumName (addTyVarBounds enumTyVars enumProtocols)
       ++ prettyRawValueAndProtocols enumRawValue enumProtocols
       ++ " {"
@@ -48,7 +48,7 @@ prettySwiftDataWith indent = \case
       ++ "}"
   MoatStruct {..} ->
     prettyTypeDoc "" structDoc []
-      ++ "struct "
+      ++ "public struct "
       ++ prettyMoatTypeHeader structName (addTyVarBounds structTyVars structProtocols)
       ++ prettyRawValueAndProtocols Nothing structProtocols
       ++ " {"
@@ -61,27 +61,27 @@ prettySwiftDataWith indent = \case
       ++ "}"
   MoatAlias {..} ->
     prettyTypeDoc "" aliasDoc []
-      ++ "typealias "
+      ++ "public typealias "
       -- Swift aliases should not declare type parameters
       ++ prettyMoatTypeHeader aliasName []
       ++ " = "
       ++ prettyMoatTypeBase aliasTyp
   MoatNewtype {..} ->
     prettyTypeDoc "" newtypeDoc []
-      ++ "struct "
+      ++ "public struct "
       ++ prettyMoatTypeHeader newtypeName (addTyVarBounds newtypeTyVars newtypeProtocols)
       ++ prettyRawValueAndProtocols Nothing newtypeProtocols
       ++ " {\n"
       ++ indents
       ++ if isConcrete newtypeField
         then
-          "let "
+          "public let "
             ++ fieldName newtypeField
             ++ ": "
             ++ prettyMoatType (fieldType newtypeField)
             ++ "\n}"
         else
-          "typealias "
+          "public typealias "
             ++ newtypeName
             ++ "Tag"
             ++ " = Tagged<"
@@ -139,7 +139,7 @@ prettyTags indents = go
       "\n"
         ++ prettyTagDisambiguator tagDisambiguate indents tagName
         ++ indents
-        ++ "typealias "
+        ++ "public typealias "
         ++ tagName
         ++ " = Tagged<"
         ++ (if tagDisambiguate then tagName ++ "Tag" else tagParent)
@@ -162,7 +162,7 @@ prettyTagDisambiguator disambiguate indents parent =
   if disambiguate
     then
       indents
-        ++ "enum "
+        ++ "public enum "
         ++ parent
         ++ "Tag { }\n"
     else ""
@@ -266,8 +266,7 @@ prettyStructFields indents fields deprecatedFields = go fields
   where
     deprecatedFieldsMap = Map.fromList deprecatedFields
     prettyField (Field fieldName fieldType _fieldDoc) =
-      indents
-        ++ "var "
+      "public var "
         ++ fieldName
         ++ ": "
         ++ prettyMoatType fieldType
@@ -276,19 +275,22 @@ prettyStructFields indents fields deprecatedFields = go fields
     go (field@(Field fieldName _ fieldDoc) : fs) =
       case Map.lookup fieldName deprecatedFieldsMap of
         Just mComment ->
-          maybe "" (\comment -> "// " ++ comment ++ "\n") mComment
-            ++ "//"
+          indents
+            ++ maybe "" (\comment -> "// " ++ comment ++ "\n") mComment
+            ++ indents
+            ++ "// "
             ++ prettyField field
             ++ go fs
         Nothing ->
           prettyTypeDoc indents fieldDoc []
+            ++ indents
             ++ prettyField field
             ++ go fs
 
 prettyNewtypeField :: String -> Field -> String -> String
 prettyNewtypeField indents (Field alias fieldType _) fieldName =
   indents
-    ++ "let "
+    ++ "public let "
     ++ alias
     ++ ": "
     ++ fieldName
@@ -326,7 +328,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
 
     prettyCodingKeys :: String
     prettyCodingKeys =
-      "enum CodingKeys: String, CodingKey {"
+      "public enum CodingKeys: String, CodingKey {"
         ++ indent
           ( case encodingStyle of
               TaggedObjectStyle -> prettyTaggedCodingKeys
@@ -352,7 +354,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
 
     prettyInit :: String
     prettyInit =
-      "init(from decoder: any Decoder) throws {"
+      "public init(from decoder: any Decoder) throws {"
         ++ indent
           ( "let container = try decoder.container(keyedBy: CodingKeys.self)\n"
               ++ "let discriminator = try container.decode(String.self, forKey: ."
@@ -474,7 +476,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
 
     prettyEncode :: String
     prettyEncode =
-      "func encode(to encoder: any Encoder) throws {"
+      "public func encode(to encoder: any Encoder) throws {"
         ++ indent
           ( "var container = encoder.container(keyedBy: CodingKeys.self)\n"
               ++ "switch (self) {"

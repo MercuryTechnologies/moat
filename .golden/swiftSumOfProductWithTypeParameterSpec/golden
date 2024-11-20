@@ -1,14 +1,14 @@
-enum CursorInput<A: Hashable & Codable>: CaseIterable, Hashable, Codable {
+public enum CursorInput<A: Hashable & Codable>: CaseIterable, Hashable, Codable {
     case nextPage(A?)
     case previousPage(A)
     case unknown
 
-    enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case direction
         case key
     }
 
-    init(from decoder: any Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let discriminator = try container.decode(String.self, forKey: .direction)
         switch discriminator {
@@ -26,7 +26,7 @@ enum CursorInput<A: Hashable & Codable>: CaseIterable, Hashable, Codable {
         }
     }
 
-    func encode(to encoder: any Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch (self) {
             case let .nextPage(key):

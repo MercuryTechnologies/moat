@@ -1,4 +1,4 @@
-enum Enum {
+public enum Enum {
     case a
     case b
     case c

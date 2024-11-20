@@ -1,3 +1,3 @@
-enum EnumB {
+public enum EnumB {
     case fourth
 }

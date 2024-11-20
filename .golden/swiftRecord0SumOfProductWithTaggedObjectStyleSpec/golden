@@ -1,4 +1,4 @@
-struct Record0: Codable {
-    var record0Field0: Int
-    var record0Field1: Int
+public struct Record0: Codable {
+    public var record0Field0: Int
+    public var record0Field1: Int
 }

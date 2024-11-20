@@ -82,13 +82,13 @@ prettyStructFields indents fields deprecatedFields = go fields
         ++ ",\n"
     go [] = ""
     go (field@(Field fieldName _ _) : fs) =
-              case Map.lookup fieldName deprecatedFieldsMap of
-                Just mComment ->
-                    maybe "" (\comment -> "// " ++ comment ++ "\n") mComment
-                      ++ "//"
-                      ++ prettyField field
-                      ++ go fs
-                Nothing -> prettyField field ++ go fs
+      case Map.lookup fieldName deprecatedFieldsMap of
+        Just mComment ->
+          maybe "" (\comment -> "// " ++ comment ++ "\n") mComment
+            ++ "//"
+            ++ prettyField field
+            ++ go fs
+        Nothing -> prettyField field ++ go fs
 
 prettyEnumCases :: String -> [EnumCase] -> String
 prettyEnumCases indents = go

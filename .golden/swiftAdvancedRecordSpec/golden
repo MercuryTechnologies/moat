@@ -1,4 +1,4 @@
-struct Data: CaseIterable, Hashable, Codable {
-    var field0: Int
-    var field1: Int?
+public struct Data: CaseIterable, Hashable, Codable {
+    public var field0: Int
+    public var field1: Int?
 }
