@@ -275,14 +275,15 @@ prettyStructFields indents fields deprecatedFields = go fields
     go (field@(Field fieldName _ fieldDoc) : fs) =
       case Map.lookup fieldName deprecatedFieldsMap of
         Just mComment ->
-          maybe indents
-            ++ (\comment -> "// " ++ comment ++ "\n") mComment
+          indents
+            ++ maybe "" (\comment -> "// " ++ comment ++ "\n") mComment
             ++ indents
-            ++ "//"
+            ++ "// "
             ++ prettyField field
             ++ go fs
         Nothing ->
           prettyTypeDoc indents fieldDoc []
+            ++ indents
             ++ prettyField field
             ++ go fs
 
