@@ -34,7 +34,7 @@ prettySwiftDataWith ::
 prettySwiftDataWith indent = \case
   MoatEnum {..} ->
     prettyTypeDoc "" enumDoc []
-      ++ "enum "
+      ++ "public enum "
       ++ prettyMoatTypeHeader enumName (addTyVarBounds enumTyVars enumProtocols)
       ++ prettyRawValueAndProtocols enumRawValue enumProtocols
       ++ " {"
@@ -48,7 +48,7 @@ prettySwiftDataWith indent = \case
       ++ "}"
   MoatStruct {..} ->
     prettyTypeDoc "" structDoc []
-      ++ "struct "
+      ++ "public struct "
       ++ prettyMoatTypeHeader structName (addTyVarBounds structTyVars structProtocols)
       ++ prettyRawValueAndProtocols Nothing structProtocols
       ++ " {"
@@ -61,27 +61,27 @@ prettySwiftDataWith indent = \case
       ++ "}"
   MoatAlias {..} ->
     prettyTypeDoc "" aliasDoc []
-      ++ "typealias "
+      ++ "public typealias "
       -- Swift aliases should not declare type parameters
       ++ prettyMoatTypeHeader aliasName []
       ++ " = "
       ++ prettyMoatTypeBase aliasTyp
   MoatNewtype {..} ->
     prettyTypeDoc "" newtypeDoc []
-      ++ "struct "
+      ++ "public struct "
       ++ prettyMoatTypeHeader newtypeName (addTyVarBounds newtypeTyVars newtypeProtocols)
       ++ prettyRawValueAndProtocols Nothing newtypeProtocols
       ++ " {\n"
       ++ indents
       ++ if isConcrete newtypeField
         then
-          "let "
+          "public let "
             ++ fieldName newtypeField
             ++ ": "
             ++ prettyMoatType (fieldType newtypeField)
             ++ "\n}"
         else
-          "typealias "
+          "public typealias "
             ++ newtypeName
             ++ "Tag"
             ++ " = Tagged<"
@@ -139,7 +139,7 @@ prettyTags indents = go
       "\n"
         ++ prettyTagDisambiguator tagDisambiguate indents tagName
         ++ indents
-        ++ "typealias "
+        ++ "public typealias "
         ++ tagName
         ++ " = Tagged<"
         ++ (if tagDisambiguate then tagName ++ "Tag" else tagParent)
@@ -162,7 +162,7 @@ prettyTagDisambiguator disambiguate indents parent =
   if disambiguate
     then
       indents
-        ++ "enum "
+        ++ "public enum "
         ++ parent
         ++ "Tag { }\n"
     else ""
@@ -267,7 +267,7 @@ prettyStructFields indents fields deprecatedFields = go fields
     deprecatedFieldsMap = Map.fromList deprecatedFields
     prettyField (Field fieldName fieldType _fieldDoc) =
       indents
-        ++ "var "
+        ++ "public var "
         ++ fieldName
         ++ ": "
         ++ prettyMoatType fieldType
@@ -288,7 +288,7 @@ prettyStructFields indents fields deprecatedFields = go fields
 prettyNewtypeField :: String -> Field -> String -> String
 prettyNewtypeField indents (Field alias fieldType _) fieldName =
   indents
-    ++ "let "
+    ++ "public let "
     ++ alias
     ++ ": "
     ++ fieldName
