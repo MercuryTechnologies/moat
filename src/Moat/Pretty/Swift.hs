@@ -327,7 +327,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
 
     prettyCodingKeys :: String
     prettyCodingKeys =
-      "enum CodingKeys: String, CodingKey {"
+      "public enum CodingKeys: String, CodingKey {"
         ++ indent
           ( case encodingStyle of
               TaggedObjectStyle -> prettyTaggedCodingKeys
@@ -353,7 +353,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
 
     prettyInit :: String
     prettyInit =
-      "init(from decoder: any Decoder) throws {"
+      "public init(from decoder: any Decoder) throws {"
         ++ indent
           ( "let container = try decoder.container(keyedBy: CodingKeys.self)\n"
               ++ "let discriminator = try container.decode(String.self, forKey: ."
@@ -475,7 +475,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
 
     prettyEncode :: String
     prettyEncode =
-      "func encode(to encoder: any Encoder) throws {"
+      "public func encode(to encoder: any Encoder) throws {"
         ++ indent
           ( "var container = encoder.container(keyedBy: CodingKeys.self)\n"
               ++ "switch (self) {"
