@@ -4,4 +4,9 @@ public struct Record1: CaseIterable, Hashable, Codable {
     public var record1Field0: Int
     /// The first field of record 1
     public var record1Field1: Int
+
+    public init(record1Field0: Int, record1Field1: Int) {
+        self.record1Field0 = record1Field0
+        self.record1Field1 = record1Field1
+    }
 }

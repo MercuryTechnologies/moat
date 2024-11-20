@@ -1,4 +1,9 @@
 public struct Data<A: Hashable & Codable, B: Hashable & Codable>: CaseIterable, Hashable, Codable {
     public var field0: A
     public var field1: B
+
+    public init(field0: A, field1: B) {
+        self.field0 = field0
+        self.field1 = field1
+    }
 }

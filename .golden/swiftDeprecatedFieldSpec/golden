@@ -2,4 +2,8 @@ public struct Data {
     public var field0: Int
     // Deprecated since build 500
     // public var field1: Int?
+
+    public init(field0: Int) {
+        self.field0 = field0
+    }
 }

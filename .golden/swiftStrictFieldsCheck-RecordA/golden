@@ -1,3 +1,7 @@
 public struct RecordA {
     public var fieldA: String
+
+    public init(fieldA: String) {
+        self.fieldA = fieldA
+    }
 }

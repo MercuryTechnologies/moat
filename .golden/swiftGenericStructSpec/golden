@@ -1,4 +1,9 @@
 public struct Tree<A: Hashable & Codable>: Hashable, Codable {
     public var rootLabel: A
     public var subForest: [Tree<A>]
+
+    public init(rootLabel: A, subForest: [Tree<A>]) {
+        self.rootLabel = rootLabel
+        self.subForest = subForest
+    }
 }
