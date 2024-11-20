@@ -24,7 +24,7 @@ mobileGenWith
 
 spec :: Spec
 spec =
-  fdescribe "stays golden" $ do
+  describe "stays golden" $ do
     let moduleName = "DeprecatedFieldSpec"
     it "swift" $
       defaultGolden ("swift" <> moduleName) (showSwift @Data)
