@@ -1,4 +1,4 @@
-struct Data {
-    var field0: Int
-    var field1: Int?
+public struct Data {
+    public var field0: Int
+    public var field1: Int?
 }

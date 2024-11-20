@@ -1,4 +1,4 @@
-struct Newtype {
-    typealias NewtypeTag = Tagged<Newtype, String>
-    let value: NewtypeTag
+public struct Newtype {
+    public typealias NewtypeTag = Tagged<Newtype, String>
+    public let value: NewtypeTag
 }

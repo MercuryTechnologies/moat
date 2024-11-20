@@ -1,5 +1,5 @@
 /// Top-level enum documentation.
-enum EnumAsValueClass: CaseIterable, Hashable, Codable {
+public enum EnumAsValueClass: CaseIterable, Hashable, Codable {
     /// ``First``
     case first
     /// ``Second``

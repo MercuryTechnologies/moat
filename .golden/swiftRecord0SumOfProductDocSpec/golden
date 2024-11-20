@@ -1,7 +1,7 @@
 /// Documentation for ``Record0``.
-struct Record0: CaseIterable, Hashable, Codable {
+public struct Record0: CaseIterable, Hashable, Codable {
     /// The zeroth field of record 0
-    var record0Field0: Int
+    public var record0Field0: Int
     /// The first field of record 0
-    var record0Field1: Int
+    public var record0Field1: Int
 }

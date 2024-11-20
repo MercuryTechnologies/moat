@@ -1,8 +1,8 @@
-enum Enum: Hashable, Codable {
+public enum Enum: Hashable, Codable {
     case dataCons0(_ enumField0: Int, _ enumField1: Int)
     case dataCons1(_ enumField2: String, _ enumField3: String)
 
-    enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case tag
         case enumField0
         case enumField1
@@ -10,7 +10,7 @@ enum Enum: Hashable, Codable {
         case enumField3
     }
 
-    init(from decoder: any Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let discriminator = try container.decode(String.self, forKey: .tag)
         switch discriminator {
@@ -32,7 +32,7 @@ enum Enum: Hashable, Codable {
         }
     }
 
-    func encode(to encoder: any Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch (self) {
             case let .dataCons0:

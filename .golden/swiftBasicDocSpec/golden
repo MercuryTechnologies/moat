@@ -27,9 +27,9 @@
 ///         guard n != 0, n != 1 else { return n }
 ///         return fibonacci(n - 1) + fibonacci(n - 2)
 ///     }
-struct Data {
+public struct Data {
     /// First field, it's an Int
-    var first: Int
+    public var first: Int
     /// Second field, it's maybe an Int
-    var second: Int?
+    public var second: Int?
 }

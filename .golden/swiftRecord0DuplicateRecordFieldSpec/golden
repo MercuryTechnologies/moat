@@ -1,6 +1,6 @@
 /// Record 0 with duplicate fields
-struct Data0 {
-    var field0: Int
+public struct Data0 {
+    public var field0: Int
     /// not a duplicate
-    var field1: Int?
+    public var field1: Int?
 }
