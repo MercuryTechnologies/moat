@@ -266,8 +266,7 @@ prettyStructFields indents fields deprecatedFields = go fields
   where
     deprecatedFieldsMap = Map.fromList deprecatedFields
     prettyField (Field fieldName fieldType _fieldDoc) =
-      indents
-        ++ "public var "
+      "public var "
         ++ fieldName
         ++ ": "
         ++ prettyMoatType fieldType
@@ -276,7 +275,9 @@ prettyStructFields indents fields deprecatedFields = go fields
     go (field@(Field fieldName _ fieldDoc) : fs) =
       case Map.lookup fieldName deprecatedFieldsMap of
         Just mComment ->
-          maybe "" (\comment -> "// " ++ comment ++ "\n") mComment
+          maybe indents
+            ++ (\comment -> "// " ++ comment ++ "\n") mComment
+            ++ indents
             ++ "//"
             ++ prettyField field
             ++ go fs
