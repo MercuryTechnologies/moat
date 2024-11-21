@@ -305,9 +305,13 @@ prettyStructInitializer indents fields deprecatedFields =
     deprecatedFieldNames = map fst deprecatedFields
     activeFields = filter (\(Field name _ _) -> name `notElem` deprecatedFieldNames) fields
 
+    isOptional :: MoatType -> Bool
+    isOptional (Optional _) = True
+    isOptional _ = False
+
     prettyParam :: Field -> String
     prettyParam (Field fieldName fieldType _) =
-      fieldName ++ ": " ++ prettyMoatType fieldType
+      fieldName ++ ": " ++ prettyMoatType fieldType ++ (if isOptional fieldType then " = nil" else "")
 
     prettyAssignment :: String -> Field -> String
     prettyAssignment indentStr (Field fieldName _ _) =
