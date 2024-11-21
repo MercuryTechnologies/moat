@@ -1,4 +1,9 @@
 public struct Record0: Codable {
     public var record0Field0: Int
     public var record0Field1: Int
+
+    public init(record0Field0: Int, record0Field1: Int) {
+        self.record0Field0 = record0Field0
+        self.record0Field1 = record0Field1
+    }
 }

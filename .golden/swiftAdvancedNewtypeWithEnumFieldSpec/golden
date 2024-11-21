@@ -1,3 +1,7 @@
 public struct Newtype {
     public var newtypeField: Enum
+
+    public init(newtypeField: Enum) {
+        self.newtypeField = newtypeField
+    }
 }

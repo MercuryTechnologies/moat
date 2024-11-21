@@ -1,3 +1,7 @@
 public struct Newtype {
     public var newtypeField: String
+
+    public init(newtypeField: String) {
+        self.newtypeField = newtypeField
+    }
 }

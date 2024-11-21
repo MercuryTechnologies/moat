@@ -1,3 +1,7 @@
 public struct RecordB {
     public var c: String
+
+    public init(c: String) {
+        self.c = c
+    }
 }

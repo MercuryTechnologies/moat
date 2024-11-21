@@ -32,4 +32,9 @@ public struct Data {
     public var first: Int
     /// Second field, it's maybe an Int
     public var second: Int?
+
+    public init(first: Int, second: Int? = nil) {
+        self.first = first
+        self.second = second
+    }
 }

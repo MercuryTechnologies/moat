@@ -54,6 +54,7 @@ prettySwiftDataWith indent = \case
       ++ " {"
       ++ newlineNonEmpty structFields
       ++ prettyStructFields indents structFields structDeprecatedFields
+      ++ prettyStructInitializer indents structFields structDeprecatedFields
       ++ newlineNonEmpty structPrivateTypes
       ++ prettyPrivateTypes indents structPrivateTypes
       ++ prettyTags indents structTags
@@ -286,6 +287,35 @@ prettyStructFields indents fields deprecatedFields = go fields
             ++ indents
             ++ prettyField field
             ++ go fs
+
+prettyStructInitializer :: String -> [Field] -> [(String, Maybe String)] -> String
+prettyStructInitializer indents fields deprecatedFields =
+  case activeFields of
+    [] -> "" -- No initializer needed if there are no active fields
+    _ ->
+      "\n"
+        ++ indents
+        ++ "public init("
+        ++ intercalate ", " (map prettyParam activeFields)
+        ++ ") {\n"
+        ++ concatMap (prettyAssignment indents) activeFields
+        ++ indents
+        ++ "}\n"
+  where
+    deprecatedFieldNames = map fst deprecatedFields
+    activeFields = filter (\(Field name _ _) -> name `notElem` deprecatedFieldNames) fields
+
+    isOptional :: MoatType -> Bool
+    isOptional (Optional _) = True
+    isOptional _ = False
+
+    prettyParam :: Field -> String
+    prettyParam (Field fieldName fieldType _) =
+      fieldName ++ ": " ++ prettyMoatType fieldType ++ (if isOptional fieldType then " = nil" else "")
+
+    prettyAssignment :: String -> Field -> String
+    prettyAssignment indentStr (Field fieldName _ _) =
+      indentStr ++ "    self." ++ fieldName ++ " = " ++ fieldName ++ "\n"
 
 prettyNewtypeField :: String -> Field -> String -> String
 prettyNewtypeField indents (Field alias fieldType _) fieldName =

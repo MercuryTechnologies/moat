@@ -3,4 +3,9 @@ public struct Data1 {
     public var field0: String
     /// not a duplicate
     public var field2: String?
+
+    public init(field0: String, field2: String? = nil) {
+        self.field0 = field0
+        self.field2 = field2
+    }
 }
