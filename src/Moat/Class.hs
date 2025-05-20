@@ -11,6 +11,7 @@ where
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import Data.CaseInsensitive (CI)
+import Data.Fixed (Fixed, HasResolution)
 import qualified Data.HashMap.Strict as HM
 import Data.Int (Int16, Int32, Int64, Int8)
 import Data.List.NonEmpty (NonEmpty)
@@ -94,6 +95,9 @@ instance ToMoatType Float where toMoatType _ = F32
 instance ToMoatType Double where toMoatType _ = F64
 
 instance ToMoatType Char where toMoatType _ = Character
+
+instance HasResolution a => ToMoatType (Fixed a) where
+  toMoatType _ = Decimal
 
 instance forall a. (ToMoatType a) => ToMoatType (Prim.Array a) where
   toMoatType _ = Array (toMoatType (Proxy @a))
