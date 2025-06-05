@@ -1,4 +1,4 @@
-public struct Tree<A: Hashable & Codable>: Hashable, Codable {
+public struct Tree<A: Hashable & Codable & Sendable>: Hashable, Codable, Sendable {
     public var rootLabel: A
     public var subForest: [Tree<A>]
 

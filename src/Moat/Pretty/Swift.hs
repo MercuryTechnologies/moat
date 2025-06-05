@@ -123,6 +123,7 @@ prettyProtocol = \case
   Hashable -> "Hashable"
   Codable -> "Codable"
   Equatable -> "Equatable"
+  Sendable -> "Sendable"
   OtherProtocol s -> s
 
 prettyProtocols :: [Protocol] -> String
@@ -641,11 +642,12 @@ onLast f (x : xs) = x : map f xs
 --   parameters.
 --
 --   This is needed for protocols with compiler-synthesized implementations
---   (similar to 'deriving stock'), of which there are currently three:
+--   (similar to 'deriving stock'), of which there are currently four:
 --
 --   - 'Equatable'
 --   - 'Hashable'
 --   - 'Codable'
+--   - 'Sendable'
 --
 --   See the [Swift documentation](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/protocols#Adopting-a-Protocol-Using-a-Synthesized-Implementation).
 addTyVarBounds :: [String] -> [Protocol] -> [String]
@@ -655,6 +657,7 @@ addTyVarBounds tyVars protos =
         Hashable -> True
         Codable -> True
         Equatable -> True
+        Sendable -> True
         OtherProtocol _ -> False
       synthesizedProtos = filter isSynthesized protos
       bounds = ": " ++ intercalate " & " (map prettyProtocol synthesizedProtos)

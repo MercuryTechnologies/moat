@@ -12,7 +12,7 @@ import Prelude
 mobileGenWith
   ( defaultOptions
       { dataInterfaces = [Parcelable]
-      , dataProtocols = [Hashable, Codable]
+      , dataProtocols = [Hashable, Codable, Sendable]
       , generateDocComments = False
       }
   )

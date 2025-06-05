@@ -287,6 +287,9 @@ data Protocol
   | -- | The 'Equatable' protocol.
     --   See https://developer.apple.com/documentation/swift/equatable
     Equatable
+  | -- | The 'Sendable' protocol.
+    --   See https://developer.apple.com/documentation/swift/sendable
+    Sendable
   | -- | A user-specified protocol.
     OtherProtocol String
   deriving stock (Eq, Read, Show, Generic)
