@@ -56,6 +56,7 @@ module Moat
     KeepOrDiscard (..),
 
     -- ** Available options
+    typeConstructorModifier,
     fieldLabelModifier,
     fieldLabelLowerFirst,
     constructorModifier,
@@ -260,12 +261,14 @@ reifyNewtype n = do
 -- well-scoped fields.
 getTags ::
   () =>
+  -- | type constructor modifier
+  (String -> String) ->
   -- | name of parent type
   Name ->
   -- | tags
   [Name] ->
   MoatM ([Exp], [Dec])
-getTags parentName ts = do
+getTags modifier parentName ts = do
   let b = length ts > 1
   disambiguate <- lift $ examineSplice [||b||]
   foldlM
@@ -283,8 +286,8 @@ getTags parentName ts = do
         let tag =
               RecConE
                 'Tag
-                [ ('tagName, unqualName tyconName)
-                , ('tagParent, unqualName parentName)
+                [ ('tagName, modifiedUnqualName modifier tyconName)
+                , ('tagParent, modifiedUnqualName modifier parentName)
                 , ('tagTyp, toMoatTypeEPoly typ)
                 , ('tagDisambiguate, unType disambiguate)
                 ]
@@ -293,7 +296,7 @@ getTags parentName ts = do
         (context, instHeadTy) <-
           buildTypeInstance newtypeName ClassType newtypeInstTypes newtypeVariant
         -- we do not want to strip here
-        clauseTy <- tagToMoatType tyconName typ parentName
+        clauseTy <- tagToMoatType modifier tyconName typ parentName
         swiftTyInst <-
           lift $
             instanceD
@@ -459,7 +462,7 @@ mobileGenWithTags o ts name = do
     noExistentials cons
 
     -- get tags/ToMoatType instances for tags
-    (tags, extraDecs) <- getTags parentName ts
+    (tags, extraDecs) <- getTags (typeConstructorModifier o) parentName ts
 
     -- get haddock for top-level declaration
     doc <- lift $ getDocWith o name
@@ -610,6 +613,8 @@ type MoatM = ExceptT MoatError Q
 
 tagToMoatType ::
   () =>
+  -- | type constructor modifier
+  (String -> String) ->
   -- | name of the type constructor
   Name ->
   -- | type variables
@@ -617,12 +622,12 @@ tagToMoatType ::
   -- | parent name
   Name ->
   MoatM Exp
-tagToMoatType tyconName typ parentName = do
+tagToMoatType modifier tyconName typ parentName = do
   -- TODO: use '_' instead of matching
   value <- lift $ newName "value"
   ourMatch <-
     matchProxy $
-      tagExp tyconName parentName typ False
+      tagExp modifier tyconName parentName typ False
   let matches = [pure ourMatch]
   lift $ lamE [varP value] (caseE (varE value) matches)
 
@@ -740,14 +745,14 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
           case variant of
             NewtypeInstance -> do
               if typeAlias
-                then mkNewtypeInstanceAlias parentDoc instTys con
+                then mkNewtypeInstanceAlias typeConstructorModifier parentDoc instTys con
                 else mkNewtypeInstance o parentDoc instTys con
             Newtype -> do
               if
                 | newtypeTag -> do
                     mkTypeTag o parentName instTys con
                 | typeAlias -> do
-                    mkTypeAlias parentName parentDoc instTys con
+                    mkTypeAlias typeConstructorModifier parentName parentDoc instTys con
                 | otherwise -> do
                     mkNewtype o parentName parentDoc instTys ts con
             _ -> do
@@ -768,7 +773,7 @@ consToMoatType o@Options {..} parentName parentDoc instTys variant ts bs = \case
               cases <- forM cons' (mkCase o)
               ourMatch <-
                 matchProxy
-                  =<< lift (enumExp parentName parentDoc instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs sumOfProductEncodingOptions enumEncodingStyle enumUnknownCase)
+                  =<< lift (enumExp typeConstructorModifier parentName parentDoc instTys dataInterfaces dataProtocols dataAnnotations cases dataRawValue ts bs sumOfProductEncodingOptions enumEncodingStyle enumUnknownCase)
               pure [pure ourMatch]
             else throwError $ MissingStrictCases missingConstructors
 
@@ -859,6 +864,8 @@ mkLabel Options {..} =
 
 mkNewtypeInstanceAlias ::
   () =>
+  -- | type constructor modifier
+  (String -> String) ->
   -- | haddock
   Maybe String ->
   -- | type variables
@@ -866,7 +873,7 @@ mkNewtypeInstanceAlias ::
   -- | constructor info
   ConstructorInfo ->
   MoatM Match
-mkNewtypeInstanceAlias doc (stripConT -> instTys) = \case
+mkNewtypeInstanceAlias modifier doc (stripConT -> instTys) = \case
   ConstructorInfo
     { constructorName = conName
     , constructorFields = [field]
@@ -876,7 +883,7 @@ mkNewtypeInstanceAlias doc (stripConT -> instTys) = \case
           (conP 'Proxy [])
           ( normalB
               ( pure
-                  (aliasExp conName doc instTys field)
+                  (aliasExp modifier conName doc instTys field)
               )
           )
           []
@@ -899,7 +906,7 @@ mkNewtypeInstance o@Options {..} doc (stripConT -> instTys) = \case
     { constructorFields = [field]
     , ..
     } -> do
-      matchProxy =<< lift (newtypeExp constructorName doc instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field Nothing))
+      matchProxy =<< lift (newtypeExp typeConstructorModifier constructorName doc instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field Nothing))
   _ -> throwError ExpectedNewtypeInstance
 
 -- make a newtype into an empty enum
@@ -922,13 +929,15 @@ mkTypeTag Options {..} typName instTys = \case
       let parentName =
             mkName
               (nameStr typName ++ "Tag")
-      let tag = tagExp typName parentName field False
-      matchProxy =<< lift (enumExp parentName Nothing instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []) sumOfProductEncodingOptions enumEncodingStyle enumUnknownCase)
+      let tag = tagExp typeConstructorModifier typName parentName field False
+      matchProxy =<< lift (enumExp typeConstructorModifier parentName Nothing instTys dataInterfaces dataProtocols dataAnnotations [] dataRawValue [tag] (False, Nothing, []) sumOfProductEncodingOptions enumEncodingStyle enumUnknownCase)
   _ -> throwError $ NotANewtype typName
 
 -- make a newtype into a type alias
 mkTypeAlias ::
   () =>
+  -- | type constructor modifier
+  (String -> String) ->
   -- | type name
   Name ->
   -- | haddock
@@ -938,7 +947,7 @@ mkTypeAlias ::
   -- | constructor info
   ConstructorInfo ->
   MoatM Match
-mkTypeAlias typName doc instTys = \case
+mkTypeAlias modifier typName doc instTys = \case
   ConstructorInfo
     { constructorFields = [field]
     } -> do
@@ -946,7 +955,7 @@ mkTypeAlias typName doc instTys = \case
         match
           (conP 'Proxy [])
           ( normalB
-              (pure (aliasExp typName doc instTys field))
+              (pure (aliasExp modifier typName doc instTys field))
           )
           []
   _ -> throwError $ NotANewtype typName
@@ -964,7 +973,7 @@ mkVoid ::
   MoatM Match
 mkVoid Options {..} typName instTys ts =
   matchProxy
-    =<< lift (enumExp typName Nothing instTys [] [] [] [] Nothing ts (False, Nothing, []) sumOfProductEncodingOptions enumEncodingStyle enumUnknownCase)
+    =<< lift (enumExp typeConstructorModifier typName Nothing instTys [] [] [] [] Nothing ts (False, Nothing, []) sumOfProductEncodingOptions enumEncodingStyle enumUnknownCase)
 
 mkNewtype ::
   () =>
@@ -984,11 +993,11 @@ mkNewtype o@Options {..} typName doc instTys ts = \case
       fieldDocs <- lift $ mapM (getDocWith o) fieldNames
       fields <- zipFields o fieldNames constructorFields fieldDocs
       deprecatedFieldExp <- lift $ mkDeprecatedField o deprecatedFields
-      matchProxy =<< lift (structExp typName doc instTys dataInterfaces dataProtocols dataAnnotations fields deprecatedFieldExp ts makeBase)
+      matchProxy =<< lift (structExp typeConstructorModifier typName doc instTys dataInterfaces dataProtocols dataAnnotations fields deprecatedFieldExp ts makeBase)
   ConstructorInfo
     { constructorFields = [field]
     } -> do
-      matchProxy =<< lift (newtypeExp typName doc instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field Nothing))
+      matchProxy =<< lift (newtypeExp typeConstructorModifier typName doc instTys dataInterfaces dataProtocols dataAnnotations (prettyField o (mkName "value") field Nothing))
   ci -> throwError $ ImproperNewtypeConstructorInfo ci
 
 -- | Make a single-constructor product (struct)
@@ -1014,7 +1023,7 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
     , constructorFields = []
     } -> do
       emptyDeprecatedFieldsExp <- lift [e|[]|]
-      matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations [] emptyDeprecatedFieldsExp ts makeBase)
+      matchProxy =<< lift (structExp typeConstructorModifier typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations [] emptyDeprecatedFieldsExp ts makeBase)
   -- single constructor, non-record (Normal)
   ConstructorInfo
     { constructorVariant = NormalConstructor
@@ -1037,7 +1046,7 @@ mkProd o@Options {..} typName parentDoc instTys ts = \case
       fieldDocs <- lift $ mapM (getDocWith o) fieldNames
       fields <- zipFields o fieldNames constructorFields fieldDocs
       deprecatedFieldExp <- lift $ mkDeprecatedField o deprecatedFields
-      matchProxy =<< lift (structExp typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields deprecatedFieldExp ts makeBase)
+      matchProxy =<< lift (structExp typeConstructorModifier typName parentDoc instTys dataInterfaces dataProtocols dataAnnotations fields deprecatedFieldExp ts makeBase)
 
 mkDeprecatedField :: Options -> [(String, Maybe String)] -> Q Exp
 mkDeprecatedField options deprecatedFields =
@@ -1108,6 +1117,10 @@ nameStr = TS.unpack . last . TS.splitOn "." . TS.pack . show
 -- remove qualifiers from a name, turn into Exp
 unqualName :: Name -> Exp
 unqualName = stringE . nameStr
+
+-- remove qualifiers from a name, apply a modifier, turn into Exp
+modifiedUnqualName :: (String -> String) -> Name -> Exp
+modifiedUnqualName modifier = stringE . modifier . nameStr
 
 -- prettify a type variable as an Exp
 prettyTyVar :: Name -> Exp
@@ -1545,6 +1558,8 @@ stripConT = mapMaybe noConT
 -- | Construct a Type Alias.
 aliasExp ::
   () =>
+  -- | type constructor modifier
+  (String -> String) ->
   -- | alias name
   Name ->
   -- | haddock
@@ -1554,10 +1569,10 @@ aliasExp ::
   -- | type (RHS)
   Type ->
   Exp
-aliasExp name doc tyVars field =
+aliasExp modifier name doc tyVars field =
   RecConE
     'MoatAlias
-    [ ('aliasName, unqualName name)
+    [ ('aliasName, modifiedUnqualName modifier name)
     , ('aliasDoc, prettyDoc doc)
     , ('aliasTyVars, prettyTyVars tyVars)
     , ('aliasTyp, toMoatTypeECxt field)
@@ -1566,6 +1581,8 @@ aliasExp name doc tyVars field =
 -- | Construct a Tag.
 tagExp ::
   () =>
+  -- | type constructor modifier
+  (String -> String) ->
   -- | tycon name
   Name ->
   -- | parent name
@@ -1575,11 +1592,11 @@ tagExp ::
   -- | Whether or not we are disambiguating.
   Bool ->
   Exp
-tagExp tyconName parentName typ dis =
+tagExp modifier tyconName parentName typ dis =
   RecConE
     'Tag
-    [ ('tagName, unqualName tyconName)
-    , ('tagParent, unqualName parentName)
+    [ ('tagName, modifiedUnqualName modifier tyconName)
+    , ('tagParent, modifiedUnqualName modifier parentName)
     , ('tagTyp, toMoatTypeECxt typ)
     ,
       ( 'tagDisambiguate
@@ -1590,6 +1607,8 @@ tagExp tyconName parentName typ dis =
 -- | Construct an Enum.
 enumExp ::
   () =>
+  -- | type constructor modifier
+  (String -> String) ->
   -- | parent name
   Name ->
   -- | parent haddock
@@ -1614,7 +1633,7 @@ enumExp ::
   EnumEncodingStyle ->
   Maybe String ->
   Q Exp
-enumExp parentName parentDoc tyVars ifaces protos anns cases raw tags bs sop ees euc =
+enumExp modifier parentName parentDoc tyVars ifaces protos anns cases raw tags bs sop ees euc =
   do
     enumInterfaces_ <- Syntax.lift ifaces
     enumAnnotations_ <- Syntax.lift anns
@@ -1625,7 +1644,7 @@ enumExp parentName parentDoc tyVars ifaces protos anns cases raw tags bs sop ees
     applyBase bs $
       RecConE
         'MoatEnum
-        [ ('enumName, unqualName parentName)
+        [ ('enumName, modifiedUnqualName modifier parentName)
         , ('enumDoc, prettyDoc parentDoc)
         , ('enumTyVars, prettyTyVars tyVars)
         , ('enumInterfaces, enumInterfaces_)
@@ -1642,6 +1661,8 @@ enumExp parentName parentDoc tyVars ifaces protos anns cases raw tags bs sop ees
 
 newtypeExp ::
   () =>
+  -- | type constructor modifier
+  (String -> String) ->
   Name ->
   Maybe String ->
   [Type] ->
@@ -1650,10 +1671,10 @@ newtypeExp ::
   [Annotation] ->
   Exp ->
   Q Exp
-newtypeExp name doc tyVars ifaces protos anns field =
+newtypeExp modifier name doc tyVars ifaces protos anns field =
   [|
     MoatNewtype
-      { newtypeName = $(pure $ unqualName name)
+      { newtypeName = $(pure $ modifiedUnqualName modifier name)
       , newtypeDoc = $(pure $ prettyDoc doc)
       , newtypeTyVars = $(pure $ prettyTyVars tyVars)
       , newtypeField = $(pure field)
@@ -1666,6 +1687,8 @@ newtypeExp name doc tyVars ifaces protos anns field =
 -- | Construct a Struct.
 structExp ::
   () =>
+  -- | type constructor modifier
+  (String -> String) ->
   -- | struct name
   Name ->
   -- | struct haddock
@@ -1687,14 +1710,14 @@ structExp ::
   -- | Make base?
   (Bool, Maybe MoatType, [Protocol]) ->
   Q Exp
-structExp name doc tyVars ifaces protos anns fields deprecatedFields tags bs = do
+structExp modifier name doc tyVars ifaces protos anns fields deprecatedFields tags bs = do
   structInterfaces_ <- Syntax.lift ifaces
   structAnnotations_ <- Syntax.lift anns
   structProtocols_ <- Syntax.lift protos
   applyBase bs $
     RecConE
       'MoatStruct
-      [ ('structName, unqualName name)
+      [ ('structName, modifiedUnqualName modifier name)
       , ('structDoc, prettyDoc doc)
       , ('structTyVars, prettyTyVars tyVars)
       , ('structInterfaces, structInterfaces_)
