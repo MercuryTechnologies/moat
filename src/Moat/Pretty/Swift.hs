@@ -593,7 +593,9 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
               _ ->
                 "case let ."
                   ++ enumCaseName
-                  ++ ":"
+                  ++ "("
+                  ++ intercalate ", " (enumCaseFields <&> fieldName)
+                  ++ "):"
                   ++ indent
                     ( "try container.encode(\""
                         ++ enumCaseName

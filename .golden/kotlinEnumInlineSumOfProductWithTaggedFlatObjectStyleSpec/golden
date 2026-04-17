@@ -1,0 +1,29 @@
+@JsonClassDiscriminator("tag")
+@Serializable
+sealed interface EnumInline : Parcelable {
+    @Parcelize
+    @Serializable
+    @SerialName("inlineCons0")
+    data class InlineCons0(
+        val inlineCons0Field0: Int,
+        val inlineCons0Field1: Int,
+    ) : EnumInline
+
+    @Parcelize
+    @Serializable
+    @SerialName("inlineCons1")
+    data class InlineCons1(
+        val inlineCons1OnlyField: Int,
+    ) : EnumInline
+
+    @Parcelize
+    @Serializable
+    @SerialName("inlineConsWrapped")
+    @JvmInline
+    value class InlineConsWrapped(val contents: Record0) : EnumInline
+
+    @Parcelize
+    @Serializable
+    @SerialName("inlineCons2")
+    data object InlineCons2 : EnumInline
+}

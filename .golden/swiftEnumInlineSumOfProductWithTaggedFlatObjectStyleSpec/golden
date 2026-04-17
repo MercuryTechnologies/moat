@@ -1,0 +1,59 @@
+public enum EnumInline: Codable {
+    case inlineCons0(_ inlineCons0Field0: Int, _ inlineCons0Field1: Int)
+    case inlineCons1(_ inlineCons1OnlyField: Int)
+    case inlineConsWrapped(Record0)
+    case inlineCons2
+    case _unknown
+
+    public enum CodingKeys: String, CodingKey {
+        case tag
+        case inlineCons0Field0
+        case inlineCons0Field1
+        case inlineCons1OnlyField
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let discriminator = try container.decode(String.self, forKey: .tag)
+        switch discriminator {
+            case "inlineCons0":
+                self = .inlineCons0(
+                    try container.decode(Int.self, forKey: .inlineCons0Field0),
+                    try container.decode(Int.self, forKey: .inlineCons0Field1)
+                )
+            case "inlineCons1":
+                self = .inlineCons1(
+                    try container.decode(Int.self, forKey: .inlineCons1OnlyField)
+                )
+            case "inlineConsWrapped":
+                self = .inlineConsWrapped(try Record0.init(from: decoder))
+            case "inlineCons2":
+                self = .inlineCons2
+            default:
+                self = ._unknown
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch (self) {
+            case let .inlineCons0(inlineCons0Field0, inlineCons0Field1):
+                try container.encode("inlineCons0", forKey: .tag)
+                try container.encode(inlineCons0Field0, forKey: .inlineCons0Field0)
+                try container.encode(inlineCons0Field1, forKey: .inlineCons0Field1)
+            case let .inlineCons1(inlineCons1OnlyField):
+                try container.encode("inlineCons1", forKey: .tag)
+                try container.encode(inlineCons1OnlyField, forKey: .inlineCons1OnlyField)
+            case let .inlineConsWrapped(value):
+                try container.encode("inlineConsWrapped", forKey: .tag)
+                try value.encode(to: encoder)
+            case .inlineCons2:
+                try container.encode("inlineCons2", forKey: .tag)
+            case ._unknown:
+                throw EncodingError.invalidValue(
+                    self,
+                    .init(codingPath: encoder.codingPath, debugDescription: "Can't encode value: EnumInline._unknown")
+                )
+        }
+    }
+}
