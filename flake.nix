@@ -23,9 +23,16 @@
         "ghc910"
       ];
 
+      shells = [
+        "ghc96"
+        "ghc910"
+      ];
+
       eachSystem = nixpkgs.lib.genAttrs systems;
 
       eachHaskell = nixpkgs.lib.genAttrs haskells;
+
+      eachShell = nixpkgs.lib.genAttrs shells;
 
       latestHaskell = nixpkgs.lib.last haskells;
 
@@ -52,7 +59,7 @@
         let
           pkgs = pkgsBySystem.${system};
 
-          shells = eachHaskell (
+          shells = eachShell (
             haskell:
             let
               hsPkgs = haskellPackages.${system}.${haskell};
