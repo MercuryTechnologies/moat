@@ -16,10 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         ghc:
-          - ghc90
-          - ghc92
-          - ghc94
           - ghc96
+          - ghc910
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.ghc }}
       cancel-in-progress: true
