@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-
 {- HLINT ignore "Avoid restricted extensions" -}
 {-# LANGUAGE DuplicateRecordFields #-}
 

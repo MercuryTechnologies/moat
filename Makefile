@@ -20,11 +20,11 @@ ghcid-test: hpack
 	ghcid -c cabal repl test:spec
 
 format:
-	alejandra --quiet .
+	nixfmt --quiet *.nix
 	fourmolu -i src/ test/
 
 check-format:
-	fourmolu -m check src/ test/ && alejandra --check .
+	fourmolu -m check src/ test/ && nixfmt --check *.nix
 
 hlint:
 	hlint .

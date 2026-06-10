@@ -7,7 +7,7 @@ import Test.Hspec.Golden
 import Prelude hiding (Enum)
 
 data Record1 = Record1
-  { field :: Int }
+  {field :: Int}
 
 data Enum
   = DataCons0
