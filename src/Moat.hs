@@ -104,6 +104,9 @@ import qualified Data.Bifunctor as Bifunctor
 import Data.Bool (bool)
 import qualified Data.Char as Char
 import Data.Foldable (foldlM, foldr')
+#if !MIN_VERSION_base(4,20,0)
+import Data.Foldable (foldl')
+#endif
 import Data.Functor ((<&>))
 import qualified Data.List as L
 import Data.List.NonEmpty (NonEmpty (..), (<|))
