@@ -35,11 +35,11 @@ public enum Enum: Hashable, Codable {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch (self) {
-            case let .dataCons0:
+            case let .dataCons0(enumField0, enumField1):
                 try container.encode("dataCons0", forKey: .tag)
                 try container.encode(enumField0, forKey: .enumField0)
                 try container.encode(enumField1, forKey: .enumField1)
-            case let .dataCons1:
+            case let .dataCons1(enumField2, enumField3):
                 try container.encode("dataCons1", forKey: .tag)
                 try container.encode(enumField2, forKey: .enumField2)
                 try container.encode(enumField3, forKey: .enumField3)

@@ -601,7 +601,9 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
               _ ->
                 "case let ."
                   ++ swiftCaseLabel enumCaseName
-                  ++ ":"
+                  ++ "("
+                  ++ (intercalate ", " (enumCaseFields <&> \(Field {..}) -> fieldName))
+                  ++ "):"
                   ++ indent
                     ( "try container.encode(\""
                         ++ enumCaseName
