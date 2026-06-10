@@ -8,6 +8,7 @@ module Moat.Pretty.Swift
   )
 where
 
+import Data.Char (toLower)
 import Data.Functor ((<&>))
 import Data.List (intercalate, nub)
 import qualified Data.Map as Map
@@ -169,6 +170,13 @@ prettyTagDisambiguator disambiguate indents parent =
         ++ "Tag { }\n"
     else ""
 
+-- | Lowercase the first character of an enum case name to produce an
+--   idiomatic Swift case label. This only affects the Swift identifier; the
+--   tag encoded to and decoded from the wire is left untouched.
+swiftCaseLabel :: String -> String
+swiftCaseLabel "" = ""
+swiftCaseLabel (c : cs) = toLower c : cs
+
 labelCase :: Field -> String
 labelCase (Field "" ty _) = prettyMoatType ty
 labelCase (Field label ty _) = "_ " ++ label ++ ": " ++ prettyMoatType ty
@@ -246,21 +254,21 @@ prettyEnumCases indents unknown cases = go cases ++ unknownCase
         prettyTypeDoc indents caseDoc []
           ++ indents
           ++ "case "
-          ++ caseNm
+          ++ swiftCaseLabel caseNm
           ++ "\n"
           ++ go xs
       (EnumCase caseNm caseDoc cs : xs) ->
         prettyTypeDoc indents caseDoc cs
           ++ indents
           ++ "case "
-          ++ caseNm
+          ++ swiftCaseLabel caseNm
           ++ "("
           ++ intercalate ", " (map labelCase cs)
           ++ ")\n"
           ++ go xs
 
     unknownCase = case unknown of
-      Just caseNm -> indents ++ "case " ++ caseNm ++ "\n"
+      Just caseNm -> indents ++ "case " ++ swiftCaseLabel caseNm ++ "\n"
       Nothing -> ""
 
 prettyStructFields :: String -> [Field] -> [(String, Maybe String)] -> String
@@ -413,7 +421,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                       ++ "(try container.decode("
                       ++ prettyMoatType caseTy
                       ++ ".self, forKey: ."
@@ -426,7 +434,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                   )
             EnumCase caseNm _ _ ->
               error $
@@ -448,7 +456,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                   )
             EnumCase caseNm _ [Field "" caseTy _] ->
               "case \""
@@ -456,7 +464,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                       ++ "(try "
                       ++ prettyMoatType caseTy
                       ++ ".init(from: decoder))"
@@ -467,7 +475,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                       ++ "("
                       ++ indent
                         ( intercalate
@@ -489,7 +497,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
     prettyInitUnknownCase = case unknownCase of
       Just caseNm ->
         "default:"
-          ++ indent ("self = ." ++ caseNm)
+          ++ indent ("self = ." ++ swiftCaseLabel caseNm)
       Nothing ->
         "default:"
           ++ indent
@@ -528,7 +536,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
             case enumCaseFields of
               [] ->
                 "case ."
-                  ++ enumCaseName
+                  ++ swiftCaseLabel enumCaseName
                   ++ ":"
                   ++ indent
                     ( "try container.encode(\""
@@ -539,7 +547,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                     )
               [Field "" _ _] ->
                 "case let ."
-                  ++ enumCaseName
+                  ++ swiftCaseLabel enumCaseName
                   ++ "("
                   ++ contentsFieldName
                   ++ "):"
@@ -569,7 +577,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
             case enumCaseFields of
               [] ->
                 "case ."
-                  ++ enumCaseName
+                  ++ swiftCaseLabel enumCaseName
                   ++ ":"
                   ++ indent
                     ( "try container.encode(\""
@@ -580,7 +588,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                     )
               [Field "" _ _] ->
                 "case let ."
-                  ++ enumCaseName
+                  ++ swiftCaseLabel enumCaseName
                   ++ "(value):"
                   ++ indent
                     ( "try container.encode(\""
@@ -592,7 +600,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                     )
               _ ->
                 "case let ."
-                  ++ enumCaseName
+                  ++ swiftCaseLabel enumCaseName
                   ++ ":"
                   ++ indent
                     ( "try container.encode(\""
@@ -617,7 +625,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
     prettyEncodeUnknownCase = case unknownCase of
       Just caseNm ->
         "case ."
-          ++ caseNm
+          ++ swiftCaseLabel caseNm
           ++ ":"
           ++ indent
             ( "throw EncodingError.invalidValue("
@@ -625,7 +633,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                   ( "self,\n.init(codingPath: encoder.codingPath, debugDescription: \"Can't encode value: "
                       ++ parentName
                       ++ "."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                       ++ "\")"
                   )
                 ++ ")"
