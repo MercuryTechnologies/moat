@@ -100,6 +100,7 @@ test-suite spec
       SumOfProductWithTaggedObjectAndSingleNullarySpec
       SumOfProductWithTaggedObjectStyleSpec
       SumOfProductWithTypeParameterSpec
+      SumOfProductWithUpperCaseTagsSpec
       TypeVariableSpec
       Moat
       Moat.Class

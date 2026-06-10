@@ -1,0 +1,36 @@
+public enum Enum: Hashable, Codable {
+    case DataCons0
+    case DataCons1(Record1)
+
+    public enum CodingKeys: String, CodingKey {
+        case tag
+        case contents
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let discriminator = try container.decode(String.self, forKey: .tag)
+        switch discriminator {
+            case "DataCons0":
+                self = .DataCons0
+            case "DataCons1":
+                self = .DataCons1(try container.decode(Record1.self, forKey: .contents))
+            default:
+                throw DecodingError.typeMismatch(
+                    CodingKeys.self,
+                    .init(codingPath: decoder.codingPath, debugDescription: "Can't decode unknown tag: Enum.\(discriminator)")
+                )
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch (self) {
+            case .DataCons0:
+                try container.encode("DataCons0", forKey: .tag)
+            case let .DataCons1(contents):
+                try container.encode("DataCons1", forKey: .tag)
+                try container.encode(contents, forKey: .contents)
+        }
+    }
+}
