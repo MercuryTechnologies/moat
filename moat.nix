@@ -43,7 +43,7 @@ mkDerivation {
     uuid-types
     vector
   ];
-  libraryToolDepends = [hspec-discover];
+  libraryToolDepends = [ hspec-discover ];
   testHaskellDepends = [
     base
     bytestring
@@ -65,7 +65,7 @@ mkDerivation {
     uuid-types
     vector
   ];
-  testToolDepends = [hspec-discover];
+  testToolDepends = [ hspec-discover ];
   homepage = "https://github.com/chessai/moat#readme";
   description = "Generate swift and kotlin types from haskell types";
   license = lib.licenses.mit;
