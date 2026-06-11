@@ -12,7 +12,7 @@ import Data.Char (toLower)
 import Data.Functor ((<&>))
 import Data.List (intercalate, nub)
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Moat.Pretty.Doc.DocC
 import Moat.Types
 
@@ -34,19 +34,21 @@ prettySwiftDataWith ::
   String
 prettySwiftDataWith indent = \case
   MoatEnum {..} ->
-    prettyTypeDoc "" enumDoc []
-      ++ "public enum "
-      ++ prettyMoatTypeHeader enumName (addTyVarBounds enumTyVars enumProtocols)
-      ++ prettyRawValueAndProtocols enumRawValue enumProtocols
-      ++ " {"
-      ++ newlineNonEmpty enumCases
-      ++ prettyEnumCases indents enumEnumUnknownCase enumCases
-      ++ newlineNonEmpty enumPrivateTypes
-      ++ prettyPrivateTypes indents enumPrivateTypes
-      ++ prettyTags indents enumTags
-      ++ newlineNonEmpty enumTags
-      ++ prettyEnumCoding indents enumName enumCases enumEnumUnknownCase enumSumOfProductEncodingOption
-      ++ "}"
+    let (rawValue, protocols) =
+          enforcedEnumRawValueAndProtocols enumCases enumRawValue enumProtocols
+     in prettyTypeDoc "" enumDoc []
+          ++ "public enum "
+          ++ prettyMoatTypeHeader enumName (addTyVarBounds enumTyVars protocols)
+          ++ prettyRawValueAndProtocols rawValue protocols
+          ++ " {"
+          ++ newlineNonEmpty enumCases
+          ++ prettyEnumCases indents rawValue enumEnumUnknownCase enumCases
+          ++ newlineNonEmpty enumPrivateTypes
+          ++ prettyPrivateTypes indents enumPrivateTypes
+          ++ prettyTags indents enumTags
+          ++ newlineNonEmpty enumTags
+          ++ prettyEnumCoding indents enumName enumCases enumEnumUnknownCase enumSumOfProductEncodingOption
+          ++ "}"
   MoatStruct {..} ->
     prettyTypeDoc "" structDoc []
       ++ "public struct "
@@ -112,6 +114,27 @@ prettyTypeDoc indents doc fields =
 prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
 prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
+
+-- | For a plain (C-style) enum — one where every case is fieldless — enforce a
+--   raw value and 'Codable' conformance. Swift synthesizes a verbose
+--   keyed-object @Codable@ representation for raw-value-less enums (e.g.
+--   @{"north": {}}@), so we pin a scalar raw value instead, which round-trips
+--   as the bare tag (e.g. @"north"@).
+--
+--   An explicitly-supplied integer raw value is respected as-is; any other (or
+--   absent) raw value defaults to 'Str'. 'Codable' is appended unless the user
+--   already requested it.
+--
+--   Enums with associated values are returned unchanged: they cannot carry a
+--   raw value and rely on the custom coding emitted by 'prettyEnumCoding'.
+enforcedEnumRawValueAndProtocols ::
+  [EnumCase] -> Maybe MoatType -> [Protocol] -> (Maybe MoatType, [Protocol])
+enforcedEnumRawValueAndProtocols cases rawValue protocols
+  | isCEnum cases =
+      ( Just (fromMaybe Str rawValue)
+      , protocols ++ [Codable | Codable `notElem` protocols]
+      )
+  | otherwise = (rawValue, protocols)
 
 prettyRawValueAndProtocols :: Maybe MoatType -> [Protocol] -> String
 prettyRawValueAndProtocols Nothing [] = ""
@@ -245,9 +268,18 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
-prettyEnumCases :: String -> Maybe String -> [EnumCase] -> String
-prettyEnumCases indents unknown cases = go cases ++ unknownCase
+prettyEnumCases :: String -> Maybe MoatType -> Maybe String -> [EnumCase] -> String
+prettyEnumCases indents rawValue unknown cases = go cases ++ unknownCase
   where
+    -- For a 'Str' raw value, pin the raw value to the original case name
+    -- whenever it differs from the lowercased Swift label, so the wire tag is
+    -- preserved (e.g. @case aliceInChains = "AliceInChains"@). Integer raw
+    -- values are left implicit for now.
+    rawValueAssignment :: String -> String
+    rawValueAssignment caseNm = case rawValue of
+      Just Str | swiftCaseLabel caseNm /= caseNm -> " = \"" ++ caseNm ++ "\""
+      _ -> ""
+
     go = \case
       [] -> ""
       (EnumCase caseNm caseDoc [] : xs) ->
@@ -255,6 +287,7 @@ prettyEnumCases indents unknown cases = go cases ++ unknownCase
           ++ indents
           ++ "case "
           ++ swiftCaseLabel caseNm
+          ++ rawValueAssignment caseNm
           ++ "\n"
           ++ go xs
       (EnumCase caseNm caseDoc cs : xs) ->

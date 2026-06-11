@@ -1,4 +1,4 @@
-public enum Enum {
+public enum Enum: String, Codable {
     case a
     case b
 }

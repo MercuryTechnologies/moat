@@ -1,3 +1,3 @@
-public enum EnumB {
+public enum EnumB: String, Codable {
     case fourth
 }

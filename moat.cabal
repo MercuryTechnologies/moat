@@ -82,6 +82,7 @@ test-suite spec
       Common
       DeprecatedFieldSpec
       DuplicateRecordFieldSpec
+      EnumUpperCaseLabelsSpec
       EnumValueClassDocSpec
       EnumValueClassSpec
       GenericAliasSpec
