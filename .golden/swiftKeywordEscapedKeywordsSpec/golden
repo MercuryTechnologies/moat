@@ -1,0 +1,7 @@
+public enum Keyword: String, Codable {
+    case `case`
+    case `default`
+    case `class`
+    case `switch`
+    case `return`
+}

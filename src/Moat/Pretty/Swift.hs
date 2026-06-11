@@ -13,6 +13,7 @@ import Data.Functor ((<&>))
 import Data.List (intercalate, nub)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, fromMaybe)
+import qualified Data.Set as Set
 import Moat.Pretty.Doc.DocC
 import Moat.Types
 
@@ -196,13 +197,103 @@ prettyTagDisambiguator disambiguate indents parent =
 -- | Lowercase the first character of an enum case name to produce an
 --   idiomatic Swift case label. This only affects the Swift identifier; the
 --   tag encoded to and decoded from the wire is left untouched.
+swiftCaseLowerFirst :: String -> String
+swiftCaseLowerFirst "" = ""
+swiftCaseLowerFirst (c : cs) = toLower c : cs
+
+-- | Produce the Swift identifier for an enum case: lowercase the first
+--   character and escape it with backticks if it collides with a keyword.
 swiftCaseLabel :: String -> String
-swiftCaseLabel "" = ""
-swiftCaseLabel (c : cs) = toLower c : cs
+swiftCaseLabel = escapeKeyword . swiftCaseLowerFirst
+
+-- | Swift reserved keywords, which can't be used as identifiers unless escaped
+--   with backticks. Taken from the "Keywords and Punctuation" section of /The
+--   Swift Programming Language/: the keywords used in declarations, statements,
+--   expressions and types, and patterns.
+--
+--   Deliberately omitted:
+--
+--   * Keywords reserved in particular contexts (e.g. @get@, @set@, @final@,
+--     @some@): these are valid as identifiers without escaping.
+--   * Keywords beginning with a number sign (e.g. @#available@): these can't
+--     form identifiers in the first place.
+swiftKeywords :: Set.Set String
+swiftKeywords =
+  Set.fromList
+    [ -- Keywords used in declarations
+      "associatedtype"
+    , "borrowing"
+    , "class"
+    , "consuming"
+    , "deinit"
+    , "enum"
+    , "extension"
+    , "fileprivate"
+    , "func"
+    , "import"
+    , "init"
+    , "inout"
+    , "internal"
+    , "let"
+    , "nonisolated"
+    , "open"
+    , "operator"
+    , "precedencegroup"
+    , "private"
+    , "protocol"
+    , "public"
+    , "rethrows"
+    , "static"
+    , "struct"
+    , "subscript"
+    , "typealias"
+    , "var"
+    , -- Keywords used in statements
+      "break"
+    , "case"
+    , "catch"
+    , "continue"
+    , "default"
+    , "defer"
+    , "do"
+    , "else"
+    , "fallthrough"
+    , "for"
+    , "guard"
+    , "if"
+    , "in"
+    , "repeat"
+    , "return"
+    , "switch"
+    , "throw"
+    , "where"
+    , "while"
+    , -- Keywords used in expressions and types
+      "Any"
+    , "as"
+    , "await"
+    , "false"
+    , "is"
+    , "nil"
+    , "self"
+    , "Self"
+    , "super"
+    , "throws"
+    , "true"
+    , "try"
+    ]
+
+-- | Escape an identifier with backticks if it collides with a Swift keyword,
+--   so that it can be used as a Swift identifier (e.g. a field name or enum
+--   case label).
+escapeKeyword :: String -> String
+escapeKeyword ident
+  | ident `Set.member` swiftKeywords = "`" ++ ident ++ "`"
+  | otherwise = ident
 
 labelCase :: Field -> String
 labelCase (Field "" ty _) = prettyMoatType ty
-labelCase (Field label ty _) = "_ " ++ label ++ ": " ++ prettyMoatType ty
+labelCase (Field label ty _) = "_ " ++ escapeKeyword label ++ ": " ++ prettyMoatType ty
 
 -- | Pretty-print a 'Ty'.
 prettyMoatType :: MoatType -> String
@@ -277,7 +368,7 @@ prettyEnumCases indents rawValue unknown cases = go cases ++ unknownCase
     -- values are left implicit for now.
     rawValueAssignment :: String -> String
     rawValueAssignment caseNm = case rawValue of
-      Just Str | swiftCaseLabel caseNm /= caseNm -> " = \"" ++ caseNm ++ "\""
+      Just Str | swiftCaseLowerFirst caseNm /= caseNm -> " = \"" ++ caseNm ++ "\""
       _ -> ""
 
     go = \case
@@ -310,7 +401,7 @@ prettyStructFields indents fields deprecatedFields = go fields
     deprecatedFieldsMap = Map.fromList deprecatedFields
     prettyField (Field fieldName fieldType _fieldDoc) =
       "public var "
-        ++ fieldName
+        ++ escapeKeyword fieldName
         ++ ": "
         ++ prettyMoatType fieldType
         ++ "\n"
@@ -353,17 +444,17 @@ prettyStructInitializer indents fields deprecatedFields =
 
     prettyParam :: Field -> String
     prettyParam (Field fieldName fieldType _) =
-      fieldName ++ ": " ++ prettyMoatType fieldType ++ (if isOptional fieldType then " = nil" else "")
+      escapeKeyword fieldName ++ ": " ++ prettyMoatType fieldType ++ (if isOptional fieldType then " = nil" else "")
 
     prettyAssignment :: String -> Field -> String
     prettyAssignment indentStr (Field fieldName _ _) =
-      indentStr ++ "    self." ++ fieldName ++ " = " ++ fieldName ++ "\n"
+      indentStr ++ "    self." ++ escapeKeyword fieldName ++ " = " ++ escapeKeyword fieldName ++ "\n"
 
 prettyNewtypeField :: String -> Field -> String -> String
 prettyNewtypeField indents (Field alias fieldType _) fieldName =
   indents
     ++ "public let "
-    ++ alias
+    ++ escapeKeyword alias
     ++ ": "
     ++ fieldName
     ++ "Tag"
@@ -422,7 +513,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
        in "case "
             ++ tagFieldName
             ++ "\n"
-            ++ intercalate "\n" (map ("case " ++) names)
+            ++ intercalate "\n" (map (("case " ++) . escapeKeyword) names)
 
     prettyInit :: String
     prettyInit =
@@ -517,7 +608,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                                 "try container.decode("
                                   ++ prettyMoatType fieldType
                                   ++ ".self, forKey: ."
-                                  ++ fieldName
+                                  ++ escapeKeyword fieldName
                                   ++ ")"
                             )
                         )
@@ -635,7 +726,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 "case let ."
                   ++ swiftCaseLabel enumCaseName
                   ++ "("
-                  ++ (intercalate ", " (enumCaseFields <&> \(Field {..}) -> fieldName))
+                  ++ (intercalate ", " (enumCaseFields <&> \(Field {..}) -> escapeKeyword fieldName))
                   ++ "):"
                   ++ indent
                     ( "try container.encode(\""
@@ -647,9 +738,9 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                           "\n"
                           ( enumCaseFields <&> \(Field {..}) ->
                               "try container.encode("
-                                ++ fieldName
+                                ++ escapeKeyword fieldName
                                 ++ ", forKey: ."
-                                ++ fieldName
+                                ++ escapeKeyword fieldName
                                 ++ ")"
                           )
                     )
