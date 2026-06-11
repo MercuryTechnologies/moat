@@ -8,10 +8,12 @@ module Moat.Pretty.Swift
   )
 where
 
+import Data.Char (toLower)
 import Data.Functor ((<&>))
 import Data.List (intercalate, nub)
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
+import qualified Data.Set as Set
 import Moat.Pretty.Doc.DocC
 import Moat.Types
 
@@ -33,19 +35,21 @@ prettySwiftDataWith ::
   String
 prettySwiftDataWith indent = \case
   MoatEnum {..} ->
-    prettyTypeDoc "" enumDoc []
-      ++ "public enum "
-      ++ prettyMoatTypeHeader enumName (addTyVarBounds enumTyVars enumProtocols)
-      ++ prettyRawValueAndProtocols enumRawValue enumProtocols
-      ++ " {"
-      ++ newlineNonEmpty enumCases
-      ++ prettyEnumCases indents enumEnumUnknownCase enumCases
-      ++ newlineNonEmpty enumPrivateTypes
-      ++ prettyPrivateTypes indents enumPrivateTypes
-      ++ prettyTags indents enumTags
-      ++ newlineNonEmpty enumTags
-      ++ prettyEnumCoding indents enumName enumCases enumEnumUnknownCase enumSumOfProductEncodingOption
-      ++ "}"
+    let (rawValue, protocols) =
+          enforcedEnumRawValueAndProtocols enumCases enumRawValue enumProtocols
+     in prettyTypeDoc "" enumDoc []
+          ++ "public enum "
+          ++ prettyMoatTypeHeader enumName (addTyVarBounds enumTyVars protocols)
+          ++ prettyRawValueAndProtocols rawValue protocols
+          ++ " {"
+          ++ newlineNonEmpty enumCases
+          ++ prettyEnumCases indents rawValue enumEnumUnknownCase enumCases
+          ++ newlineNonEmpty enumPrivateTypes
+          ++ prettyPrivateTypes indents enumPrivateTypes
+          ++ prettyTags indents enumTags
+          ++ newlineNonEmpty enumTags
+          ++ prettyEnumCoding indents enumName enumCases enumEnumUnknownCase enumSumOfProductEncodingOption
+          ++ "}"
   MoatStruct {..} ->
     prettyTypeDoc "" structDoc []
       ++ "public struct "
@@ -112,6 +116,27 @@ prettyMoatTypeHeader :: String -> [String] -> String
 prettyMoatTypeHeader name [] = name
 prettyMoatTypeHeader name tyVars = name ++ "<" ++ intercalate ", " tyVars ++ ">"
 
+-- | For a plain (C-style) enum — one where every case is fieldless — enforce a
+--   raw value and 'Codable' conformance. Swift synthesizes a verbose
+--   keyed-object @Codable@ representation for raw-value-less enums (e.g.
+--   @{"north": {}}@), so we pin a scalar raw value instead, which round-trips
+--   as the bare tag (e.g. @"north"@).
+--
+--   An explicitly-supplied integer raw value is respected as-is; any other (or
+--   absent) raw value defaults to 'Str'. 'Codable' is appended unless the user
+--   already requested it.
+--
+--   Enums with associated values are returned unchanged: they cannot carry a
+--   raw value and rely on the custom coding emitted by 'prettyEnumCoding'.
+enforcedEnumRawValueAndProtocols ::
+  [EnumCase] -> Maybe MoatType -> [Protocol] -> (Maybe MoatType, [Protocol])
+enforcedEnumRawValueAndProtocols cases rawValue protocols
+  | isCEnum cases =
+      ( Just (fromMaybe Str rawValue)
+      , protocols ++ [Codable | Codable `notElem` protocols]
+      )
+  | otherwise = (rawValue, protocols)
+
 prettyRawValueAndProtocols :: Maybe MoatType -> [Protocol] -> String
 prettyRawValueAndProtocols Nothing [] = ""
 prettyRawValueAndProtocols Nothing ps = ": " ++ prettyProtocols ps
@@ -169,9 +194,106 @@ prettyTagDisambiguator disambiguate indents parent =
         ++ "Tag { }\n"
     else ""
 
+-- | Lowercase the first character of an enum case name to produce an
+--   idiomatic Swift case label. This only affects the Swift identifier; the
+--   tag encoded to and decoded from the wire is left untouched.
+swiftCaseLowerFirst :: String -> String
+swiftCaseLowerFirst "" = ""
+swiftCaseLowerFirst (c : cs) = toLower c : cs
+
+-- | Produce the Swift identifier for an enum case: lowercase the first
+--   character and escape it with backticks if it collides with a keyword.
+swiftCaseLabel :: String -> String
+swiftCaseLabel = escapeKeyword . swiftCaseLowerFirst
+
+-- | Swift reserved keywords, which can't be used as identifiers unless escaped
+--   with backticks. Taken from the "Keywords and Punctuation" section of /The
+--   Swift Programming Language/: the keywords used in declarations, statements,
+--   expressions and types, and patterns.
+--
+--   Deliberately omitted:
+--
+--   * Keywords reserved in particular contexts (e.g. @get@, @set@, @final@,
+--     @some@): these are valid as identifiers without escaping.
+--   * Keywords beginning with a number sign (e.g. @#available@): these can't
+--     form identifiers in the first place.
+swiftKeywords :: Set.Set String
+swiftKeywords =
+  Set.fromList
+    [ -- Keywords used in declarations
+      "associatedtype"
+    , "borrowing"
+    , "class"
+    , "consuming"
+    , "deinit"
+    , "enum"
+    , "extension"
+    , "fileprivate"
+    , "func"
+    , "import"
+    , "init"
+    , "inout"
+    , "internal"
+    , "let"
+    , "nonisolated"
+    , "open"
+    , "operator"
+    , "precedencegroup"
+    , "private"
+    , "protocol"
+    , "public"
+    , "rethrows"
+    , "static"
+    , "struct"
+    , "subscript"
+    , "typealias"
+    , "var"
+    , -- Keywords used in statements
+      "break"
+    , "case"
+    , "catch"
+    , "continue"
+    , "default"
+    , "defer"
+    , "do"
+    , "else"
+    , "fallthrough"
+    , "for"
+    , "guard"
+    , "if"
+    , "in"
+    , "repeat"
+    , "return"
+    , "switch"
+    , "throw"
+    , "where"
+    , "while"
+    , -- Keywords used in expressions and types
+      "Any"
+    , "as"
+    , "await"
+    , "false"
+    , "is"
+    , "nil"
+    , "self"
+    , "Self"
+    , "super"
+    , "throws"
+    , "true"
+    , "try"
+    ]
+
+-- | Escape an identifier with backticks if it collides with a Swift keyword,
+--   so that it can be used as a Swift identifier (e.g. a field name or enum
+--   case label).
+escapeKeyword :: String -> String
+escapeKeyword ident
+  | ident `Set.member` swiftKeywords = "`" ++ ident ++ "`"
+  | otherwise = ident
+
 labelCase :: Field -> String
 labelCase (Field "" ty _) = prettyMoatType ty
-labelCase (Field label ty _) = "_ " ++ label ++ ": " ++ prettyMoatType ty
+labelCase (Field label ty _) = "_ " ++ escapeKeyword label ++ ": " ++ prettyMoatType ty
 
 -- | Pretty-print a 'Ty'.
 prettyMoatType :: MoatType -> String
@@ -237,30 +359,40 @@ prettyApp t1 t2 =
       (args, ret) -> (e1 : args, ret)
     go e1 e2 = ([e1], e2)
 
-prettyEnumCases :: String -> Maybe String -> [EnumCase] -> String
-prettyEnumCases indents unknown cases = go cases ++ unknownCase
+prettyEnumCases :: String -> Maybe MoatType -> Maybe String -> [EnumCase] -> String
+prettyEnumCases indents rawValue unknown cases = go cases ++ unknownCase
   where
+    -- For a 'Str' raw value, pin the raw value to the original case name
+    -- whenever it differs from the lowercased Swift label, so the wire tag is
+    -- preserved (e.g. @case aliceInChains = "AliceInChains"@). Integer raw
+    -- values are left implicit for now.
+    rawValueAssignment :: String -> String
+    rawValueAssignment caseNm = case rawValue of
+      Just Str | swiftCaseLowerFirst caseNm /= caseNm -> " = \"" ++ caseNm ++ "\""
+      _ -> ""
+
     go = \case
       [] -> ""
       (EnumCase caseNm caseDoc [] : xs) ->
         prettyTypeDoc indents caseDoc []
           ++ indents
           ++ "case "
-          ++ caseNm
+          ++ swiftCaseLabel caseNm
+          ++ rawValueAssignment caseNm
           ++ "\n"
           ++ go xs
       (EnumCase caseNm caseDoc cs : xs) ->
         prettyTypeDoc indents caseDoc cs
           ++ indents
           ++ "case "
-          ++ caseNm
+          ++ swiftCaseLabel caseNm
           ++ "("
           ++ intercalate ", " (map labelCase cs)
           ++ ")\n"
           ++ go xs
 
     unknownCase = case unknown of
-      Just caseNm -> indents ++ "case " ++ caseNm ++ "\n"
+      Just caseNm -> indents ++ "case " ++ swiftCaseLabel caseNm ++ "\n"
       Nothing -> ""
 
 prettyStructFields :: String -> [Field] -> [(String, Maybe String)] -> String
@@ -269,7 +401,7 @@ prettyStructFields indents fields deprecatedFields = go fields
     deprecatedFieldsMap = Map.fromList deprecatedFields
     prettyField (Field fieldName fieldType _fieldDoc) =
       "public var "
-        ++ fieldName
+        ++ escapeKeyword fieldName
         ++ ": "
         ++ prettyMoatType fieldType
         ++ "\n"
@@ -312,17 +444,17 @@ prettyStructInitializer indents fields deprecatedFields =
 
     prettyParam :: Field -> String
     prettyParam (Field fieldName fieldType _) =
-      fieldName ++ ": " ++ prettyMoatType fieldType ++ (if isOptional fieldType then " = nil" else "")
+      escapeKeyword fieldName ++ ": " ++ prettyMoatType fieldType ++ (if isOptional fieldType then " = nil" else "")
 
     prettyAssignment :: String -> Field -> String
     prettyAssignment indentStr (Field fieldName _ _) =
-      indentStr ++ "    self." ++ fieldName ++ " = " ++ fieldName ++ "\n"
+      indentStr ++ "    self." ++ escapeKeyword fieldName ++ " = " ++ escapeKeyword fieldName ++ "\n"
 
 prettyNewtypeField :: String -> Field -> String -> String
 prettyNewtypeField indents (Field alias fieldType _) fieldName =
   indents
     ++ "public let "
-    ++ alias
+    ++ escapeKeyword alias
     ++ ": "
     ++ fieldName
     ++ "Tag"
@@ -381,7 +513,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
        in "case "
             ++ tagFieldName
             ++ "\n"
-            ++ intercalate "\n" (map ("case " ++) names)
+            ++ intercalate "\n" (map (("case " ++) . escapeKeyword) names)
 
     prettyInit :: String
     prettyInit =
@@ -413,7 +545,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                       ++ "(try container.decode("
                       ++ prettyMoatType caseTy
                       ++ ".self, forKey: ."
@@ -426,7 +558,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                   )
             EnumCase caseNm _ _ ->
               error $
@@ -448,7 +580,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                   )
             EnumCase caseNm _ [Field "" caseTy _] ->
               "case \""
@@ -456,7 +588,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                       ++ "(try "
                       ++ prettyMoatType caseTy
                       ++ ".init(from: decoder))"
@@ -467,7 +599,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                 ++ "\":"
                 ++ indent
                   ( "self = ."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                       ++ "("
                       ++ indent
                         ( intercalate
@@ -476,7 +608,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                                 "try container.decode("
                                   ++ prettyMoatType fieldType
                                   ++ ".self, forKey: ."
-                                  ++ fieldName
+                                  ++ escapeKeyword fieldName
                                   ++ ")"
                             )
                         )
@@ -489,7 +621,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
     prettyInitUnknownCase = case unknownCase of
       Just caseNm ->
         "default:"
-          ++ indent ("self = ." ++ caseNm)
+          ++ indent ("self = ." ++ swiftCaseLabel caseNm)
       Nothing ->
         "default:"
           ++ indent
@@ -528,7 +660,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
             case enumCaseFields of
               [] ->
                 "case ."
-                  ++ enumCaseName
+                  ++ swiftCaseLabel enumCaseName
                   ++ ":"
                   ++ indent
                     ( "try container.encode(\""
@@ -539,7 +671,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                     )
               [Field "" _ _] ->
                 "case let ."
-                  ++ enumCaseName
+                  ++ swiftCaseLabel enumCaseName
                   ++ "("
                   ++ contentsFieldName
                   ++ "):"
@@ -569,7 +701,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
             case enumCaseFields of
               [] ->
                 "case ."
-                  ++ enumCaseName
+                  ++ swiftCaseLabel enumCaseName
                   ++ ":"
                   ++ indent
                     ( "try container.encode(\""
@@ -580,7 +712,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                     )
               [Field "" _ _] ->
                 "case let ."
-                  ++ enumCaseName
+                  ++ swiftCaseLabel enumCaseName
                   ++ "(value):"
                   ++ indent
                     ( "try container.encode(\""
@@ -592,8 +724,10 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                     )
               _ ->
                 "case let ."
-                  ++ enumCaseName
-                  ++ ":"
+                  ++ swiftCaseLabel enumCaseName
+                  ++ "("
+                  ++ (intercalate ", " (enumCaseFields <&> \(Field {..}) -> escapeKeyword fieldName))
+                  ++ "):"
                   ++ indent
                     ( "try container.encode(\""
                         ++ enumCaseName
@@ -604,9 +738,9 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                           "\n"
                           ( enumCaseFields <&> \(Field {..}) ->
                               "try container.encode("
-                                ++ fieldName
+                                ++ escapeKeyword fieldName
                                 ++ ", forKey: ."
-                                ++ fieldName
+                                ++ escapeKeyword fieldName
                                 ++ ")"
                           )
                     )
@@ -617,7 +751,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
     prettyEncodeUnknownCase = case unknownCase of
       Just caseNm ->
         "case ."
-          ++ caseNm
+          ++ swiftCaseLabel caseNm
           ++ ":"
           ++ indent
             ( "throw EncodingError.invalidValue("
@@ -625,7 +759,7 @@ prettyEnumCoding indents parentName cases unknownCase SumOfProductEncodingOption
                   ( "self,\n.init(codingPath: encoder.codingPath, debugDescription: \"Can't encode value: "
                       ++ parentName
                       ++ "."
-                      ++ caseNm
+                      ++ swiftCaseLabel caseNm
                       ++ "\")"
                   )
                 ++ ")"

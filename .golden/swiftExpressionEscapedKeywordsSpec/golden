@@ -1,0 +1,41 @@
+public enum Expression: Codable {
+    case `try`(_ `defer`: Int, _ `fallthrough`: String)
+    case `catch`
+
+    public enum CodingKeys: String, CodingKey {
+        case tag
+        case `defer`
+        case `fallthrough`
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let discriminator = try container.decode(String.self, forKey: .tag)
+        switch discriminator {
+            case "try":
+                self = .`try`(
+                    try container.decode(Int.self, forKey: .`defer`),
+                    try container.decode(String.self, forKey: .`fallthrough`)
+                )
+            case "catch":
+                self = .`catch`
+            default:
+                throw DecodingError.typeMismatch(
+                    CodingKeys.self,
+                    .init(codingPath: decoder.codingPath, debugDescription: "Can't decode unknown tag: Expression.\(discriminator)")
+                )
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch (self) {
+            case let .`try`(`defer`, `fallthrough`):
+                try container.encode("try", forKey: .tag)
+                try container.encode(`defer`, forKey: .`defer`)
+                try container.encode(`fallthrough`, forKey: .`fallthrough`)
+            case .`catch`:
+                try container.encode("catch", forKey: .tag)
+        }
+    }
+}

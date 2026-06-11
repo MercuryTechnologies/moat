@@ -57,7 +57,11 @@ markdownBlocks m i = \case
 
 #if MIN_VERSION_haddock_library(1,11,0)
 markdownOrderedList :: (String -> Node) -> (String -> Node) -> [(Int, DocH String String)] -> Node
-markdownOrderedList m i ds = ol (fst (head ds)) (map (markdownListItem m i . snd) ds)
+markdownOrderedList m i ds = ol start (map (markdownListItem m i . snd) ds)
+  where
+    start = case ds of
+      ((n, _) : _) -> n
+      [] -> 1
 #else
 markdownOrderedList :: (String -> Node) -> (String -> Node) -> [DocH String String] -> Node
 markdownOrderedList m i ds = ol 1 (map (markdownListItem m i) ds)

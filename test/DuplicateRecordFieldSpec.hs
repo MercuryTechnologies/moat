@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {- HLINT ignore "Avoid restricted extensions" -}
 {-# LANGUAGE DuplicateRecordFields #-}
 
@@ -28,16 +29,26 @@ data Data1 = Data1
 mobileGen ''Data0
 mobileGen ''Data1
 
+-- | GHC 9.10 (template-haskell 2.22) fixed 'getDoc' for fields whose names are
+--   made ambiguous by DuplicateRecordFields (GHC #17551). Earlier versions drop
+--   the documentation for the duplicated field, producing different golden
+--   output, so we key the golden files on the template-haskell version.
+goldenName :: String -> String
+#if MIN_VERSION_template_haskell(2,22,0)
+goldenName prefix = prefix <> "DuplicateRecordFieldSpec"
+#else
+goldenName prefix = prefix <> "DuplicateRecordFieldSpecNoFieldDoc"
+#endif
+
 spec :: Spec
 spec =
   when hasDoc $ do
     describe "stays golden" $ do
-      let moduleName = "DuplicateRecordFieldSpec"
       it "swift" $
-        defaultGolden ("swiftRecord0" <> moduleName) (showSwift @Data0)
+        defaultGolden (goldenName "swiftRecord0") (showSwift @Data0)
       it "swift" $
-        defaultGolden ("swiftRecord1" <> moduleName) (showSwift @Data1)
+        defaultGolden (goldenName "swiftRecord1") (showSwift @Data1)
       it "kotlin" $
-        defaultGolden ("kotlinRecord0" <> moduleName) (showKotlin @Data0)
+        defaultGolden (goldenName "kotlinRecord0") (showKotlin @Data0)
       it "kotlin" $
-        defaultGolden ("kotlinRecord1" <> moduleName) (showKotlin @Data1)
+        defaultGolden (goldenName "kotlinRecord1") (showKotlin @Data1)

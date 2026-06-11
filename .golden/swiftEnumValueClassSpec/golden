@@ -1,4 +1,4 @@
-public enum EnumAsValueClass: CaseIterable, Hashable, Codable {
+public enum EnumAsValueClass: String, CaseIterable, Hashable, Codable {
     case first
     case second
     case third

@@ -3,4 +3,4 @@ let
     src = ./.;
   };
 in
-  flake-compat.defaultNix
+flake-compat.defaultNix

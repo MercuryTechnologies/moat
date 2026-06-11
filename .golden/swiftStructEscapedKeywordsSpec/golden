@@ -1,0 +1,11 @@
+public struct Struct: Codable {
+    public var `func`: Int
+    public var `static`: String
+    public var `public`: Bool
+
+    public init(`func`: Int, `static`: String, `public`: Bool) {
+        self.`func` = `func`
+        self.`static` = `static`
+        self.`public` = `public`
+    }
+}

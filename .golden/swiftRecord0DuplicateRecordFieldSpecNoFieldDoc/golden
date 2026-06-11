@@ -1,6 +1,5 @@
 /// Record 0 with duplicate fields
 public struct Data0 {
-    /// duplicate field0
     public var field0: Int
     /// not a duplicate
     public var field1: Int?

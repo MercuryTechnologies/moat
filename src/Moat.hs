@@ -103,7 +103,10 @@ import Control.Monad.Trans
 import qualified Data.Bifunctor as Bifunctor
 import Data.Bool (bool)
 import qualified Data.Char as Char
-import Data.Foldable (foldl', foldlM, foldr')
+import Data.Foldable (foldlM, foldr')
+#if !MIN_VERSION_base(4,20,0)
+import Data.Foldable (foldl')
+#endif
 import Data.Functor ((<&>))
 import qualified Data.List as L
 import Data.List.NonEmpty (NonEmpty (..), (<|))
@@ -595,7 +598,7 @@ prettyTyVarBndrStr = \case
   PlainTV n -> go n
   KindedTV n _ -> go n
   where
-    go = TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show
+    go = TS.unpack . TS.takeWhile (/= '_') . last . TS.splitOn "." . TS.pack . show
 
 -- prettify the type and kind.
 prettyKindVar :: Type -> Either String (String, String)
@@ -604,7 +607,7 @@ prettyKindVar = \case
   VarT n -> Right (nameStr n, "*")
   typ -> Left $ "Moat.prettyKindVar: used on a type without a kind signature. Type was: " ++ show typ
   where
-    go = TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show . ppr
+    go = TS.unpack . TS.takeWhile (/= '_') . last . TS.splitOn "." . TS.pack . show . ppr
 
 type MoatM = ExceptT MoatError Q
 
@@ -1111,7 +1114,7 @@ unqualName = stringE . nameStr
 
 -- prettify a type variable as an Exp
 prettyTyVar :: Name -> Exp
-prettyTyVar = stringE . map Char.toUpper . TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show
+prettyTyVar = stringE . map Char.toUpper . TS.unpack . TS.takeWhile (/= '_') . last . TS.splitOn "." . TS.pack . show
 
 -- prettify a bunch of type variables as an Exp
 prettyTyVars :: [Type] -> Exp
@@ -1408,7 +1411,7 @@ toMoatTypeEPoly = \case
     AppE (ConE 'Poly) (prettyTyVar n)
   typ ->
     let decompressed = decompress typ
-        prettyName = map Char.toUpper . TS.unpack . head . TS.splitOn "_" . last . TS.splitOn "." . TS.pack . show
+        prettyName = map Char.toUpper . TS.unpack . TS.takeWhile (/= '_') . last . TS.splitOn "." . TS.pack . show
         filledInHoles =
           decompressed
             <&> ( \case

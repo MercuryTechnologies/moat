@@ -1,0 +1,5 @@
+public enum Enum: String, Codable {
+    case aliceInChains = "AliceInChains"
+    case blindMelon = "BlindMelon"
+    case candlebox = "Candlebox"
+}
