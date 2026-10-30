@@ -22,7 +22,7 @@ jobs:
       CONFIG: "--enable-tests"
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
-      - uses: haskell-actions/setup@f7d8a55550ba6c8e4fdba2f1e56e14f595218dd9 # v2.5.1
+      - uses: haskell-actions/setup@0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d # v2.12.1
         id: setup-haskell-cabal
         with:
           ghc-version: ${{ matrix.ghc }}
