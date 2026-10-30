@@ -1,6 +1,10 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Moat.Class
   ( ToMoatType (..),
@@ -25,6 +29,7 @@ import Data.Time (UTCTime)
 import Data.UUID.Types (UUID)
 import Data.Vector (Vector)
 import Data.Word (Word16, Word32, Word64, Word8)
+import GHC.TypeLits (ErrorMessage (..), TypeError)
 import Moat.Types
 import Prelude hiding (Enum (..))
 
@@ -67,8 +72,15 @@ instance forall a. ToMoatType a => ToMoatType (Maybe a) where
 instance forall a b. (ToMoatType a, ToMoatType b) => ToMoatType (Either a b) where
   toMoatType _ = Result (toMoatType (Proxy @a)) (toMoatType (Proxy @b))
 
-instance ToMoatType Integer where
-  toMoatType _ = BigInt
+instance
+  TypeError
+    ( 'Text "Moat does not support Integer: neither Swift nor kotlinx.serialization has a built-in BigInteger."
+        ':$$: 'Text "Use Int or Int64, or wrap the value in a newtype with its own ToMoatType instance."
+        ':$$: 'Text "Data.Time's Year is a type synonym for Integer."
+    ) =>
+  ToMoatType Integer
+  where
+  toMoatType = error "unreachable: ToMoatType Integer is a type error"
 
 instance ToMoatType Int where toMoatType _ = I
 

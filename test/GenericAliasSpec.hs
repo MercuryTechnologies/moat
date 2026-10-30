@@ -31,5 +31,16 @@ spec =
     let moduleName = "GenericAliasSpec"
     it "swift" $
       defaultGolden ("swift" <> moduleName) (showSwift @(TreeResponse _))
+    it "swift concrete dictionary" $
+      defaultGolden
+        "swiftConcreteDictionaryAlias"
+        ( prettySwiftData
+            MoatAlias
+              { aliasName = "RequirementValues"
+              , aliasDoc = Nothing
+              , aliasTyVars = []
+              , aliasTyp = Dictionary Str (Concrete "JsonElement" [])
+              }
+        )
     it "kotlin" $
       defaultGolden ("kotlin" <> moduleName) (showKotlin @(TreeResponse _))
