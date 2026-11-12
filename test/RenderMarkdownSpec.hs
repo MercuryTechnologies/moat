@@ -15,6 +15,9 @@ spec =
     it "escapes list and heading markers that wrapping moves to the start of a line" $
       renderMarkdown 10 (para [text "aaaa bbbb - cc 12345678 1. xxxxxx = y"])
         `shouldBe` "aaaa bbbb\n\\- cc\n12345678\n1\\. xxxxxx\n\\= y\n"
+    it "collapses runs of spaces" $
+      renderMarkdown 100 (para [text " a   b "])
+        `shouldBe` "a b\n"
     it "fences code spans with more backticks than they contain" $
       renderMarkdown 100 (para [node (CODE "a``b") [], text " ", node (CODE "`x") []])
         `shouldBe` "```a``b``` `` `x ``\n"

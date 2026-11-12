@@ -101,10 +101,18 @@ compareFile file = go (1 :: Int)
       Code x -> x
       Doc k x -> k <> "\n" <> T.unlines x <> "html: " <> html x
 
+-- | The commonmark HTML of a doc comment, with soft line breaks outside
+-- @<pre>@ elements read as spaces so that wrap points do not matter.
 html :: [T.Text] -> T.Text
 html ls = case commonmark "doc" (T.unlines ls) of
   Left err -> "parse error: " <> T.pack (show err)
-  Right (h :: Html ()) -> TL.toStrict (renderHtml h)
+  Right (h :: Html ()) -> unwrap (TL.toStrict (renderHtml h))
+  where
+    unwrap t = case T.breakOn "<pre>" t of
+      (before, "") -> T.replace "\n" " " before
+      (before, rest) ->
+        let (pre, after) = T.breakOn "</pre>" rest
+         in T.replace "\n" " " before <> pre <> unwrap after
 
 -- | Split a file into code lines and doc comment blocks: runs of Swift @///@
 -- lines, and Kotlin @/** ... */@ comments.
