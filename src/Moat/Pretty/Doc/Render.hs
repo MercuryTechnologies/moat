@@ -86,7 +86,7 @@ renderInline (Node typ xs) = case typ of
       | otherwise = protect (" \"" <> T.replace "\"" "\\\"" title <> "\"")
 
 -- | Greedily wrap rendered inlines at spaces, starting a new line at every
--- hard break. Like cmark, this collapses runs of spaces.
+-- hard break and collapsing runs of spaces.
 wrap :: Int -> Text -> [Text]
 wrap width = map (T.map unprotect) . concatMap (fill . filter (not . T.null) . T.splitOn " ") . T.splitOn "\n"
   where
