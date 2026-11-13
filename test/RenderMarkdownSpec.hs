@@ -24,3 +24,6 @@ spec =
     it "does not wrap inside code spans or link destinations" $
       renderMarkdown 5 (para [text "aa ", node (CODE "b c d") [], text " ", node (LINK "http://x.y/a b") [text "see it"]])
         `shouldBe` "aa\n`b c d`\n[see\nit](http://x.y/a%20b)\n"
+    it "fences a code block only when it starts a list item" $
+      renderMarkdown 100 (document [ul [li [node (CODE_BLOCK "a ```b\n") [], node (CODE_BLOCK "c\n") []]], node (CODE_BLOCK "d\n") []])
+        `shouldBe` "  - ````\n    a ```b\n    ````\n        c\n\n    d\n"
