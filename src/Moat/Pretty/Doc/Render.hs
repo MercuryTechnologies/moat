@@ -23,7 +23,11 @@ renderBlock width n@(Node typ xs) = case typ of
   LIST listType -> concat (zipWith (renderItem width) (markers listType) xs)
   -- List items are always tight, so their blocks are not separated by blank
   -- lines.
-  ITEM -> concatMap (renderBlock width) xs
+  ITEM -> case xs of
+    -- An indented code block right after a list marker is the form other
+    -- Markdown readers most often get wrong, so it is fenced instead.
+    (Node (CODE_BLOCK code) [] : rest) -> fencedCode code ++ concatMap (renderBlock width) rest
+    _ -> concatMap (renderBlock width) xs
   CODE_BLOCK code -> map indentCode (T.lines code)
   CUSTOM_BLOCK prefix suffix -> T.lines prefix ++ blocks ++ T.lines suffix
   _ -> renderBlock width (Node PARAGRAPH [n])
@@ -32,6 +36,11 @@ renderBlock width n@(Node typ xs) = case typ of
     indentCode line
       | T.null line = line
       | otherwise = "    " <> line
+
+fencedCode :: Text -> [Text]
+fencedCode code = [fence] ++ T.lines code ++ [fence]
+  where
+    fence = T.replicate (max 3 (longestBacktickRun code + 1)) "`"
 
 joinBlocks :: [[Text]] -> [Text]
 joinBlocks = \case
@@ -111,14 +120,16 @@ codeSpan :: Text -> Text
 codeSpan code = protect (fence <> pad <> content <> pad <> fence)
   where
     content = T.map (\c -> if c == '\n' then ' ' else c) code
-    longestRun = foldr max 0 [T.length run | run <- T.group content, "`" `T.isPrefixOf` run]
-    fence = T.replicate (longestRun + 1) "`"
+    fence = T.replicate (longestBacktickRun content + 1) "`"
     -- CommonMark strips one space from each side of a code span that both
     -- starts and ends with a space.
     pad
       | "`" `T.isPrefixOf` content || "`" `T.isSuffixOf` content = " "
       | " " `T.isPrefixOf` content && " " `T.isSuffixOf` content && T.any (/= ' ') content = " "
       | otherwise = ""
+
+longestBacktickRun :: Text -> Int
+longestBacktickRun t = foldr max 0 [T.length run | run <- T.group t, "`" `T.isPrefixOf` run]
 
 isAutolink :: Text -> [Node] -> Bool
 isAutolink url = \case
