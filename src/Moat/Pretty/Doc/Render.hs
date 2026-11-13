@@ -5,7 +5,7 @@ module Moat.Pretty.Doc.Render
   )
 where
 
-import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
+import Data.Char (isAsciiLower, isAsciiUpper, isDigit, isSpace)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Moat.Pretty.Doc.Markdown
@@ -17,30 +17,41 @@ renderMarkdown width = T.unlines . renderBlock width
 
 renderBlock :: Int -> Node -> [Text]
 renderBlock width n@(Node typ xs) = case typ of
-  DOCUMENT -> blocks
+  DOCUMENT -> joinBlocks (children False)
   PARAGRAPH -> map escapeLineStart (wrap width (renderInlines xs))
   HEADING level -> [T.replicate level "#" <> " " <> T.map unprotect (renderInlines xs)]
   LIST listType -> concat (zipWith (renderItem width) (markers listType) xs)
   -- List items are always tight, so their blocks are not separated by blank
   -- lines.
-  ITEM -> case xs of
-    -- An indented code block right after a list marker is the form other
-    -- Markdown readers most often get wrong, so it is fenced instead.
-    (Node (CODE_BLOCK code) [] : rest) -> fencedCode code ++ concatMap (renderBlock width) rest
-    _ -> concatMap (renderBlock width) xs
-  CODE_BLOCK code -> map indentCode (T.lines code)
-  CUSTOM_BLOCK prefix suffix -> T.lines prefix ++ blocks ++ T.lines suffix
+  ITEM -> concat (children True)
+  CODE_BLOCK code -> codeBlock False code
+  CUSTOM_BLOCK prefix suffix -> T.lines prefix ++ joinBlocks (children False) ++ T.lines suffix
   _ -> renderBlock width (Node PARAGRAPH [n])
   where
-    blocks = joinBlocks (map (renderBlock width) xs)
+    -- A code block is fenced right after a list marker, where other Markdown
+    -- readers most often misread indented code, and right after a list,
+    -- where indented code would continue the list's last item.
+    children fenceFirst = zipWith child (fenceFirst : map isList xs) xs
+    child fence = \case
+      Node (CODE_BLOCK code) [] -> codeBlock fence code
+      c -> renderBlock width c
+    isList = \case
+      Node (LIST _) _ -> True
+      _ -> False
+
+-- | Render a code block indented, or fenced when asked to or when indented
+-- code would drop its leading or trailing blank lines.
+codeBlock :: Bool -> Text -> [Text]
+codeBlock fence code
+  | fence || null ls || any (T.all isSpace) (take 1 ls ++ take 1 (reverse ls)) =
+      [fenceLine] ++ ls ++ [fenceLine]
+  | otherwise = map indentCode ls
+  where
+    ls = T.lines code
+    fenceLine = T.replicate (max 3 (longestBacktickRun code + 1)) "`"
     indentCode line
       | T.null line = line
       | otherwise = "    " <> line
-
-fencedCode :: Text -> [Text]
-fencedCode code = [fence] ++ T.lines code ++ [fence]
-  where
-    fence = T.replicate (max 3 (longestBacktickRun code + 1)) "`"
 
 joinBlocks :: [[Text]] -> [Text]
 joinBlocks = \case
@@ -92,7 +103,10 @@ renderInline (Node typ xs) = case typ of
     inner = renderInlines xs
     imageTitle title
       | T.null title = ""
-      | otherwise = protect (" \"" <> T.replace "\"" "\\\"" title <> "\"")
+      | otherwise = protect (" \"" <> T.concatMap escapeTitle title <> "\"")
+    escapeTitle c
+      | c == '"' || c == '\\' = T.pack ['\\', c]
+      | otherwise = T.singleton c
 
 -- | Greedily wrap rendered inlines at spaces, starting a new line at every
 -- hard break and collapsing runs of spaces.

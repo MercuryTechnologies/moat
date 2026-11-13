@@ -24,6 +24,12 @@ spec =
     it "does not wrap inside code spans or link destinations" $
       renderMarkdown 5 (para [text "aa ", node (CODE "b c d") [], text " ", node (LINK "http://x.y/a b") [text "see it"]])
         `shouldBe` "aa\n`b c d`\n[see\nit](http://x.y/a%20b)\n"
-    it "fences a code block only when it starts a list item" $
-      renderMarkdown 100 (document [ul [li [node (CODE_BLOCK "a ```b\n") [], node (CODE_BLOCK "c\n") []]], node (CODE_BLOCK "d\n") []])
-        `shouldBe` "  - ````\n    a ```b\n    ````\n        c\n\n    d\n"
+    it "fences a code block that starts a list item and indents other ones" $
+      renderMarkdown 100 (document [ul [li [node (CODE_BLOCK "a ```b\n") [], node (CODE_BLOCK "c\n") []]], para [text "e"], node (CODE_BLOCK "d\n") []])
+        `shouldBe` "  - ````\n    a ```b\n    ````\n        c\n\ne\n\n    d\n"
+    it "fences a code block after a list or with blank edge lines" $
+      renderMarkdown 100 (document [ul [li [para [text "a"]]], node (CODE_BLOCK "b\n") [], node (CODE_BLOCK "\nc\n\n") []])
+        `shouldBe` "  - a\n\n```\nb\n```\n\n```\n\nc\n\n```\n"
+    it "escapes quotes and backslashes in image titles" $
+      renderMarkdown 100 (para [node (IMAGE "u" "a \"b\" c\\") [text "alt"]])
+        `shouldBe` "![alt](u \"a \\\"b\\\" c\\\\\")\n"
