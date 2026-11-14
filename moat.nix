@@ -3,7 +3,6 @@
   base,
   bytestring,
   case-insensitive,
-  cmark-gfm,
   containers,
   haddock-library,
   hspec,
@@ -29,7 +28,6 @@ mkDerivation {
     base
     bytestring
     case-insensitive
-    cmark-gfm
     containers
     haddock-library
     mtl
@@ -48,7 +46,6 @@ mkDerivation {
     base
     bytestring
     case-insensitive
-    cmark-gfm
     containers
     haddock-library
     hspec

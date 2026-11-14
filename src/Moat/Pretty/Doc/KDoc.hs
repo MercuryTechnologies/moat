@@ -7,11 +7,11 @@ module Moat.Pretty.Doc.KDoc
   )
 where
 
-import CMarkGFM (Node (..), nodeToCommonmark)
 import Data.Char (isSpace)
 import Data.List (dropWhileEnd, intercalate)
 import qualified Data.Text as T
 import Moat.Pretty.Doc.Markdown
+import Moat.Pretty.Doc.Render (renderMarkdown)
 import Moat.Types (Field (..))
 
 prettyDocComment :: Int -> String -> String -> String
@@ -35,17 +35,17 @@ prettyDocComment wrap indents str =
 
 prettyDoc :: Int -> String -> String
 prettyDoc wrap haddock =
-  let cmark = markdown text identifier (parseDoc haddock)
-      docstr = nodeToCommonmark [] (Just wrap) cmark
+  let md = markdown text identifier (parseDoc haddock)
+      docstr = renderMarkdown wrap md
    in T.unpack docstr
 
 prettyFieldDoc :: Int -> [Field] -> Maybe String
 prettyFieldDoc wrap fields =
   let params = filter (/= []) (map fieldParam fields)
-      cmark = case params of
+      md = case params of
         [] -> Nothing
         _ -> Just $ para (intercalate [br] params)
-   in T.unpack . nodeToCommonmark [] (Just wrap) <$> cmark
+   in T.unpack . renderMarkdown wrap <$> md
 
 fieldParam :: Field -> [Node]
 fieldParam Field {fieldDoc = Nothing} = []
