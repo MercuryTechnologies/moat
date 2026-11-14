@@ -123,9 +123,22 @@ renderInline (Node typ xs) = case typ of
 
 -- | Greedily wrap rendered inlines at spaces, starting a new line at every
 -- hard break and collapsing runs of spaces.
+--
+-- Like cmark, this never breaks before a word that starts with a digit, and
+-- it also never breaks before one that starts with @-@, @+@ or @=@: on a new
+-- line those words could read as a list item or heading underline and would
+-- need an escape.
 wrap :: Int -> Text -> [Text]
-wrap width = map (T.map unprotect) . concatMap (fill . filter (not . T.null) . T.splitOn " ") . T.splitOn "\n"
+wrap width = map (T.map unprotect) . concatMap (fill . glue . filter (not . T.null) . T.splitOn " ") . T.splitOn "\n"
   where
+    glue = \case
+      (w : v : ws)
+        | startsUnbreakable v -> glue ((w <> " " <> v) : ws)
+      (w : ws) -> w : glue ws
+      [] -> []
+    startsUnbreakable v = case T.uncons v of
+      Just (c, _) -> isDigit c || c `elem` ("-+=" :: String)
+      Nothing -> False
     fill = \case
       [] -> []
       (w : ws) -> line (T.length w) [w] ws
@@ -199,8 +212,9 @@ escape = T.pack . go . T.unpack
 -- | Escape characters that would start a list item, thematic break or setext
 -- heading underline at the start of a line.
 --
--- This runs after wrapping, on each output line, so wrapping can break lines
--- anywhere without knowing which words would land at the start of a line.
+-- This runs after wrapping, on each output line. 'wrap' never moves such a
+-- word to the start of a line, but a paragraph or hard-break line can start
+-- with one.
 escapeLineStart :: Text -> Text
 escapeLineStart line = case T.uncons line of
   Just (c, _) | c `elem` ("-+=" :: String) -> "\\" <> line
