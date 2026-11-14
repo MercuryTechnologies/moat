@@ -5,9 +5,11 @@ module Moat.Pretty.Doc.Render
   )
 where
 
-import Data.Char (isAsciiLower, isAsciiUpper, isDigit, isSpace)
+import qualified Data.ByteString as BS
+import Data.Char (isAsciiLower, isAsciiUpper, isDigit, ord)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import Moat.Pretty.Doc.Markdown
 
 -- | Render Markdown as CommonMark text, wrapping paragraphs at the given
@@ -28,26 +30,37 @@ renderBlock width n@(Node typ xs) = case typ of
   CUSTOM_BLOCK prefix suffix -> T.lines prefix ++ joinBlocks (children False) ++ T.lines suffix
   _ -> renderBlock width (Node PARAGRAPH [n])
   where
-    -- A code block is fenced right after a list marker, where other Markdown
-    -- readers most often misread indented code, and right after a list,
-    -- where indented code would continue the list's last item.
-    children fenceFirst = zipWith child (fenceFirst : map isList xs) xs
-    child fence = \case
-      Node (CODE_BLOCK code) [] -> codeBlock fence code
+    children firstInItem = go firstInItem xs
+    go first = \case
+      [] -> []
+      (c : cs) -> child first c : endList c cs ++ go False cs
+    child first = \case
+      Node (CODE_BLOCK code) [] -> codeBlock first code
       c -> renderBlock width c
-    isList = \case
-      Node (LIST _) _ -> True
-      _ -> False
+    -- A list followed by another list or a code block ends with an HTML
+    -- comment. Without it, the next list merges into this one, and indented
+    -- code continues this list's last item.
+    endList c cs = case (c, cs) of
+      (Node (LIST _) _, Node (LIST _) _ : _) -> [["<!-- end list -->"]]
+      (Node (LIST _) _, Node (CODE_BLOCK _) _ : _) -> [["<!-- end list -->"]]
+      _ -> []
 
--- | Render a code block indented, or fenced when asked to or when indented
--- code would drop its leading or trailing blank lines.
+-- | Render a code block indented, or fenced when it is the first block of a
+-- list item, is at most two bytes long, starts with whitespace, or ends with
+-- two whitespace characters. Indented code would lose leading and trailing
+-- whitespace, and Markdown readers often misread it right after a list
+-- marker.
 codeBlock :: Bool -> Text -> [Text]
-codeBlock fence code
-  | fence || null ls || any (T.all isSpace) (take 1 ls ++ take 1 (reverse ls)) =
+codeBlock firstInItem code
+  | firstInItem
+      || BS.length (T.encodeUtf8 code) <= 2
+      || maybe False (isAsciiSpace . fst) (T.uncons code)
+      || T.all isAsciiSpace (T.takeEnd 2 code) =
       [fenceLine] ++ ls ++ [fenceLine]
   | otherwise = map indentCode ls
   where
     ls = T.lines code
+    isAsciiSpace c = c `elem` (" \t\n\v\f\r" :: String)
     fenceLine = T.replicate (max 3 (longestBacktickRun code + 1)) "`"
     indentCode line
       | T.null line = line
@@ -175,6 +188,9 @@ escape = T.pack . go . T.unpack
       [] -> []
       (c : cs)
         | c `elem` ("*_[]#<>\\`~!" :: String) || (c == '&' && startsWithLetter cs) -> '\\' : c : go cs
+        -- Raw control characters can be stripped as trailing whitespace or
+        -- read as Markdown syntax once wrapping moves them.
+        | c < ' ' -> "&#" ++ show (ord c) ++ ";" ++ go cs
         | otherwise -> c : go cs
     startsWithLetter = \case
       (c : _) -> isAsciiLower c || isAsciiUpper c
