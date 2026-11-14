@@ -12,9 +12,12 @@ spec =
     it "escapes Markdown punctuation in text" $
       renderMarkdown 100 (para [text "*_[]#<>\\`~! &amp; & 1"])
         `shouldBe` "\\*\\_\\[\\]\\#\\<\\>\\\\\\`\\~\\! \\&amp; & 1\n"
-    it "escapes list and heading markers that wrapping moves to the start of a line" $
-      renderMarkdown 10 (para [text "aaaa bbbb - cc 12345678 1. xxxxxx = y"])
-        `shouldBe` "aaaa bbbb\n\\- cc\n12345678\n1\\. xxxxxx\n\\= y\n"
+    it "does not break before a word starting with a digit, -, + or =" $
+      renderMarkdown 10 (para [text "aaaa bbbb - cc dd 1. xxxxxxx y = z"])
+        `shouldBe` "aaaa\nbbbb - cc\ndd 1.\nxxxxxxx\ny = z\n"
+    it "escapes list and heading markers at the start of a paragraph or hard break" $
+      renderMarkdown 100 (document [para [text "- a"], para [text "1. b", br, text "+ c"]])
+        `shouldBe` "\\- a\n\n1\\. b\n\\+ c\n"
     it "collapses runs of spaces" $
       renderMarkdown 100 (para [text " a   b "])
         `shouldBe` "a b\n"
