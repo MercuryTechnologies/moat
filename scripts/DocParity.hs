@@ -4,6 +4,7 @@ build-depends:
   , base
   , bytestring
   , commonmark ==0.3.1
+  , commonmark-extensions ==0.2.7.3
   , directory
   , filepath
   , text
@@ -16,13 +17,18 @@ default-extensions: LambdaCase, OverloadedStrings, ScopedTypeVariables
 -- Usage: cabal run scripts/DocParity.hs -- BASE_DIR NEW_DIR
 --
 -- Every line outside doc comments must be identical. Each doc comment, with
--- its comment syntax stripped, must parse under commonmark to the same HTML.
+-- its comment syntax stripped, must parse under commonmark with the GitHub
+-- Flavored Markdown extensions to the same HTML. DocC reads doc comments with
+-- those extensions, so plain CommonMark would miss a line that only GFM reads
+-- as a table.
 -- Exits nonzero and prints every difference otherwise.
 module Main (main) where
 
-import Commonmark (Html, commonmark, renderHtml)
+import Commonmark (Html, commonmarkWith, defaultSyntaxSpec, renderHtml)
+import Commonmark.Extensions (gfmExtensions)
 import Control.Monad (filterM, forM, when)
 import qualified Data.ByteString as BS
+import Data.Functor.Identity (runIdentity)
 import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -104,7 +110,7 @@ compareFile file = go (1 :: Int)
 -- | The commonmark HTML of a doc comment, with soft line breaks outside
 -- @<pre>@ elements read as spaces so that wrap points do not matter.
 html :: [T.Text] -> T.Text
-html ls = case commonmark "doc" (T.unlines ls) of
+html ls = case runIdentity (commonmarkWith (gfmExtensions <> defaultSyntaxSpec) "doc" (T.unlines ls)) of
   Left err -> "parse error: " <> T.pack (show err)
   Right (h :: Html ()) -> unwrap (TL.toStrict (renderHtml h))
   where
