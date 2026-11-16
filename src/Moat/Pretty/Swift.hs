@@ -339,12 +339,31 @@ prettyMoatType = \case
 
 -- | Pretty-print a 'MoatType', omitting type parameters.
 prettyMoatTypeBase :: MoatType -> String
-prettyMoatTypeBase = \case
+prettyMoatTypeBase ty
+  | containsPoly ty = prettyMoatTypeConstructor ty
+  | otherwise = prettyMoatType ty
+
+prettyMoatTypeConstructor :: MoatType -> String
+prettyMoatTypeConstructor = \case
   Result _ _ -> "Result"
   Set _ -> "Set"
   Dictionary _ _ -> "Dictionary"
   Concrete ty _ -> ty
   ty -> prettyMoatType ty
+
+containsPoly :: MoatType -> Bool
+containsPoly = \case
+  Tuple2 e1 e2 -> containsPoly e1 || containsPoly e2
+  Tuple3 e1 e2 e3 -> any containsPoly [e1, e2, e3]
+  Optional e -> containsPoly e
+  Result e1 e2 -> containsPoly e1 || containsPoly e2
+  Set e -> containsPoly e
+  Dictionary e1 e2 -> containsPoly e1 || containsPoly e2
+  Array e -> containsPoly e
+  App e1 e2 -> containsPoly e1 || containsPoly e2
+  Poly _ -> True
+  Concrete _ tys -> any containsPoly tys
+  _ -> False
 
 prettyApp :: MoatType -> MoatType -> String
 prettyApp t1 t2 =
