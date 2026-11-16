@@ -2,7 +2,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Moat.Pretty.Doc.Markdown
-  ( block,
+  ( ListType (..),
+    Node (..),
+    NodeType (..),
+    block,
     br,
     document,
     inline,
@@ -18,11 +21,45 @@ module Moat.Pretty.Doc.Markdown
   )
 where
 
-import CMarkGFM
+import Data.Text (Text)
 import qualified Data.Text as T
 import Documentation.Haddock.Markup
 import Documentation.Haddock.Parser
 import Documentation.Haddock.Types
+
+-- | A Markdown node: a node type and its children.
+data Node = Node NodeType [Node]
+  deriving (Eq)
+
+-- | The Markdown constructs moat generates from Haddock.
+data NodeType
+  = DOCUMENT
+  | PARAGRAPH
+  | HEADING Int
+  | LIST ListType
+  | ITEM
+  | -- | Code block with its literal contents.
+    CODE_BLOCK Text
+  | TEXT Text
+  | EMPH
+  | STRONG
+  | CODE Text
+  | -- | Link with its destination URL.
+    LINK Text
+  | -- | Image with its URL and title.
+    IMAGE Text Text
+  | LINEBREAK
+  | -- | Inline with literal prefix and suffix.
+    CUSTOM_INLINE Text Text
+  | -- | Block with literal prefix and suffix.
+    CUSTOM_BLOCK Text Text
+  deriving (Eq)
+
+-- | A tight list, either bulleted or numbered from a start number.
+data ListType
+  = BulletList
+  | OrderedList Int
+  deriving (Eq)
 
 -- | Parse a Haddock comment.
 --
@@ -51,7 +88,7 @@ markdownBlocks m i = \case
   DocParagraph d -> [node PARAGRAPH (markdownInlines m i d)]
   DocUnorderedList ds -> [ul (map (markdownListItem m i) ds)]
   DocOrderedList ds -> [markdownOrderedList m i ds]
-  DocCodeBlock d -> [node (CODE_BLOCK T.empty (T.pack (markupText d))) []]
+  DocCodeBlock d -> [node (CODE_BLOCK (T.pack (markupText d))) []]
   DocHeader (Header l t) -> [node (HEADING l) (markdownInlines m i t)]
   _ -> []
 
@@ -89,7 +126,7 @@ markupText = markup $ plainMarkup id id
 
 -- | Create a Markdown node with a node type and children.
 node :: NodeType -> [Node] -> Node
-node = Node Nothing
+node = Node
 
 -- | Create a Markdown document node.
 document :: [Node] -> Node
@@ -120,19 +157,19 @@ inline :: String -> String -> [Node] -> Node
 inline prefix suffix = node (CUSTOM_INLINE (T.pack prefix) (T.pack suffix))
 
 ul :: [Node] -> Node
-ul = node (LIST (ListAttributes {listType = BULLET_LIST, listTight = True, listStart = 1, listDelim = PERIOD_DELIM}))
+ul = node (LIST BulletList)
 
 ol :: Int -> [Node] -> Node
-ol i = node (LIST (ListAttributes {listType = ORDERED_LIST, listTight = True, listStart = i, listDelim = PERIOD_DELIM}))
+ol i = node (LIST (OrderedList i))
 
 li :: [Node] -> Node
 li = node ITEM
 
 link :: (String -> Node) -> (String -> Node) -> String -> Maybe (DocH String String) -> Node
-link m i url lbl = node (LINK (T.pack url) T.empty) (maybe [text url] (markdownInlines m i) lbl)
+link m i url lbl = node (LINK (T.pack url)) (maybe [text url] (markdownInlines m i) lbl)
 
 inlineContent :: Node -> [Node]
-inlineContent n@(Node _ typ xs) =
+inlineContent n@(Node typ xs) =
   if isBlock typ
     then concatMap inlineContent xs
     else [n]
@@ -140,14 +177,10 @@ inlineContent n@(Node _ typ xs) =
 isBlock :: NodeType -> Bool
 isBlock = \case
   DOCUMENT -> True
-  BLOCK_QUOTE -> True
   (LIST _) -> True
   ITEM -> True
-  (CODE_BLOCK _ _) -> True
-  (HTML_BLOCK _) -> True
+  (CODE_BLOCK _) -> True
   (CUSTOM_BLOCK _ _) -> True
   PARAGRAPH -> True
   (HEADING _) -> True
-  THEMATIC_BREAK -> True
-  FOOTNOTE_DEFINITION -> True
   _ -> False

@@ -31,6 +31,7 @@ library
       Moat.Pretty.Doc.DocC
       Moat.Pretty.Doc.KDoc
       Moat.Pretty.Doc.Markdown
+      Moat.Pretty.Doc.Render
       Moat.Pretty.Kotlin
       Moat.Pretty.Swift
       Moat.Types
@@ -47,7 +48,6 @@ library
       base >=4.11 && <4.22
     , bytestring >=0.10 && <0.13
     , case-insensitive ==1.2.*
-    , cmark-gfm >=0.2.5 && <0.3.0
     , containers >=0.5.9 && <0.9
     , haddock-library >=1.10 && <1.12
     , mtl >=2.2 && <2.4
@@ -90,6 +90,7 @@ test-suite spec
       GenericNewtypeSpec
       GenericStructSpec
       MultipleTypeVariableSpec
+      RenderMarkdownSpec
       SingleNullarySpec
       SingleNullaryWithTypeVariableSpec
       StrictEnumsSpec
@@ -109,6 +110,7 @@ test-suite spec
       Moat.Pretty.Doc.DocC
       Moat.Pretty.Doc.KDoc
       Moat.Pretty.Doc.Markdown
+      Moat.Pretty.Doc.Render
       Moat.Pretty.Kotlin
       Moat.Pretty.Swift
       Moat.Types
@@ -131,7 +133,6 @@ test-suite spec
       base >=4.11 && <4.22
     , bytestring >=0.10 && <0.13
     , case-insensitive ==1.2.*
-    , cmark-gfm >=0.2.5 && <0.3.0
     , containers >=0.5.9 && <0.9
     , haddock-library >=1.10 && <1.12
     , hspec
