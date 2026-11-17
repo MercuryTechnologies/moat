@@ -50,7 +50,16 @@ prettyFieldDoc wrap fields =
 fieldParam :: Field -> Maybe [Node]
 fieldParam Field {fieldDoc = Nothing} = Nothing
 fieldParam Field {fieldName = name, fieldDoc = Just doc} =
-  Just $ prependInlines [text ("@param " ++ name ++ " ")] (markdown text identifier (parseDoc doc))
+  Just $ prependInlines [text ("@param " ++ name ++ " ")] (escapeTagStarts (markdown text identifier (parseDoc doc)))
+
+-- | Escape an @\@@ that starts a paragraph. KDoc reads a line that starts with
+-- @\@word@ as a block tag, which would end the @\@param@ description.
+escapeTagStarts :: Node -> Node
+escapeTagStarts (Node typ xs) = case (typ, xs) of
+  (PARAGRAPH, Node (TEXT t) [] : _)
+    | "@" `T.isPrefixOf` t -> Node PARAGRAPH (inline "\\" "" [] : xs)
+  (PARAGRAPH, _) -> Node PARAGRAPH xs
+  _ -> Node typ (map escapeTagStarts xs)
 
 -- | Join the blocks of two params. A paragraph that ends the first and the
 -- paragraph that starts the second become one paragraph with a hard break

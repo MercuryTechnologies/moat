@@ -36,6 +36,9 @@ spec =
     it "separates a paragraph or code block from the block above it in a list item" $
       renderMarkdown 100 (document [ul [li [para [text "a"], ul [li [para [text "b"]]], para [text "c"], node (CODE_BLOCK "dd\n") []]]])
         `shouldBe` "  - a\n      - b\n\n    c\n\n        dd\n"
+    it "separates an ordered list not starting at 1 from the paragraph above it in a list item" $
+      renderMarkdown 100 (document [ul [li [para [text "a"], ol 3 [li [para [text "c"]]]], li [para [text "b"], ol 1 [li [para [text "one"]]]]]])
+        `shouldBe` "  - a\n\n    3.  c\n  - b\n    1.  one\n"
     it "ends a list followed by a code block, and fences code with blank edge lines" $
       renderMarkdown 100 (document [ul [li [para [text "a"]]], node (CODE_BLOCK "bb\n") [], node (CODE_BLOCK "\nc\n\n") []])
         `shouldBe` "  - a\n\n<!-- end list -->\n\n    bb\n\n```\n\nc\n\n```\n"

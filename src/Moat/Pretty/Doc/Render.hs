@@ -24,8 +24,10 @@ renderBlock width n@(Node typ xs) = case typ of
   HEADING level -> [T.replicate level "#" <> " " <> T.map unprotect (renderInlines xs)]
   LIST listType -> concat (zipWith (renderItem width) (markers listType) xs)
   -- Blocks in a list item are not separated by blank lines, except before a
-  -- paragraph or code block that follows another block. Without that blank
-  -- line, the paragraph or code would continue the block above it.
+  -- paragraph, code block, or ordered list not starting at 1 that follows
+  -- another block. Without that blank line, the block would continue the
+  -- block above it. CommonMark lets an ordered list interrupt a paragraph
+  -- only when it starts at 1.
   ITEM -> concat (children True)
   CODE_BLOCK code -> codeBlock False code
   CUSTOM_BLOCK prefix suffix -> T.lines prefix ++ joinBlocks (children False) ++ T.lines suffix
@@ -38,6 +40,7 @@ renderBlock width n@(Node typ xs) = case typ of
     itemGap inItem first = \case
       Node PARAGRAPH _ | inItem && not first -> [""]
       Node (CODE_BLOCK _) _ | inItem && not first -> [""]
+      Node (LIST (OrderedList start)) _ | inItem && not first && start /= 1 -> [""]
       _ -> []
     child firstInItem = \case
       Node (CODE_BLOCK code) [] -> codeBlock firstInItem code

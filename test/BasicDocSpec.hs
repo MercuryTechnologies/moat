@@ -50,6 +50,8 @@ data Data = Data
   -- A paragraph after the list.
   , fourth :: Int
   -- ^ Fourth field. Its description is long enough to wrap at the column limit and names @handle literally.
+  --
+  -- @return starts a later paragraph as literal text.
   }
 
 mobileGen
