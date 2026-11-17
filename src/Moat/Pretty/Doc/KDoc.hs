@@ -8,7 +8,8 @@ module Moat.Pretty.Doc.KDoc
 where
 
 import Data.Char (isSpace)
-import Data.List (dropWhileEnd, intercalate)
+import Data.List (dropWhileEnd)
+import Data.Maybe (mapMaybe)
 import qualified Data.Text as T
 import Moat.Pretty.Doc.Markdown
 import Moat.Pretty.Doc.Render (renderMarkdown)
@@ -41,16 +42,25 @@ prettyDoc wrap haddock =
 
 prettyFieldDoc :: Int -> [Field] -> Maybe String
 prettyFieldDoc wrap fields =
-  let params = filter (/= []) (map fieldParam fields)
-      md = case params of
+  let md = case foldr joinParams [] (mapMaybe fieldParam fields) of
         [] -> Nothing
-        _ -> Just $ para (intercalate [br] params)
+        blocks -> Just (document blocks)
    in T.unpack . renderMarkdown wrap <$> md
 
-fieldParam :: Field -> [Node]
-fieldParam Field {fieldDoc = Nothing} = []
-fieldParam Field {fieldDoc = Just doc, ..} =
-  text ("@param " ++ fieldName ++ " ") : inlineContent (markdown text identifier (parseDoc doc))
+fieldParam :: Field -> Maybe [Node]
+fieldParam Field {fieldDoc = Nothing} = Nothing
+fieldParam Field {fieldName = name, fieldDoc = Just doc} =
+  Just $ prependInlines [text ("@param " ++ name ++ " ")] (markdown text identifier (parseDoc doc))
+
+-- | Join the blocks of two params. A paragraph that ends the first and the
+-- paragraph that starts the second become one paragraph with a hard break
+-- between them, so each @\@param@ starts a line without a blank line before
+-- it.
+joinParams :: [Node] -> [Node] -> [Node]
+joinParams a b = case (reverse a, b) of
+  (Node PARAGRAPH xs : before, Node PARAGRAPH ys : after) ->
+    reverse before ++ Node PARAGRAPH (xs ++ br : ys) : after
+  _ -> a ++ b
 
 identifier :: String -> Node
 identifier ident = inline "[" "]" [text ident]

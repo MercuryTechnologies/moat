@@ -32,9 +32,21 @@ public struct Data {
     public var first: Int
     /// Second field, it's maybe an Int
     public var second: Int?
+    /// Third field, with a list.
+    ///
+    ///   - One item
+    ///   - Another item
+    ///
+    /// A paragraph after the list.
+    public var third: Int
+    /// Fourth field. Its description is long enough to wrap at the column limit and names @handle
+    /// literally.
+    public var fourth: Int
 
-    public init(first: Int, second: Int? = nil) {
+    public init(first: Int, second: Int? = nil, third: Int, fourth: Int) {
         self.first = first
         self.second = second
+        self.third = third
+        self.fourth = fourth
     }
 }

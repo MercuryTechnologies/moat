@@ -42,7 +42,7 @@ paramDoc Field {fieldDoc = Nothing} = Nothing
 paramDoc Field {fieldName = name, fieldDoc = Just doc} =
   let prefix = name ++ ": "
       md = markdown text identifier (parseDoc doc)
-   in Just $ li [para (text prefix : inlineContent md)]
+   in Just $ li (prependInlines [text prefix] md)
 
 identifier :: String -> Node
 identifier ident = inline "``" "``" [text ident]

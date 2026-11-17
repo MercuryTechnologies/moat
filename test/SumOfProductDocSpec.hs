@@ -62,6 +62,38 @@ mobileGenWith
   )
   ''Enum
 
+-- | Documentation for 'Shape'.
+data Shape
+  = -- | A circle.
+    Circle
+      { circleRadius :: Int
+      -- ^ The radius, with a list.
+      --
+      -- * Measured in points
+      -- * Never negative
+      --
+      -- A paragraph after the list.
+      , circleLabel :: Int
+      -- ^ The label.
+      }
+  | -- | A square.
+    Square {squareSide :: Int}
+
+mobileGenWith
+  ( defaultOptions
+      { dataAnnotations = [Serializable, SerialName]
+      , dataProtocols = [Hashable, Codable]
+      , sumOfProductEncodingOptions =
+          SumOfProductEncodingOptions
+            { encodingStyle = TaggedFlatObjectStyle
+            , sumAnnotations = [RawAnnotation "JsonClassDiscriminator(\"tag\")"]
+            , tagFieldName = "tag"
+            , contentsFieldName = "contents"
+            }
+      }
+  )
+  ''Shape
+
 spec :: Spec
 spec =
   when hasDoc $ do
@@ -79,3 +111,7 @@ spec =
         defaultGolden ("kotlinRecord1" <> moduleName) (showKotlin @Record1)
       it "kotlin" $
         defaultGolden ("kotlinEnum" <> moduleName) (showKotlin @Enum)
+      it "swift" $
+        defaultGolden ("swiftShape" <> moduleName) (showSwift @Shape)
+      it "kotlin" $
+        defaultGolden ("kotlinShape" <> moduleName) (showKotlin @Shape)

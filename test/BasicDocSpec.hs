@@ -41,6 +41,15 @@ data Data = Data
   -- ^ First field, it's an Int
   , second :: Maybe Int
   -- ^ Second field, it's maybe an Int
+  , third :: Int
+  -- ^ Third field, with a list.
+  --
+  -- * One item
+  -- * Another item
+  --
+  -- A paragraph after the list.
+  , fourth :: Int
+  -- ^ Fourth field. Its description is long enough to wrap at the column limit and names @handle literally.
   }
 
 mobileGen
