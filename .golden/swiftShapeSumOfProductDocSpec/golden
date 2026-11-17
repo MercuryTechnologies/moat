@@ -6,8 +6,6 @@ public enum Shape: Hashable, Codable {
     ///       - circleRadius: The radius, with a list.
     ///           - Measured in points
     ///           - Never negative
-    ///
-    ///         A paragraph after the list.
     ///       - circleLabel: The label.
     case circle(_ circleRadius: Int, _ circleLabel: Int)
     /// A square.

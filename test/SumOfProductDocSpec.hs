@@ -71,8 +71,6 @@ data Shape
       --
       -- * Measured in points
       -- * Never negative
-      --
-      -- A paragraph after the list.
       , circleLabel :: Int
       -- ^ The label.
       }

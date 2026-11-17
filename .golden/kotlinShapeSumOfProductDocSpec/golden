@@ -9,8 +9,6 @@ sealed interface Shape {
      *
      *   - Measured in points
      *   - Never negative
-     *
-     * A paragraph after the list.
      * @param circleLabel The label.
      */
     @Serializable
