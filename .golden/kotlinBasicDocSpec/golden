@@ -31,8 +31,20 @@
  *
  * @param first First field, it's an Int
  * @param second Second field, it's maybe an Int
+ * @param third Third field, with a list.
+ *
+ *   - One item
+ *   - Another item
+ *
+ * A paragraph after the list.
+ * @param fourth Fourth field. Its description is long enough to wrap at the column limit and
+ * names @handle literally.
+ *
+ * \@return starts a later paragraph as literal text.
  */
 data class Data(
     val first: Int,
     val second: Int? = null,
+    val third: Int,
+    val fourth: Int,
 )

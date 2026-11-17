@@ -23,19 +23,27 @@ renderBlock width n@(Node typ xs) = case typ of
   PARAGRAPH -> map escapeLineStart (wrap width (renderInlines xs))
   HEADING level -> [T.replicate level "#" <> " " <> T.map unprotect (renderInlines xs)]
   LIST listType -> concat (zipWith (renderItem width) (markers listType) xs)
-  -- List items are always tight, so their blocks are not separated by blank
-  -- lines.
+  -- Blocks in a list item are not separated by blank lines, except before a
+  -- paragraph, code block, or ordered list not starting at 1 that follows
+  -- another block. Without that blank line, the block would continue the
+  -- block above it. CommonMark lets an ordered list interrupt a paragraph
+  -- only when it starts at 1.
   ITEM -> concat (children True)
   CODE_BLOCK code -> codeBlock False code
   CUSTOM_BLOCK prefix suffix -> T.lines prefix ++ joinBlocks (children False) ++ T.lines suffix
   _ -> renderBlock width (Node PARAGRAPH [n])
   where
-    children firstInItem = go firstInItem xs
-    go first = \case
+    children inItem = go inItem True xs
+    go inItem first = \case
       [] -> []
-      (c : cs) -> child first c : endList c cs ++ go False cs
-    child first = \case
-      Node (CODE_BLOCK code) [] -> codeBlock first code
+      (c : cs) -> (itemGap inItem first c ++ child (inItem && first) c) : endList c cs ++ go inItem False cs
+    itemGap inItem first = \case
+      Node PARAGRAPH _ | inItem && not first -> [""]
+      Node (CODE_BLOCK _) _ | inItem && not first -> [""]
+      Node (LIST (OrderedList start)) _ | inItem && not first && start /= 1 -> [""]
+      _ -> []
+    child firstInItem = \case
+      Node (CODE_BLOCK code) [] -> codeBlock firstInItem code
       c -> renderBlock width c
     -- A list followed by another list or a code block ends with an HTML
     -- comment. Without it, the next list merges into this one, and indented
@@ -125,9 +133,9 @@ renderInline (Node typ xs) = case typ of
 -- hard break and collapsing runs of spaces.
 --
 -- Like cmark, this never breaks before a word that starts with a digit, and
--- it also never breaks before one that starts with @-@, @+@ or @=@: on a new
--- line those words could read as a list item or heading underline and would
--- need an escape.
+-- it also never breaks before one that starts with @-@, @+@, @=@ or @\@@: on
+-- a new line those words could read as a list item, heading underline or KDoc
+-- block tag.
 wrap :: Int -> Text -> [Text]
 wrap width = map (T.map unprotect) . concatMap (fill . glue . filter (not . T.null) . T.splitOn " ") . T.splitOn "\n"
   where
@@ -137,7 +145,7 @@ wrap width = map (T.map unprotect) . concatMap (fill . glue . filter (not . T.nu
       (w : ws) -> w : glue ws
       [] -> []
     startsUnbreakable v = case T.uncons v of
-      Just (c, _) -> isDigit c || c `elem` ("-+=" :: String)
+      Just (c, _) -> isDigit c || c `elem` ("-+=@" :: String)
       Nothing -> False
     fill = \case
       [] -> []

@@ -15,6 +15,9 @@ spec =
     it "does not break before a word starting with a digit, -, + or =" $
       renderMarkdown 10 (para [text "aaaa bbbb - cc dd 1. xxxxxxx y = z"])
         `shouldBe` "aaaa\nbbbb - cc\ndd 1.\nxxxxxxx\ny = z\n"
+    it "does not break before a word starting with @" $
+      renderMarkdown 10 (para [text "aaaa bbbb @cc dd"])
+        `shouldBe` "aaaa\nbbbb @cc\ndd\n"
     it "escapes list and heading markers at the start of a paragraph or hard break" $
       renderMarkdown 100 (document [para [text "- a"], para [text "1. b", br, text "+ c"]])
         `shouldBe` "\\- a\n\n1\\. b\n\\+ c\n"
@@ -29,7 +32,13 @@ spec =
         `shouldBe` "aa\n`b c d`\n[see\nit](http://x.y/a%20b)\n"
     it "fences a code block that starts a list item and indents other ones" $
       renderMarkdown 100 (document [ul [li [node (CODE_BLOCK "a ```b\n") [], node (CODE_BLOCK "cc\n") []]], para [text "e"], node (CODE_BLOCK "dd\n") []])
-        `shouldBe` "  - ````\n    a ```b\n    ````\n        cc\n\ne\n\n    dd\n"
+        `shouldBe` "  - ````\n    a ```b\n    ````\n\n        cc\n\ne\n\n    dd\n"
+    it "separates a paragraph or code block from the block above it in a list item" $
+      renderMarkdown 100 (document [ul [li [para [text "a"], ul [li [para [text "b"]]], para [text "c"], node (CODE_BLOCK "dd\n") []]]])
+        `shouldBe` "  - a\n      - b\n\n    c\n\n        dd\n"
+    it "separates an ordered list not starting at 1 from the paragraph above it in a list item" $
+      renderMarkdown 100 (document [ul [li [para [text "a"], ol 3 [li [para [text "c"]]]], li [para [text "b"], ol 1 [li [para [text "one"]]]]]])
+        `shouldBe` "  - a\n\n    3.  c\n  - b\n    1.  one\n"
     it "ends a list followed by a code block, and fences code with blank edge lines" $
       renderMarkdown 100 (document [ul [li [para [text "a"]]], node (CODE_BLOCK "bb\n") [], node (CODE_BLOCK "\nc\n\n") []])
         `shouldBe` "  - a\n\n<!-- end list -->\n\n    bb\n\n```\n\nc\n\n```\n"

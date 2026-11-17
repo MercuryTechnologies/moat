@@ -9,13 +9,13 @@ module Moat.Pretty.Doc.Markdown
     br,
     document,
     inline,
-    inlineContent,
     li,
     markdown,
     node,
     ol,
     para,
     parseDoc,
+    prependInlines,
     text,
     ul,
   )
@@ -168,19 +168,10 @@ li = node ITEM
 link :: (String -> Node) -> (String -> Node) -> String -> Maybe (DocH String String) -> Node
 link m i url lbl = node (LINK (T.pack url)) (maybe [text url] (markdownInlines m i) lbl)
 
-inlineContent :: Node -> [Node]
-inlineContent n@(Node typ xs) =
-  if isBlock typ
-    then concatMap inlineContent xs
-    else [n]
-
-isBlock :: NodeType -> Bool
-isBlock = \case
-  DOCUMENT -> True
-  (LIST _) -> True
-  ITEM -> True
-  (CODE_BLOCK _) -> True
-  (CUSTOM_BLOCK _ _) -> True
-  PARAGRAPH -> True
-  (HEADING _) -> True
-  _ -> False
+-- | The blocks of a document, with inline nodes added to the start of its
+-- first paragraph. When the document does not start with a paragraph, the
+-- inlines become a new first paragraph.
+prependInlines :: [Node] -> Node -> [Node]
+prependInlines prefix (Node _ blocks) = case blocks of
+  Node PARAGRAPH xs : rest -> Node PARAGRAPH (prefix ++ xs) : rest
+  _ -> Node PARAGRAPH prefix : blocks

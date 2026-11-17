@@ -8,7 +8,8 @@ module Moat.Pretty.Doc.KDoc
 where
 
 import Data.Char (isSpace)
-import Data.List (dropWhileEnd, intercalate)
+import Data.List (dropWhileEnd)
+import Data.Maybe (mapMaybe)
 import qualified Data.Text as T
 import Moat.Pretty.Doc.Markdown
 import Moat.Pretty.Doc.Render (renderMarkdown)
@@ -39,18 +40,26 @@ prettyDoc wrap haddock =
       docstr = renderMarkdown wrap md
    in T.unpack docstr
 
+-- | KDoc splits block tags at line starts before parsing Markdown, so each
+-- @\@param@ follows the previous one without a blank line, even after a list.
 prettyFieldDoc :: Int -> [Field] -> Maybe String
-prettyFieldDoc wrap fields =
-  let params = filter (/= []) (map fieldParam fields)
-      md = case params of
-        [] -> Nothing
-        _ -> Just $ para (intercalate [br] params)
-   in T.unpack . renderMarkdown wrap <$> md
+prettyFieldDoc wrap fields = case mapMaybe fieldParam fields of
+  [] -> Nothing
+  params -> Just (concatMap (T.unpack . renderMarkdown wrap . document) params)
 
-fieldParam :: Field -> [Node]
-fieldParam Field {fieldDoc = Nothing} = []
-fieldParam Field {fieldDoc = Just doc, ..} =
-  text ("@param " ++ fieldName ++ " ") : inlineContent (markdown text identifier (parseDoc doc))
+fieldParam :: Field -> Maybe [Node]
+fieldParam Field {fieldDoc = Nothing} = Nothing
+fieldParam Field {fieldName = name, fieldDoc = Just doc} =
+  Just $ prependInlines [text ("@param " ++ name ++ " ")] (escapeTagStarts (markdown text identifier (parseDoc doc)))
+
+-- | Escape an @\@@ that starts a paragraph. KDoc reads a line that starts with
+-- @\@word@ as a block tag, which would end the @\@param@ description.
+escapeTagStarts :: Node -> Node
+escapeTagStarts (Node typ xs) = case (typ, xs) of
+  (PARAGRAPH, Node (TEXT t) [] : _)
+    | "@" `T.isPrefixOf` t -> Node PARAGRAPH (inline "\\" "" [] : xs)
+  (PARAGRAPH, _) -> Node PARAGRAPH xs
+  _ -> Node typ (map escapeTagStarts xs)
 
 identifier :: String -> Node
 identifier ident = inline "[" "]" [text ident]

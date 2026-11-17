@@ -1,0 +1,54 @@
+/// Documentation for ``Shape``.
+public enum Shape: Hashable, Codable {
+    /// A circle.
+    ///
+    ///   - Parameters:
+    ///       - circleRadius: The radius, with a list.
+    ///           - Measured in points
+    ///           - Never negative
+    ///       - circleLabel: The label.
+    case circle(_ circleRadius: Int, _ circleLabel: Int)
+    /// A square.
+    case square(_ squareSide: Int)
+
+    public enum CodingKeys: String, CodingKey {
+        case tag
+        case circleRadius
+        case circleLabel
+        case squareSide
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let discriminator = try container.decode(String.self, forKey: .tag)
+        switch discriminator {
+            case "circle":
+                self = .circle(
+                    try container.decode(Int.self, forKey: .circleRadius),
+                    try container.decode(Int.self, forKey: .circleLabel)
+                )
+            case "square":
+                self = .square(
+                    try container.decode(Int.self, forKey: .squareSide)
+                )
+            default:
+                throw DecodingError.typeMismatch(
+                    CodingKeys.self,
+                    .init(codingPath: decoder.codingPath, debugDescription: "Can't decode unknown tag: Shape.\(discriminator)")
+                )
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch (self) {
+            case let .circle(circleRadius, circleLabel):
+                try container.encode("circle", forKey: .tag)
+                try container.encode(circleRadius, forKey: .circleRadius)
+                try container.encode(circleLabel, forKey: .circleLabel)
+            case let .square(squareSide):
+                try container.encode("square", forKey: .tag)
+                try container.encode(squareSide, forKey: .squareSide)
+        }
+    }
+}

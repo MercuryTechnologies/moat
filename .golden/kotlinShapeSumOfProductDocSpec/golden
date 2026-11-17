@@ -1,0 +1,27 @@
+/** Documentation for [Shape]. */
+@JsonClassDiscriminator("tag")
+@Serializable
+sealed interface Shape {
+    /**
+     * A circle.
+     *
+     * @param circleRadius The radius, with a list.
+     *
+     *   - Measured in points
+     *   - Never negative
+     * @param circleLabel The label.
+     */
+    @Serializable
+    @SerialName("circle")
+    data class Circle(
+        val circleRadius: Int,
+        val circleLabel: Int,
+    ) : Shape
+
+    /** A square. */
+    @Serializable
+    @SerialName("square")
+    data class Square(
+        val squareSide: Int,
+    ) : Shape
+}
