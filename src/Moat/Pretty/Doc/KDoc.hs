@@ -40,12 +40,12 @@ prettyDoc wrap haddock =
       docstr = renderMarkdown wrap md
    in T.unpack docstr
 
+-- | KDoc splits block tags at line starts before parsing Markdown, so each
+-- @\@param@ follows the previous one without a blank line, even after a list.
 prettyFieldDoc :: Int -> [Field] -> Maybe String
-prettyFieldDoc wrap fields =
-  let md = case foldr joinParams [] (mapMaybe fieldParam fields) of
-        [] -> Nothing
-        blocks -> Just (document blocks)
-   in T.unpack . renderMarkdown wrap <$> md
+prettyFieldDoc wrap fields = case mapMaybe fieldParam fields of
+  [] -> Nothing
+  params -> Just (concatMap (T.unpack . renderMarkdown wrap . document) params)
 
 fieldParam :: Field -> Maybe [Node]
 fieldParam Field {fieldDoc = Nothing} = Nothing
@@ -60,16 +60,6 @@ escapeTagStarts (Node typ xs) = case (typ, xs) of
     | "@" `T.isPrefixOf` t -> Node PARAGRAPH (inline "\\" "" [] : xs)
   (PARAGRAPH, _) -> Node PARAGRAPH xs
   _ -> Node typ (map escapeTagStarts xs)
-
--- | Join the blocks of two params. A paragraph that ends the first and the
--- paragraph that starts the second become one paragraph with a hard break
--- between them, so each @\@param@ starts a line without a blank line before
--- it.
-joinParams :: [Node] -> [Node] -> [Node]
-joinParams a b = case (reverse a, b) of
-  (Node PARAGRAPH xs : before, Node PARAGRAPH ys : after) ->
-    reverse before ++ Node PARAGRAPH (xs ++ br : ys) : after
-  _ -> a ++ b
 
 identifier :: String -> Node
 identifier ident = inline "[" "]" [text ident]
